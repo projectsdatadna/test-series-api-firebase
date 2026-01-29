@@ -1,0 +1,28 @@
+{
+  "name": "express-firebase-app",
+  "version": "1.0.0",
+  "description": "Basic Node Express Firebase app",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "sync": "powershell -Command \"Get-ChildItem -Path src -Recurse -Include '*.js' | ForEach-Object { $dest = $_.FullName -replace '^src', 'functions'; New-Item -ItemType Directory -Path (Split-Path $dest) -Force | Out-Null; Copy-Item -Path $_.FullName -Destination $dest -Force }\"",
+    "build": "npm run sync",
+    "deploy": "npm run sync && firebase deploy --only functions"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "firebase": "^12.8.0",
+    "firebase-admin": "^12.0.0",
+    "dotenv": "^16.3.1",
+    "multer": "^1.4.5-lts.1",
+    "aws-jwt-verify": "^3.3.0",
+    "aws-sdk": "^2.1500.0",
+    "uuid": "^9.0.0",
+    "@anthropic-ai/sdk": "^0.24.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
