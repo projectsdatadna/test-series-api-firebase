@@ -43,5 +43,11 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Export as Cloud Function
-exports.api = functions.https.onRequest(app);
+exports.api = functions
+  .runWith({
+    timeoutSeconds: 540,      // 9 minutes (max for Gen 1)
+    memory: '2GB',            // Increase memory allocation
+    maxInstances: 10          // Optional: limit concurrent instances
+  })
+  .https.onRequest(app);
+
