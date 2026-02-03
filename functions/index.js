@@ -27,6 +27,18 @@ app.get('/', (req, res) => {
   res.json({ message: 'Express Firebase App is running' });
 });
 
+// Debug endpoint to check environment variables
+app.get('/debug/env', (req, res) => {
+  res.json({
+    AWS_REGION: process.env.AWS_REGION,
+    AWS_ACCESS_KEY_ID_LOADED: !!process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY_LOADED: !!process.env.AWS_SECRET_ACCESS_KEY,
+    CLAUDE_API_KEY_LOADED: !!process.env.CLAUDE_API_KEY,
+    USER_POOL_ID: process.env.USER_POOL_ID,
+    CLIENT_ID: process.env.CLIENT_ID,
+  });
+});
+
 // API routes
 app.use('/adaptive-content', adaptiveContentRoutes);
 

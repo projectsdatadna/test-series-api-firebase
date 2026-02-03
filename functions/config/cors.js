@@ -1,24 +1,14 @@
 const cors = require("cors");
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests from localhost, Postman, and configured origins
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "http://test-series-ui.s3-website-us-east-1.amazonaws.com",
-      process.env.CORS_ORIGIN
-    ].filter(Boolean);
-
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, true); // For development, allow all origins. Restrict in production.
-    }
+  origin: function (origin, callback) {
+    console.log("CORS request from origin:", origin);
+    callback(null, true);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 200
 };
 
 module.exports = cors(corsOptions);
