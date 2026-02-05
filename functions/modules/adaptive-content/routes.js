@@ -65,14 +65,8 @@ router.options('/extract-structure', (req, res) => {
   res.sendStatus(200);
 });
 
-// Generate adaptive content from uploaded file
-// POST /adaptive-content/generate
-// Body: { fileId, sectionNumber, topicName, contentType }
 router.post('/generate', verifyJWT, generateAdaptiveContent);
 
-// Extract document structure (sections, headers, tables, images)
-// POST /adaptive-content/extract-structure
-// Body: { fileId }
 router.post('/extract-structure', verifyJWT, extractDocumentStructure);
 
 module.exports = router;

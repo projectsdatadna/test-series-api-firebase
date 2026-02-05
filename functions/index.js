@@ -3,6 +3,7 @@ const express = require('express');
 const corsMiddleware = require('./config/cors');
 const errorHandler = require('./middleware/errorHandler');
 const adaptiveContentRoutes = require('./modules/adaptive-content/routes');
+const questionPaperRoutes = require('./modules/question-paper/routes');
 
 // Load environment variables from .env.local only in local development
 // In Firebase Cloud Functions, environment variables come from firebase.json automatically
@@ -41,6 +42,7 @@ app.get('/debug/env', (req, res) => {
 
 // API routes
 app.use('/adaptive-content', adaptiveContentRoutes);
+app.use('/question-paper', questionPaperRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
