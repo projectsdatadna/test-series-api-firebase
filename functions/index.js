@@ -43,6 +43,11 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
+const PORT = 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running at http://localhost:${PORT}`);
+});
+
 exports.api = functions
   .runWith({
     timeoutSeconds: 540,      // 9 minutes (max for Gen 1)
@@ -50,4 +55,3 @@ exports.api = functions
     maxInstances: 10          // Optional: limit concurrent instances
   })
   .https.onRequest(app);
-

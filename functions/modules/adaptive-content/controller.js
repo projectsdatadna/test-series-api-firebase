@@ -24,6 +24,8 @@ async function generateAdaptiveContent(req, res) {
       });
     }
 
+    console.log('Route hit! Body:', JSON.stringify(req.body));
+    
     // Extract all parameters from request body
     const {
       fileId,
