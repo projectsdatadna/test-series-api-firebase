@@ -5,3 +5,8 @@ node_modules/
 *.log
 dist/
 build/
+package-lock.json
+settings.json
+.gcloudignore
+index.html
+firebase.json

@@ -30,20 +30,29 @@ async function generateQuestionPaper(req, res) {
     // Extract parameters from request body
     const {
       fileId,
+      fileIds = [],
       duration = 60,
       mcqCount = 10,
+      mcqMarks = 1,
+      mcqCompulsory,
       shortAnswerCount = 5,
+      shortAnswerMarks = 3,
+      shortAnswerCompulsory,
       difficultyLevel = "medium",
       subject = "",
       topic = "",
+      customQuestions = [],
     } = req.body;
 
+    // Support both single fileId and multiple fileIds
+    const filesToUse = fileIds && fileIds.length > 0 ? fileIds : (fileId ? [fileId] : []);
+
     // Validate required fields
-    if (!fileId) {
+    if (filesToUse.length === 0) {
       clearTimeout(timeoutId);
       return res.status(400).json({
         success: false,
-        message: "Missing required field: fileId",
+        message: "Missing required field: fileId or fileIds",
       });
     }
 
@@ -61,17 +70,42 @@ async function generateQuestionPaper(req, res) {
     const prompt = getQuestionPaperPrompt({
       duration,
       mcqCount,
+      mcqMarks,
+      mcqCompulsory,
       shortAnswerCount,
+      shortAnswerMarks,
+      shortAnswerCompulsory,
       difficultyLevel,
       subject,
       topic,
+      customQuestions,
     });
 
     console.log(prompt,'prompt')
 
     console.log("Calling Anthropic API for question paper generation...");
+    console.log(`Processing ${filesToUse.length} file(s)...`);
 
-    // Call Anthropic Messages API with file reference
+    // Build content array with all files
+    const contentArray = [
+      {
+        type: "text",
+        text: prompt,
+      },
+    ];
+
+    // Add all files to content array
+    filesToUse.forEach((fId) => {
+      contentArray.push({
+        type: "document",
+        source: {
+          type: "file",
+          file_id: fId,
+        },
+      });
+    });
+
+    // Call Anthropic Messages API with file references
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -86,19 +120,7 @@ async function generateQuestionPaper(req, res) {
         messages: [
           {
             role: "user",
-            content: [
-              {
-                type: "text",
-                text: prompt,
-              },
-              {
-                type: "document",
-                source: {
-                  type: "file",
-                  file_id: fileId,
-                },
-              },
-            ],
+            content: contentArray,
           },
         ],
       }),

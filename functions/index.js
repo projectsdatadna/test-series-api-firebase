@@ -4,16 +4,22 @@ const corsMiddleware = require('./config/cors');
 const errorHandler = require('./middleware/errorHandler');
 const adaptiveContentRoutes = require('./modules/adaptive-content/routes');
 const questionPaperRoutes = require('./modules/question-paper/routes');
+const generatePdfRoutes = require('./modules/generate-pdf/routes');
 
 // Load environment variables from .env.local only in local development
 // In Firebase Cloud Functions, environment variables come from firebase.json automatically
 const isLocalDev = !process.env.FUNCTION_NAME; // FUNCTION_NAME is set by Firebase
 if (isLocalDev) {
-  const dotenv = require('dotenv');
-  dotenv.config({ path: '.env.local' });
+  try {
+    const dotenv = require('dotenv');
+    dotenv.config({ path: '.env.local' });
+  } catch (e) {
+    console.warn('Warning: Could not load .env.local, using firebase.json environment variables');
+  }
 }
 
 const app = express();
+const path = require('path');
 
 // Middleware
 app.use(corsMiddleware);
@@ -22,6 +28,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Initialize Firebase (config is loaded in modules)
 require('./config/firebase');
+
+// Serve static files from public directory (if UI is built there)
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Routes
 app.get('/', (req, res) => {
@@ -43,6 +52,7 @@ app.get('/debug/env', (req, res) => {
 // API routes
 app.use('/adaptive-content', adaptiveContentRoutes);
 app.use('/question-paper', questionPaperRoutes);
+app.use('/pdf', generatePdfRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -52,9 +62,18 @@ app.get('/health', (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// 404 handler
+// 404 handler - serve index.html for SPA routing
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  // If it's an API route, return 404 JSON
+  if (req.path.startsWith('/api') || req.path.startsWith('/adaptive-content') || req.path.startsWith('/question-paper') || req.path.startsWith('/pdf')) {
+    return res.status(404).json({ error: 'Route not found' });
+  }
+  // Otherwise serve index.html for SPA
+  res.sendFile(path.join(__dirname, '../public/index.html'), (err) => {
+    if (err) {
+      res.status(404).json({ error: 'Not found' });
+    }
+  });
 });
 
 exports.api = functions
