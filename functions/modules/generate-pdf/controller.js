@@ -2,27 +2,60 @@ require('dotenv').config();
 
 /**
  * Get the appropriate puppeteer instance and launch options based on environment
- * Uses @sparticuz/chromium for all environments (most reliable)
+ * Uses puppeteer for local, @sparticuz/chromium for Firebase Cloud Functions
  */
 async function getPuppeteerAndOptions() {
+  const isFirebase = !!process.env.FIREBASE_CONFIG || !!process.env.FUNCTION_NAME;
+  
   try {
-    const chromium = require('@sparticuz/chromium');
-    const puppeteerCore = require('puppeteer-core');
-    
-    console.log('[PDF] Using @sparticuz/chromium for PDF generation');
-    
-    return {
-      puppeteer: puppeteerCore,
-      launchOptions: {
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-      },
-    };
+    if (isFirebase) {
+      // Firebase Cloud Functions - use @sparticuz/chromium
+      const chromium = require('@sparticuz/chromium');
+      const puppeteerCore = require('puppeteer-core');
+      
+      console.log('[PDF] Using @sparticuz/chromium for Firebase Cloud Functions');
+      
+      return {
+        puppeteer: puppeteerCore,
+        launchOptions: {
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+        },
+      };
+    } else {
+      // Local environment - use regular puppeteer
+      const puppeteer = require('puppeteer');
+      
+      console.log('[PDF] Using puppeteer for local development');
+      
+      return {
+        puppeteer,
+        launchOptions: {
+          headless: 'new',
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        },
+      };
+    }
   } catch (error) {
-    console.error('[PDF] Failed to load @sparticuz/chromium:', error.message);
-    throw new Error('Chromium not available. Please ensure @sparticuz/chromium is installed: npm install @sparticuz/chromium');
+    console.error('[PDF] Failed to load puppeteer:', error.message);
+    
+    // Fallback to regular puppeteer for local
+    try {
+      const puppeteer = require('puppeteer');
+      console.log('[PDF] Falling back to puppeteer');
+      
+      return {
+        puppeteer,
+        launchOptions: {
+          headless: 'new',
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        },
+      };
+    } catch (fallbackError) {
+      throw new Error('Puppeteer not available. Please install: npm install puppeteer');
+    }
   }
 }
 
@@ -410,20 +443,16 @@ async function generatePDF(req, res) {
 
 /**
  * Generate HTML from exam data structure
- * Handles MCQ, Short Answer, and custom question types (Long Answer, Essay, etc.)
+ * Handles MCQ, Short Answer, Fill ups, Long Answer, Match the Following, True/False, Essay
  */
 function generateExamHTML(examData) {
-  const { examDetails, sections, mcqQuestions, shortAnswerQuestions, customQuestions } = examData;
+  const { examDetails, sections, questions } = examData;
   
-  // Ensure topic is not displayed - only use subject
   const displaySubject = examDetails.subject || 'Exam';
-   
-
-
   let sectionsHTML = '';
 
   // MCQ Section
-  if (mcqQuestions && mcqQuestions.length > 0) {
+  if (questions.mcq && questions.mcq.length > 0) {
     const mcqSection = sections.find(s => s.sectionName === 'MCQ');
     sectionsHTML += `
       <div data-section>
@@ -431,16 +460,16 @@ function generateExamHTML(examData) {
         <div style="font-size: 0.7rem; color: #666; margin-bottom: 1rem; font-style: italic;">
           ${mcqSection?.note || 'Answer all questions'} | ${mcqSection?.totalMarks} marks
         </div>
-        ${mcqQuestions.map((q) => `
+        ${questions.mcq.map((q) => `
           <div data-question>
             <p data-question-text>${q.questionNumber}. ${q.question}</p>
             <div data-options>
-              ${Object.entries(q.options).map(([key, value]) => `
-                <p data-option>(${key}) ${value}</p>
+              ${q.options.map((opt, idx) => `
+                <p data-option>${String.fromCharCode(65 + idx)}) ${opt}</p>
               `).join('')}
             </div>
             <div data-answer>
-              <p data-answer-label>Correct Answer: (${q.correctAnswer})</p>
+              <p data-answer-label>Correct Answer: ${q.answer}</p>
             </div>
           </div>
         `).join('')}
@@ -449,7 +478,7 @@ function generateExamHTML(examData) {
   }
 
   // Short Answer Section
-  if (shortAnswerQuestions && shortAnswerQuestions.length > 0) {
+  if (questions.shortAnswer && questions.shortAnswer.length > 0) {
     const shortSection = sections.find(s => s.sectionName === 'Short Answer');
     sectionsHTML += `
       <div data-section>
@@ -457,20 +486,12 @@ function generateExamHTML(examData) {
         <div style="font-size: 0.7rem; color: #666; margin-bottom: 1rem; font-style: italic;">
           ${shortSection?.note || 'Answer all questions'} | ${shortSection?.totalMarks} marks
         </div>
-        ${shortAnswerQuestions.map((q) => `
+        ${questions.shortAnswer.map((q) => `
           <div data-question>
-            <p data-question-text>${q.questionNumber}. ${q.question} (${q.marksAllocated} marks)</p>
+            <p data-question-text>${q.questionNumber}. ${q.question} (${q.marks} marks)</p>
             <div data-answer>
               <p data-answer-label>Expected Answer:</p>
-              <p data-answer-text>${q.expectedAnswer}</p>
-              ${q.keyPoints && q.keyPoints.length > 0 ? `
-                <div data-key-points>
-                  <strong>Key Points:</strong>
-                  <ul>
-                    ${q.keyPoints.map(point => `<li>${point}</li>`).join('')}
-                  </ul>
-                </div>
-              ` : ''}
+              <p data-answer-text>${q.answer}</p>
             </div>
           </div>
         `).join('')}
@@ -478,39 +499,131 @@ function generateExamHTML(examData) {
     `;
   }
 
-  // Custom Questions (Dynamic types: Long Answer, Essay, etc.)
-  if (customQuestions && customQuestions.length > 0) {
-    customQuestions.forEach((customSection) => {
-      const sectionInfo = sections.find(s => s.sectionName === customSection.section);
-      const sectionTitle = customSection.section;
-      const questionType = customSection.type;
-
-      sectionsHTML += `
-        <div data-section>
-          <div data-section-title>${sectionTitle}: ${questionType} Questions</div>
-          <div style="font-size: 0.7rem; color: #666; margin-bottom: 1rem; font-style: italic;">
-            ${sectionInfo?.note || 'Answer as instructed'} | ${sectionInfo?.totalMarks} marks
+  // Fill ups Section
+  if (questions.fillups && questions.fillups.length > 0) {
+    const fillSection = sections.find(s => s.sectionName === 'Fill ups');
+    sectionsHTML += `
+      <div data-section>
+        <div data-section-title>Section C: Fill in the Blanks</div>
+        <div style="font-size: 0.7rem; color: #666; margin-bottom: 1rem; font-style: italic;">
+          ${fillSection?.note || 'Answer all questions'} | ${fillSection?.totalMarks} marks
+        </div>
+        ${questions.fillups.map((q) => `
+          <div data-question>
+            <p data-question-text>${q.questionNumber}. ${q.question} (${q.marks} marks)</p>
+            <div data-answer>
+              <p data-answer-label>Answer:</p>
+              <p data-answer-text>${q.answer}</p>
+            </div>
           </div>
-          ${customSection.questions.map((q) => `
-            <div data-question>
-              <p data-question-text>${q.questionNumber}. ${q.question} (${q.marksAllocated} marks)</p>
-              <div data-answer>
-                <p data-answer-label>Expected Answer:</p>
-                <p data-answer-text>${q.expectedAnswer}</p>
-                ${q.keyPoints && q.keyPoints.length > 0 ? `
-                  <div data-key-points>
-                    <strong>Key Points:</strong>
-                    <ul>
-                      ${q.keyPoints.map(point => `<li>${point}</li>`).join('')}
-                    </ul>
-                  </div>
-                ` : ''}
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Long Answer Section
+  if (questions.longans && questions.longans.length > 0) {
+    const longSection = sections.find(s => s.sectionName === 'Long Answer');
+    sectionsHTML += `
+      <div data-section>
+        <div data-section-title>Section D: Long Answer Questions</div>
+        <div style="font-size: 0.7rem; color: #666; margin-bottom: 1rem; font-style: italic;">
+          ${longSection?.note || 'Answer all questions'} | ${longSection?.totalMarks} marks
+        </div>
+        ${questions.longans.map((q) => `
+          <div data-question>
+            <p data-question-text>${q.questionNumber}. ${q.question} (${q.marks} marks)</p>
+            <div data-answer>
+              <p data-answer-label>Expected Answer:</p>
+              <p data-answer-text>${q.answer}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Match the Following Section
+  if (questions.match && questions.match.length > 0) {
+    const matchSection = sections.find(s => s.sectionName === 'Match the Following');
+    sectionsHTML += `
+      <div data-section>
+        <div data-section-title>Section E: Match the Following</div>
+        <div style="font-size: 0.7rem; color: #666; margin-bottom: 1rem; font-style: italic;">
+          ${matchSection?.note || 'Answer all questions'} | ${matchSection?.totalMarks} marks
+        </div>
+        ${questions.match.map((q) => `
+          <div data-question>
+            <p data-question-text>${q.questionNumber}. Match the Following (${q.marks} marks)</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-left: 1rem; margin-top: 0.5rem;">
+              <div>
+                <strong style="font-size: 0.75rem;">Column A</strong>
+                ${q.columnA.map(item => `
+                  <p style="font-size: 0.75rem; margin: 0.25rem 0;">${item.id}. ${item.text}</p>
+                `).join('')}
+              </div>
+              <div>
+                <strong style="font-size: 0.75rem;">Column B</strong>
+                ${q.columnB.map(item => `
+                  <p style="font-size: 0.75rem; margin: 0.25rem 0;">${item.id}. ${item.text}</p>
+                `).join('')}
               </div>
             </div>
-          `).join('')}
+            <div data-answer>
+              <p data-answer-label>Answers:</p>
+              <div style="font-size: 0.75rem;">
+                ${Object.entries(q.answers).map(([key, value]) => `
+                  <p style="margin: 0.25rem 0;">${key} → ${value}</p>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // True or False Section
+  if (questions.trueorfalse && questions.trueorfalse.length > 0) {
+    const tfSection = sections.find(s => s.sectionName === 'True or False');
+    sectionsHTML += `
+      <div data-section>
+        <div data-section-title>Section F: True or False</div>
+        <div style="font-size: 0.7rem; color: #666; margin-bottom: 1rem; font-style: italic;">
+          ${tfSection?.note || 'Answer all questions'} | ${tfSection?.totalMarks} marks
         </div>
-      `;
-    });
+        ${questions.trueorfalse.map((q) => `
+          <div data-question>
+            <p data-question-text>${q.questionNumber}. ${q.statement} (${q.marks} marks)</p>
+            <div data-answer>
+              <p data-answer-label>Answer: ${q.answer}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Essay Section
+  if (questions.essay && questions.essay.length > 0) {
+    const essaySection = sections.find(s => s.sectionName === 'Essay');
+    sectionsHTML += `
+      <div data-section>
+        <div data-section-title>Section G: Essay Questions</div>
+        <div style="font-size: 0.7rem; color: #666; margin-bottom: 1rem; font-style: italic;">
+          ${essaySection?.note || 'Answer all questions'} | ${essaySection?.totalMarks} marks
+        </div>
+        ${questions.essay.map((q) => `
+          <div data-question>
+            <p data-question-text>${q.questionNumber}. ${q.question} (${q.marks} marks)</p>
+            <div data-answer>
+              <p data-answer-label>Expected Answer:</p>
+              <p data-answer-text>${q.answer}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 
   // Generate final HTML
