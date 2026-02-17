@@ -3,6 +3,7 @@ const express = require('express');
 const corsMiddleware = require('./config/cors');
 const errorHandler = require('./middleware/errorHandler');
 const adaptiveContentRoutes = require('./modules/adaptive-content/routes');
+const remedialRoutes = require("./modules/remedial/routes");
 
 // Load environment variables from .env.local only in local development
 // In Firebase Cloud Functions, environment variables come from firebase.json automatically
@@ -30,6 +31,8 @@ app.get('/', (req, res) => {
 // API routes
 app.use('/adaptive-content', adaptiveContentRoutes);
 
+app.use('/remedial', remedialRoutes);
+
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'API is running' });
@@ -47,7 +50,7 @@ const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
 });
-
+  
 exports.api = functions
   .runWith({
     timeoutSeconds: 540,      // 9 minutes (max for Gen 1)
