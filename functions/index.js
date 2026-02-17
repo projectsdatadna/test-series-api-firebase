@@ -5,6 +5,7 @@ const errorHandler = require('./middleware/errorHandler');
 const adaptiveContentRoutes = require('./modules/adaptive-content/routes');
 const questionPaperRoutes = require('./modules/question-paper/routes');
 const generatePdfRoutes = require('./modules/generate-pdf/routes');
+const remedialRoutes = require("./modules/remedial/routes");
 
 // Load environment variables from .env.local only in local development
 // In Firebase Cloud Functions, environment variables come from firebase.json automatically
@@ -53,6 +54,7 @@ app.get('/debug/env', (req, res) => {
 app.use('/adaptive-content', adaptiveContentRoutes);
 app.use('/question-paper', questionPaperRoutes);
 app.use('/pdf', generatePdfRoutes);
+app.use('/remedial', remedialRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -83,4 +85,3 @@ exports.api = functions
     maxInstances: 10          // Optional: limit concurrent instances
   })
   .https.onRequest(app);
-
