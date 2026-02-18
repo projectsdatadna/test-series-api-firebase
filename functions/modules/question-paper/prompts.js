@@ -35,38 +35,32 @@ function getLongAnswerPrompt(params) {
 function getMatchPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
-  return `GENERATE EXACTLY 1 MATCH THE FOLLOWING QUESTION with ${count} field sets (${marks} marks each, ${difficultyLevel} difficulty).
+  // Generate columnA items dynamically
+  const columnAItems = Array.from({length: count}, (_, i) => `{"id":"${i+1}","text":""}`).join(',');
+  // Generate columnB items dynamically
+  const columnBItems = Array.from({length: count}, (_, i) => `{"id":"${String.fromCharCode(97+i)}","text":""}`).join(',');
+  // Generate answers array dynamically
+  const answersItems = Array.from({length: count}, (_, i) => `{"columnAId":"${i+1}","columnBId":""}`).join(',');
+  
+  return `GENERATE EXACTLY 1 MATCH THE FOLLOWING QUESTION with ${count} field sets (${marks} marks, ${difficultyLevel} difficulty).
 
 RETURN ONLY THIS JSON STRUCTURE (no other text, no markdown):
 [{
   "questionNumber": 1,
-  "columnA": [
-    {"id": "1", "text": ""},
-    {"id": "2", "text": ""},
-    ...${count > 2 ? `(continue for total of ${count} items)` : ''}
-  ],
-  "columnB": [
-    {"id": "a", "text": ""},
-    {"id": "b", "text": ""},
-    ...${count > 2 ? `(continue for total of ${count} items)` : ''}
-  ],
-  "answers": [
-    {"columnAId": "1", "columnBId": ""},
-    {"columnAId": "2", "columnBId": ""},
-    ...${count > 2 ? `(continue for total of ${count} items)` : ''}
-  ]
+  "columnA": [${columnAItems}],
+  "columnB": [${columnBItems}],
+  "answers": [${answersItems}]
 }]
 
 CRITICAL REQUIREMENTS:
 - Return ONLY a JSON array with exactly 1 question object
 - The question MUST have: questionNumber (value: 1), columnA, columnB, answers
-- columnA: Array of exactly ${count} objects with id (numeric string: "1", "2", "3"...) and text
-- columnB: Array of exactly ${count} objects with id (alphabetic string: "a", "b", "c"...) and text
-- answers: Array of exactly ${count} objects with columnAId and columnBId pairs
+- columnA: Array of ${count} objects with id (numeric string: "1", "2", "3"...) and text
+- columnB: Array of ${count} objects with id (alphabetic string: "a", "b", "c"...) and text
+- answers: Array of ${count} objects with columnAId and columnBId pairs
 - DO NOT include "question" or "answer" fields
 - DO NOT generate multiple questions
-- Fill text fields with relevant content from the document
-- Total marks for this question = ${count} × ${marks} = ${count * marks}`;
+- Fill text fields with relevant content from the document`;
 }
 
 // True or False Prompt
