@@ -3,10 +3,9 @@ function getMCQPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `Generate ${count} MCQ questions (${marks} marks each, ${difficultyLevel} difficulty):
-[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","options":["","","",""],"answer":"","marks":${marks}}`).join(',')}]`;
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","options":["","","",""],"answer":{"option":"","text":""},"marks":${marks}}`).join(',')}]`;
 }
 
-// Short Answer Questions Prompt
 // Short Answer Questions Prompt
 function getShortAnswerPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
@@ -35,10 +34,39 @@ function getLongAnswerPrompt(params) {
 // Match the Following Prompt
 function getMatchPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
-  const fieldsPerSet = 5;
   
-  return `Generate ${count} Match the Following questions (${marks} marks each, ${difficultyLevel} difficulty):
-[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"columnA":[${Array.from({length: fieldsPerSet}, (_, j) => `{"id":"${String.fromCharCode(65+j)}","text":""}`).join(',')}],"columnB":[${Array.from({length: fieldsPerSet}, (_, j) => `{"id":"${j+1}","text":""}`).join(',')}],"answers":{"A":"","B":"","C":"","D":"","E":""},"marks":${marks}}`).join(',')}]`;
+  return `GENERATE EXACTLY 1 MATCH THE FOLLOWING QUESTION with ${count} field sets (${marks} marks each, ${difficultyLevel} difficulty).
+
+RETURN ONLY THIS JSON STRUCTURE (no other text, no markdown):
+[{
+  "questionNumber": 1,
+  "columnA": [
+    {"id": "1", "text": ""},
+    {"id": "2", "text": ""},
+    ...${count > 2 ? `(continue for total of ${count} items)` : ''}
+  ],
+  "columnB": [
+    {"id": "a", "text": ""},
+    {"id": "b", "text": ""},
+    ...${count > 2 ? `(continue for total of ${count} items)` : ''}
+  ],
+  "answers": [
+    {"columnAId": "1", "columnBId": ""},
+    {"columnAId": "2", "columnBId": ""},
+    ...${count > 2 ? `(continue for total of ${count} items)` : ''}
+  ]
+}]
+
+CRITICAL REQUIREMENTS:
+- Return ONLY a JSON array with exactly 1 question object
+- The question MUST have: questionNumber (value: 1), columnA, columnB, answers
+- columnA: Array of exactly ${count} objects with id (numeric string: "1", "2", "3"...) and text
+- columnB: Array of exactly ${count} objects with id (alphabetic string: "a", "b", "c"...) and text
+- answers: Array of exactly ${count} objects with columnAId and columnBId pairs
+- DO NOT include "question" or "answer" fields
+- DO NOT generate multiple questions
+- Fill text fields with relevant content from the document
+- Total marks for this question = ${count} × ${marks} = ${count * marks}`;
 }
 
 // True or False Prompt
@@ -67,9 +95,10 @@ function getExamDetailsPrompt(params) {
     shortAnswer,
     fillups,
     longans,
-    matchthefollowing,
+    match,
     trueorfalse,
     essay,
+    internalChoice,
   } = params;
 
   let totalQuestions = 0;
@@ -133,16 +162,17 @@ function getExamDetailsPrompt(params) {
   }
 
   // Match the Following Section
-  if (matchthefollowing) {
-    const matchMandatory = matchthefollowing.compulsory || matchthefollowing.count;
-    totalQuestions += matchthefollowing.count;
-    totalMarks += matchMandatory * matchthefollowing.marks;
+  if (match) {
+    const matchMandatory = match.compulsory || match.count;
+    totalQuestions += 1;
+    totalMarks += matchMandatory * match.marks;
     sections.push({
       sectionName: "Match the Following",
-      totalQuestions: matchthefollowing.count,
-      marksPerQuestion: matchthefollowing.marks,
-      totalMarks: matchMandatory * matchthefollowing.marks,
-      note: matchthefollowing.compulsory ? `Answer any ${matchthefollowing.compulsory}` : "Answer all",
+      totalQuestions: 1,
+      fieldSets: match.count,
+      marksPerQuestion: match.marks,
+      totalMarks: matchMandatory * match.marks,
+      note: match.compulsory ? `Answer any ${match.compulsory}` : "Answer all",
     });
   }
 
@@ -174,6 +204,20 @@ function getExamDetailsPrompt(params) {
     });
   }
 
+  // Internal Choice Section
+  if (internalChoice) {
+    const internalChoiceMandatory = internalChoice.compulsory || internalChoice.count;
+    totalQuestions += internalChoice.count;
+    totalMarks += internalChoiceMandatory * internalChoice.marks;
+    sections.push({
+      sectionName: "Internal Choice",
+      totalQuestions: internalChoice.count,
+      marksPerQuestion: internalChoice.marks,
+      totalMarks: internalChoiceMandatory * internalChoice.marks,
+      note: `Answer either (a) or (b)${internalChoice.compulsory ? ` - Answer any ${internalChoice.compulsory}` : ""}`,
+    });
+  }
+
   return {
     examDetails: {
       duration,
@@ -194,5 +238,15 @@ module.exports = {
   getMatchPrompt,
   getTrueOrFalsePrompt,
   getEssayPrompt,
+  getInternalChoicePrompt,
   getExamDetailsPrompt,
 };
+
+// Internal Choice Questions Prompt
+function getInternalChoicePrompt(params) {
+  const { count, marks, difficultyLevel, subject } = params;
+  
+  return `Generate ${count} Internal Choice questions (${marks} marks each, ${difficultyLevel} difficulty). Each question has two long questions labeled (a) and (b). Students answer either (a) or (b):
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"questionA":"","questionB":"","answerA":"","answerB":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions with both (a) and (b) options. Do not stop early. Fill in all question and answer fields completely.`;
+}

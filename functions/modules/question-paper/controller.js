@@ -7,6 +7,7 @@ const {
   getMatchPrompt,
   getTrueOrFalsePrompt,
   getEssayPrompt,
+  getInternalChoicePrompt,
   getExamDetailsPrompt,
 } = require("./prompts");
 
@@ -43,9 +44,10 @@ async function generateQuestionPaper(req, res) {
       shortAnswer,
       fillups,
       longans,
-      matchthefollowing,
+      match,
       trueorfalse,
       essay,
+      internalChoice,
     } = req.body;
 
     // Validate required fields
@@ -69,9 +71,10 @@ async function generateQuestionPaper(req, res) {
       shortAnswer,
       fillups,
       longans,
-      matchthefollowing,
+      match,
       trueorfalse,
       essay,
+      internalChoice,
     });
 
     // Build combined prompt with all question types
@@ -118,11 +121,11 @@ async function generateQuestionPaper(req, res) {
         }) + "\n\n";
     }
 
-    if (matchthefollowing && matchthefollowing.count > 0) {
+    if (match && match.count > 0) {
       combinedPrompt +=
         getMatchPrompt({
-          count: matchthefollowing.count,
-          marks: matchthefollowing.marks,
+          count: match.count,
+          marks: match.marks,
           difficultyLevel,
           subject,
         }) + "\n\n";
@@ -148,6 +151,39 @@ async function generateQuestionPaper(req, res) {
         }) + "\n\n";
     }
 
+    if (internalChoice && internalChoice.count > 0) {
+      combinedPrompt +=
+        getInternalChoicePrompt({
+          count: internalChoice.count,
+          marks: internalChoice.marks,
+          difficultyLevel,
+          subject,
+        }) + "\n\n";
+    }
+
+    // Helper function to generate generic prompt for undefined question types
+    function getGenericQuestionPrompt(questionType, count, marks, difficultyLevel) {
+      return `Generate ${count} ${questionType} questions (${marks} marks each, ${difficultyLevel} difficulty):
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","answer":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions. Do not stop early. Fill in all question and answer fields completely.`;
+    }
+
+    // Handle any additional custom question types from request body
+    const predefinedKeys = ['fileIds', 'duration', 'difficultyLevel', 'subject', 'mcq', 'shortAnswer', 'fillups', 'longans', 'match', 'trueorfalse', 'essay', 'internalChoice'];
+    const customQuestionTypes = Object.keys(req.body).filter(key => !predefinedKeys.includes(key));
+    
+    customQuestionTypes.forEach(questionType => {
+      const config = req.body[questionType];
+      if (config && config.count > 0) {
+        combinedPrompt += getGenericQuestionPrompt(
+          questionType,
+          config.count,
+          config.marks || 1,
+          difficultyLevel
+        ) + "\n\n";
+      }
+    });
+
     // Add response format instructions
     const requestedKeys = [];
     if (mcq && mcq.count > 0) requestedKeys.push('"mcq"');
@@ -155,11 +191,21 @@ async function generateQuestionPaper(req, res) {
       requestedKeys.push('"shortAnswer"');
     if (fillups && fillups.count > 0) requestedKeys.push('"fillups"');
     if (longans && longans.count > 0) requestedKeys.push('"longans"');
-    if (matchthefollowing && matchthefollowing.count > 0)
+    if (match && match.count > 0)
       requestedKeys.push('"match"');
     if (trueorfalse && trueorfalse.count > 0)
       requestedKeys.push('"trueorfalse"');
     if (essay && essay.count > 0) requestedKeys.push('"essay"');
+    if (internalChoice && internalChoice.count > 0)
+      requestedKeys.push('"internalChoice"');
+    
+    // Add custom question types to requested keys
+    customQuestionTypes.forEach(questionType => {
+      const config = req.body[questionType];
+      if (config && config.count > 0) {
+        requestedKeys.push(`"${questionType}"`);
+      }
+    });
 
     combinedPrompt += `RETURN RESPONSE WITH EXACTLY THESE KEYS: {${requestedKeys.join(", ")}}. 
 CRITICAL REQUIREMENTS:
@@ -169,8 +215,6 @@ CRITICAL REQUIREMENTS:
 - For each question type, generate ALL questions in the array
 - Fill in all fields (question, answer, options, etc.) completely
 - Do not stop early or use placeholders`;
-
-    console.log(combinedPrompt, "combined prompt");
 
     // Make single API call with combined prompt
     const contentArray = [
@@ -189,8 +233,6 @@ CRITICAL REQUIREMENTS:
         },
       });
     });
-
-    console.log(combinedPrompt, "combined prompt");
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -213,7 +255,6 @@ CRITICAL RULES:
 - All questions must be based on provided document content only.
 - Never truncate or use placeholders - generate COMPLETE questions.
 - Return complete, filled data for ALL questions.
-- For Match the Following: Include ALL matching pairs with answers.
 - Ensure ALL requested question types are present in response.
 - Start with { and end with } - nothing else.
 - IMPORTANT: If you are asked to generate 12 Short Answer questions, you MUST generate exactly 12, not 10 or fewer.`,
@@ -271,6 +312,9 @@ CRITICAL RULES:
 
       questions = JSON.parse(jsonStr);
 
+      // Define predefined question type keys
+      const predefinedKeys = ['mcq', 'shortAnswer', 'fillups', 'longans', 'match', 'trueorfalse', 'essay', 'internalChoice', 'customQuestions'];
+      
       // Validate question counts
       const validation = {
         mcq: {
@@ -290,8 +334,8 @@ CRITICAL RULES:
           received: questions.longans?.length || 0,
         },
         match: {
-          requested: matchthefollowing?.count || 0,
-          received: questions.match?.length || 0,
+          requested: match?.count || 0,
+          received: Array.isArray(questions.match) ? questions.match.length : 0,
         },
         trueorfalse: {
           requested: trueorfalse?.count || 0,
@@ -301,7 +345,35 @@ CRITICAL RULES:
           requested: essay?.count || 0,
           received: questions.essay?.length || 0,
         },
+        internalChoice: {
+          requested: internalChoice?.count || 0,
+          received: questions.internalChoice?.length || 0,
+        },
       };
+
+      // Add custom question types to validation
+      customQuestionTypes.forEach(questionType => {
+        const config = req.body[questionType];
+        validation[questionType] = {
+          requested: (config && config.count) || 0,
+          received: Array.isArray(questions[questionType]) ? questions[questionType].length : 0,
+        };
+      });
+
+      // Check for unexpected question types in response (not in predefined or custom)
+      const allExpectedKeys = [...predefinedKeys, ...customQuestionTypes];
+      const unexpectedKeys = Object.keys(questions).filter(key => !allExpectedKeys.includes(key));
+      if (unexpectedKeys.length > 0) {
+        console.warn("WARNING: Unexpected question types found in response:", unexpectedKeys);
+        unexpectedKeys.forEach(key => {
+          console.warn(`  ${key}: ${Array.isArray(questions[key]) ? questions[key].length : 'not an array'} items`);
+          // Keep unexpected keys in the response for flexibility
+          validation[key] = {
+            requested: 0,
+            received: Array.isArray(questions[key]) ? questions[key].length : 0,
+          };
+        });
+      }
 
       console.log(
         "Question Count Validation:",
@@ -323,8 +395,8 @@ CRITICAL RULES:
 
       // Specific check for missing question types
       if (
-        matchthefollowing &&
-        matchthefollowing.count > 0 &&
+        match &&
+        match.count > 0 &&
         !questions.match
       ) {
         console.error(
