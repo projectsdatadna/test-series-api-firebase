@@ -11,6 +11,10 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
+    "@aws-sdk/client-dynamodb": "^3.993.0",
+    "@aws-sdk/lib-dynamodb": "^3.993.0",
+    "@azure/core-auth": "^1.10.1",
+    "@azure/openai": "^2.0.0",
     "@sparticuz/chromium": "^143.0.4",
     "aws-jwt-verify": "^5.1.1",
     "aws-sdk": "^2.1693.0",
@@ -21,6 +25,7 @@
     "firebase-functions": "^5.0.0",
     "formidable": "^3.5.4",
     "multer": "^2.0.2",
+    "pdf-parse": "^2.4.5",
     "puppeteer": "^22.15.0",
     "puppeteer-core": "^22.15.0",
     "winston": "^3.19.0"
