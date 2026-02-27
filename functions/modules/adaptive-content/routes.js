@@ -1,5 +1,5 @@
 const express = require('express');
-const { generateAdaptiveContent, extractDocumentStructure } = require('./controller');
+const { generateAdaptiveContent, extractDocumentStructure, generateAdaptiveContentFromSectionText } = require('./controller');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
 const router = express.Router();
@@ -68,5 +68,8 @@ router.options('/extract-structure', (req, res) => {
 router.post('/generate', verifyJWT, generateAdaptiveContent);
 
 router.post('/extract-structure', verifyJWT, extractDocumentStructure);
+
+router.options('/generate-from-section', (req, res) => res.sendStatus(200));
+router.post('/generate-from-section',  generateAdaptiveContentFromSectionText);
 
 module.exports = router;

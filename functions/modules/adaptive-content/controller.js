@@ -690,7 +690,260 @@ function parseTextFormatResponse(content) {
   };
 }
 
+// Pricing constants — Claude Haiku 4.5 (claude-haiku-4-5-20251001)
+// Source: Anthropic official pricing
+const HAIKU_45_PRICING = {
+  INPUT_COST_PER_MILLION:  1.00,  // $1.00 per 1M input tokens
+  OUTPUT_COST_PER_MILLION: 5.00,  // $5.00 per 1M output tokens
+  INR_CONVERSION_RATE:     84.0,  // USD → INR (update as needed)
+};
+
+/**
+ * Calculate cost breakdown for a Claude API call
+ * @param {number} inputTokens
+ * @param {number} outputTokens
+ * @returns {{ inputCostUSD, outputCostUSD, totalCostUSD, totalCostINR, perTokenBreakdown }}
+ */
+function calculateClaudeCost(inputTokens, outputTokens) {
+  const inputCostUSD  = (inputTokens  / 1_000_000) * HAIKU_45_PRICING.INPUT_COST_PER_MILLION;
+  const outputCostUSD = (outputTokens / 1_000_000) * HAIKU_45_PRICING.OUTPUT_COST_PER_MILLION;
+  const totalCostUSD  = inputCostUSD + outputCostUSD;
+  const totalCostINR  = totalCostUSD * HAIKU_45_PRICING.INR_CONVERSION_RATE;
+
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens:    inputTokens + outputTokens,
+    inputCostUSD:   parseFloat(inputCostUSD.toFixed(6)),
+    outputCostUSD:  parseFloat(outputCostUSD.toFixed(6)),
+    totalCostUSD:   parseFloat(totalCostUSD.toFixed(6)),
+    totalCostINR:   parseFloat(totalCostINR.toFixed(4)),
+    model:          'claude-haiku-4-5-20251001',
+    pricingUsed: {
+      inputPerMillionUSD:  HAIKU_45_PRICING.INPUT_COST_PER_MILLION,
+      outputPerMillionUSD: HAIKU_45_PRICING.OUTPUT_COST_PER_MILLION,
+    },
+  };
+}
+
+async function generateAdaptiveContentFromSectionText(req, res) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 280000);
+
+  try {
+    const apiKey = process.env.CLAUDE_API_KEY;
+    if (!apiKey) {
+      clearTimeout(timeoutId);
+      return res.status(400).json({ success: false, message: 'Anthropic API key not configured' });
+    }
+
+    const {
+      sectionText,
+      sectionNumber,
+      topicName,
+      contentType,
+      contentTypeId,
+      contentDepth,
+      visualStyle,
+      outputLanguage,
+    } = req.body;
+
+    const requiredFields = ['sectionText', 'sectionNumber', 'topicName', 'contentType'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    if (missingFields.length > 0) {
+      clearTimeout(timeoutId);
+      return res.status(400).json({ success: false, message: 'Missing required fields', missingFields });
+    }
+
+    const depth    = contentDepth   || 'intermediate';
+    const style    = visualStyle    || 'academic';
+    const language = outputLanguage || 'english';
+
+    const prompt = getPrompt(contentTypeId, {
+      sectionNumber,
+      topicName,
+      contentDepth:   depth,
+      visualStyle:    style,
+      outputLanguage: language,
+      contentType,
+    });
+
+    // ── Single Claude API call ──
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type':      'application/json',
+      },
+      body: JSON.stringify({
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 8192,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `${prompt}\n\n---\nHere is the section content to use:\n\n${sectionText}`,
+              },
+            ],
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to generate content',
+        error:   error.message,
+      });
+    }
+
+    const data = await response.json();
+
+    const inputTokens   = data.usage?.input_tokens  || 0;
+    const outputTokens  = data.usage?.output_tokens || 0;
+    const costBreakdown = calculateClaudeCost(inputTokens, outputTokens);
+
+    console.log(`[AdaptiveContent] Token usage — Input: ${inputTokens}, Output: ${outputTokens}`);
+    console.log(`[AdaptiveContent] Cost — $${costBreakdown.totalCostUSD} USD / ₹${costBreakdown.totalCostINR} INR`);
+
+    const htmlContent = data.content?.[0]?.text || '';
+
+    if (!htmlContent.trim()) {
+      return res.status(500).json({
+        success: false,
+        message: 'Claude returned empty HTML content',
+        usage: { inputTokens, outputTokens, totalTokens: costBreakdown.totalTokens },
+        cost:  { totalCostUSD: costBreakdown.totalCostUSD, totalCostINR: costBreakdown.totalCostINR },
+      });
+    }
+
+    console.log(`[AdaptiveContent] HTML length: ${htmlContent.length} characters`);
+
+    // ── Convert HTML → images ──
+    const conversionController = new AbortController();
+    const conversionTimeoutId  = setTimeout(() => conversionController.abort(), 90000);
+
+    try {
+      const conversionResponse = await fetch(
+        'https://api-s7ossubabq-uc.a.run.app/apizip/convert-to-images',  // ✅ fixed URL
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ pages: 1, htmlText: [htmlContent] }),  // ✅ array fix
+          signal:  conversionController.signal,
+        }
+      );
+
+      clearTimeout(conversionTimeoutId);
+
+      if (conversionResponse.ok) {
+        const imageRes = await conversionResponse.json();
+
+        const usageMeta = {
+          usage: {
+            inputTokens,
+            outputTokens,
+            totalTokens: costBreakdown.totalTokens,
+          },
+          cost: {
+            inputCostUSD:  costBreakdown.inputCostUSD,
+            outputCostUSD: costBreakdown.outputCostUSD,
+            totalCostUSD:  costBreakdown.totalCostUSD,
+            totalCostINR:  costBreakdown.totalCostINR,
+            model:         costBreakdown.model,
+            pricingUsed:   costBreakdown.pricingUsed,
+          },
+        };
+
+        if (Array.isArray(imageRes.images)) {
+          return res.status(200).json({
+            success: true,
+            images:  imageRes.images,
+            ...usageMeta,
+          });
+        }
+
+        return res.status(200).json({
+          success:    true,
+          conversion: imageRes,
+          ...usageMeta,
+        });
+      }
+
+      // Non-OK response from conversion API
+      const conversionError = await conversionResponse.text();
+      console.error(`[AdaptiveContent] Conversion API failed — Status: ${conversionResponse.status}`);
+      console.error(`[AdaptiveContent] Conversion API error body: ${conversionError}`);
+      console.error(`[AdaptiveContent] HTML length sent: ${htmlContent.length} chars`);
+
+      return res.status(502).json({
+        success: false,
+        message: `Image conversion service failed (HTTP ${conversionResponse.status})`,
+        error:   conversionError,
+        usage: {
+          inputTokens,
+          outputTokens,
+          totalTokens: costBreakdown.totalTokens,
+        },
+        cost: {
+          totalCostUSD: costBreakdown.totalCostUSD,
+          totalCostINR: costBreakdown.totalCostINR,
+        },
+      });
+
+    } catch (conversionError) {
+      clearTimeout(conversionTimeoutId);
+
+      const partialUsage = {
+        usage: { inputTokens, outputTokens, totalTokens: costBreakdown.totalTokens },
+        cost:  { totalCostUSD: costBreakdown.totalCostUSD, totalCostINR: costBreakdown.totalCostINR },
+      };
+
+      if (conversionError.name === 'AbortError') {
+        console.error('[AdaptiveContent] Conversion API timed out after 90s');
+        return res.status(504).json({
+          success: false,
+          message: 'Image conversion timeout — the service took too long to respond',
+          ...partialUsage,
+        });
+      }
+
+      console.error('[AdaptiveContent] Conversion fetch error:', conversionError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to convert HTML to images',
+        error:   conversionError.message,
+        ...partialUsage,
+      });
+    }
+
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      return res.status(504).json({ success: false, message: 'Request timeout — Claude API took too long' });
+    }
+    console.error('[AdaptiveContent] Unexpected error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate adaptive content',
+      error:   error.message,
+    });
+  }
+}
+
+
+
+
 module.exports = {
   generateAdaptiveContent,
   extractDocumentStructure,
+  generateAdaptiveContentFromSectionText
 };
