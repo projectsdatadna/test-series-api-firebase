@@ -1,8 +1,9 @@
 require("dotenv").config();
-const { getPrompt } = require("./prompts/content-generate-prompts");
+const { getPrompt, getChatboxPrompt } = require("./prompts/content-generate-prompts");
 const {
   getDocumentStructureExtractionPrompt,
 } = require("./prompts/extraction-prompts");
+const { generateEmbedding, cosineSimilarity } = require("../rag/embeddings");
 const AWS = require("aws-sdk");
 
 // Initialize DynamoDB lazily
@@ -41,7 +42,7 @@ try {
   fetch = require("node-fetch");
 }
 
-// Generate adaptive content from uploaded file and convert to images
+// Generate adaptive content from uploaded file OR chunks (RAG) and convert to images
 async function generateAdaptiveContent(req, res) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 280000); // 280 second timeout for generation
@@ -66,71 +67,156 @@ async function generateAdaptiveContent(req, res) {
       contentDepth,
       visualStyle,
       outputLanguage,
+      // RAG-specific parameters
+      chunks = [],
+      userId,
+      documentId,
+      topic,
+      sectionTitle,
+      learningStyle = "visual",
+      difficulty = "intermediate",
     } = req.body;
 
-    // Validate required fields
-    const requiredFields = [
-      "fileId",
-      "sectionNumber",
-      "topicName",
-      "contentType",
-    ];
-    const missingFields = requiredFields.filter((field) => !req.body[field]);
+    // Determine mode: file-based or RAG-based
+    const isRAGMode = chunks.length > 0;
+    const isFileMode = !!fileId;
 
-    if (missingFields.length > 0) {
+    console.log(`[Adaptive Content] Mode: ${isRAGMode ? 'RAG (chunks-based)' : 'File-based'}`);
+
+    // Validate required fields based on mode
+    if (!isRAGMode && !isFileMode) {
       clearTimeout(timeoutId);
       return res.status(400).json({
         success: false,
-        message: "Missing required fields",
-        requiredFields,
-        missingFields,
+        message: "Either fileId or chunks array is required",
       });
     }
 
+    if (isFileMode) {
+      // File-based mode validation
+      const requiredFields = ["fileId", "sectionNumber", "topicName", "contentType"];
+      const missingFields = requiredFields.filter((field) => !req.body[field]);
+
+      if (missingFields.length > 0) {
+        clearTimeout(timeoutId);
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields for file-based mode",
+          requiredFields,
+          missingFields,
+        });
+      }
+    } else {
+      // RAG mode validation
+      if (!userId || !documentId || !sectionTitle) {
+        clearTimeout(timeoutId);
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields for RAG mode: userId, documentId, sectionTitle",
+        });
+      }
+    }
+
     // Set defaults for optional parameters
-    const depth = contentDepth || "intermediate";
+    const depth = contentDepth || difficulty || "intermediate";
     const style = visualStyle || "academic";
     const language = outputLanguage || "english";
+    const finalTopicName = topicName || topic || sectionTitle;
+
+    let prompt;
+    let context = "";
+
+    // RAG Mode: Generate embedding and find similar chunks
+    if (isRAGMode) {
+      console.log("[Adaptive Content] RAG Mode: Generating embedding for:", sectionTitle);
+      const topicEmbedding = await generateEmbedding(sectionTitle);
+      console.log("[Adaptive Content] Embedding generated, dimension:", topicEmbedding.length);
+
+      // Find similar chunks using cosine similarity
+      console.log("[Adaptive Content] Querying similar chunks from provided data...");
+      const similarChunks = chunks
+        .map((chunk) => {
+          const chunkEmbedding = chunk.embedding.slice(0, topicEmbedding.length);
+          return {
+            ...chunk,
+            similarity: cosineSimilarity(topicEmbedding, chunkEmbedding),
+          };
+        })
+        .sort((a, b) => b.similarity - a.similarity);
+
+      console.log("[Adaptive Content] Retrieved", similarChunks.length, "similar chunks");
+      console.log("[Adaptive Content] Top 5 similarities:", similarChunks.slice(0, 5).map(c => c.similarity.toFixed(4)));
+
+      // Format context from retrieved chunks
+      context = similarChunks
+        .map((chunk, idx) => `[Context ${idx + 1}] ${chunk.text}`)
+        .join("\n\n");
+
+      console.log("[Adaptive Content] Context prepared, length:", context.length);
+    }
 
     // Get dynamic prompt based on content type
-    const prompt = getPrompt(contentTypeId, {
-      sectionNumber,
-      topicName,
+    const basePrompt = getPrompt(contentTypeId, {
+      sectionNumber: sectionNumber || '',
+      topicName: finalTopicName,
       contentDepth: depth,
       visualStyle: style,
       outputLanguage: language,
-      contentType: contentType,
+      contentType: contentType || '',
     });
-    console.log("Calling Anthropic API...");
 
-    // Call Anthropic Messages API with file reference
+    // Append context for RAG mode
+    if (isRAGMode && context) {
+      prompt = `${basePrompt}\n\nUse the following context from the document to generate the content:\n\n${context}`;
+    } else {
+      prompt = basePrompt;
+    }
+
+    console.log("[Adaptive Content] Calling Anthropic API...");
+    console.log("[Adaptive Content] Content Type ID:", contentTypeId || "default");
+
+    // Build message content based on mode
+    let messageContent;
+    if (isFileMode) {
+      // File-based mode: include file reference
+      messageContent = [
+        {
+          type: "text",
+          text: prompt,
+        },
+        {
+          type: "document",
+          source: {
+            type: "file",
+            file_id: fileId,
+          },
+        },
+      ];
+    } else {
+      // RAG mode: text only (context already in prompt)
+      messageContent = prompt;
+    }
+
+    // Call Anthropic Messages API
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": "files-api-2025-04-14",
+        ...(isFileMode ? { "anthropic-beta": "files-api-2025-04-14" } : {}),
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
-        max_tokens: 2048,
+        model: isRAGMode ? "claude-haiku-4-5" : "claude-3-5-haiku-20241022",
+        max_tokens: 16384,
+        ...(isRAGMode ? { 
+          temperature: 0.7,
+          system: `You are an adaptive learning content generator. Create engaging educational content tailored to the student's learning style and difficulty level.`
+        } : {}),
         messages: [
           {
             role: "user",
-            content: [
-              {
-                type: "text",
-                text: prompt,
-              },
-              {
-                type: "document",
-                source: {
-                  type: "file",
-                  file_id: fileId,
-                },
-              },
-            ],
+            content: messageContent,
           },
         ],
       }),
@@ -155,60 +241,75 @@ async function generateAdaptiveContent(req, res) {
     const content =
       data.content && data.content.length > 0 ? data.content[0].text : "";
 
-    console.log("First API response content:", content);
-
-    // Call second API to extract pure HTML from the content
-    const htmlResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "files-api-2025-04-14",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
-        max_tokens: 2048,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text:
-                  "Extract pure HTML content from the following text and return only the HTML content without any additional text or explanation:\n\n" +
-                  content,
-              },
-            ],
-          },
-        ],
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!htmlResponse.ok) {
-      const error = await htmlResponse.json();
-      console.error("Error from second Anthropic API call:", error);
-      return res.status(400).json({
-        success: false,
-        message: "Failed to extract HTML content",
-        error: error.message || "API request failed",
-      });
+    console.log("First API response content preview:", content.substring(0, 200));
+    
+    // Check if response was truncated
+    if (data.stop_reason === "max_tokens") {
+      console.warn("⚠️ WARNING: Claude response was truncated due to max_tokens limit!");
+      console.warn("⚠️ The generated HTML may be incomplete. Consider increasing max_tokens.");
     }
 
-    const htmlData = await htmlResponse.json();
-    console.log("Second API response:", htmlData);
+    // Extract HTML from the content (remove markdown, backticks, quotes, etc.)
+    let htmlContent = content;
+    
+    // Remove markdown code blocks (```html ... ``` or ``` ... ```)
+    htmlContent = htmlContent.replace(/```(?:html)?\s*/g, '');
+    htmlContent = htmlContent.replace(/```\s*/g, '');
+    
+    // Remove leading/trailing quotes
+    htmlContent = htmlContent.replace(/^["'`]+|["'`]+$/g, '');
+    
+    // Remove any JSON wrapper patterns like {"htmlText": "..."}
+    // This handles cases where Claude returns JSON despite instructions
+    htmlContent = htmlContent.replace(/^\s*\{\s*["']?htmlText["']?\s*:\s*["']?/i, '');
+    htmlContent = htmlContent.replace(/["']?\s*\}\s*$/, '');
+    
+    // Check if content is wrapped in JSON (e.g., {"htmlText": "..."})
+    try {
+      const jsonMatch = htmlContent.match(/^\s*\{[\s\S]*\}\s*$/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(htmlContent);
+        if (parsed.htmlText) {
+          htmlContent = parsed.htmlText;
+          console.log("Extracted HTML from JSON wrapper");
+        } else if (typeof parsed === 'object') {
+          // Try to find HTML in any property
+          const htmlProp = Object.values(parsed).find(val => 
+            typeof val === 'string' && val.includes('<!DOCTYPE')
+          );
+          if (htmlProp) {
+            htmlContent = htmlProp;
+            console.log("Extracted HTML from JSON property");
+          }
+        }
+      }
+    } catch (e) {
+      // Not JSON, continue with normal extraction
+    }
+    
+    // Extract HTML if it's wrapped in quotes or other text
+    const htmlMatch = htmlContent.match(/<!DOCTYPE[^>]*>[\s\S]*<\/html>/i);
+    if (htmlMatch) {
+      htmlContent = htmlMatch[0];
+    }
+    
+    // Clean up any remaining escape characters
+    htmlContent = htmlContent.replace(/\\n/g, '');
+    htmlContent = htmlContent.replace(/\\"/g, '"');
+    htmlContent = htmlContent.replace(/\\'/g, "'");
+    
+    // Final cleanup: remove any remaining JSON artifacts at the start
+    htmlContent = htmlContent.replace(/^[^<]*(?=<!DOCTYPE)/i, '');
 
-    // Extract HTML content from second API response
-    const htmlContent =
-      htmlData.content && htmlData.content.length > 0
-        ? htmlData.content[0].text
-        : content;
+    clearTimeout(timeoutId);    console.log("HTML extracted successfully");
 
-    // Always convert generated HTML to images
-    console.log("Converting generated HTML to images...");
+    // Count the number of page divs to determine pages parameter
+    // For sticky-notes, always use 1 page regardless of page divs
+    let pageCount = (htmlContent.match(/class=["']page["']/g) || []).length || 1;
+    if (contentTypeId === 'sticky-notes') {
+      pageCount = 1;
+      console.log("Sticky notes: forcing single page output");
+    }
 
     const conversionController = new AbortController();
     const conversionTimeoutId = setTimeout(
@@ -225,7 +326,7 @@ async function generateAdaptiveContent(req, res) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            pages: 1,
+            pages: pageCount,
             htmlText: [htmlContent],
           }),
           signal: conversionController.signal,
@@ -247,6 +348,8 @@ async function generateAdaptiveContent(req, res) {
             return res.status(200).json({
               success: true,
               images: imageRes.images,
+              content: content,
+              htmlContent: htmlContent,
             });
           }
 
@@ -254,6 +357,8 @@ async function generateAdaptiveContent(req, res) {
           return res.status(200).json({
             success: true,
             conversion: imageRes,
+            content: content,
+            htmlContent: htmlContent,
           });
         }
       }
@@ -690,7 +795,172 @@ function parseTextFormatResponse(content) {
   };
 }
 
+/**
+ * Chatbox API - Get responses based on query using RAG
+ * Accepts chunks array and query
+ * Returns conversational responses suitable for chatbox
+ */
+async function chatboxQuery(req, res) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 300000);
+
+  try {
+    const apiKey = process.env.CLAUDE_API_KEY;
+    if (!apiKey) {
+      clearTimeout(timeoutId);
+      return res.status(400).json({
+        success: false,
+        message: "Anthropic API key not configured",
+      });
+    }
+
+    const {
+      userId,
+      documentId,
+      topic,
+      sectionTitle,
+      query,
+      learningStyle = "visual",
+      difficulty = "intermediate",
+      chunks = [],
+    } = req.body;
+
+    console.log("[Adaptive Content - Chatbox] Request:", {
+      userId,
+      documentId,
+      topic,
+      query,
+      learningStyle,
+      difficulty,
+      chunksProvided: chunks.length,
+    });
+
+    if (!userId || !documentId || !query) {
+      clearTimeout(timeoutId);
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: userId, documentId, query",
+      });
+    }
+
+    if (chunks.length === 0) {
+      clearTimeout(timeoutId);
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: chunks (array of chunk objects with text and embedding)",
+      });
+    }
+
+    // Step 1: Generate embedding for the query
+    console.log("[Adaptive Content - Chatbox] Generating embedding for query:", query);
+    const queryEmbedding = await generateEmbedding(query);
+    console.log("[Adaptive Content - Chatbox] Embedding generated, dimension:", queryEmbedding.length);
+
+    // Step 2: Find similar chunks using cosine similarity
+    console.log("[Adaptive Content - Chatbox] Querying similar chunks...");
+
+    const similarChunks = chunks
+      .map((chunk) => {
+        const chunkEmbedding = chunk.embedding.slice(0, queryEmbedding.length);
+        return {
+          ...chunk,
+          similarity: cosineSimilarity(queryEmbedding, chunkEmbedding),
+        };
+      })
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 5); // Top 5 similar chunks
+
+    console.log("[Adaptive Content - Chatbox] Retrieved", similarChunks.length, "similar chunks");
+
+    // Step 3: Format context from retrieved chunks
+    const context = similarChunks
+      .map((chunk, idx) => `[Source ${idx + 1}] ${chunk.text}`)
+      .join("\n\n");
+
+    console.log("[Adaptive Content - Chatbox] Context prepared");
+
+    // Step 4: Generate chatbox response using Claude
+    const prompt = getChatboxPrompt({
+      query,
+      topic: topic || sectionTitle,
+      learningStyle,
+      difficulty,
+      context,
+    });
+
+    console.log("[Adaptive Content - Chatbox] Calling Claude API...");
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5",
+        max_tokens: 1024,
+        temperature: 0.7,
+        system: `You are a helpful educational assistant in a chatbox. Provide concise, conversational responses to student questions. Use the provided context to answer accurately. Keep responses friendly and encouraging.`,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("[Adaptive Content - Chatbox] Claude API Error:", error);
+      clearTimeout(timeoutId);
+      return res.status(response.status).json({
+        success: false,
+        message: "Failed to generate chatbox response",
+        error: error.error?.message || error.message,
+      });
+    }
+
+    const data = await response.json();
+    const message = data.content && data.content.length > 0 ? data.content[0].text : "";
+
+    console.log("[Adaptive Content - Chatbox] Response generated successfully");
+
+    clearTimeout(timeoutId);
+
+    return res.status(200).json({
+      success: true,
+      message,
+      context: similarChunks,
+      metadata: {
+        chunksUsed: similarChunks.length,
+        topSimilarities: similarChunks.map(c => parseFloat(c.similarity.toFixed(4))),
+      },
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    console.error("[Adaptive Content - Chatbox] Error:", error);
+
+    if (error.name === "AbortError") {
+      return res.status(504).json({
+        success: false,
+        message: "Request timeout",
+        error: "The chatbox query took too long to process.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   generateAdaptiveContent,
   extractDocumentStructure,
+  chatboxQuery,
 };
