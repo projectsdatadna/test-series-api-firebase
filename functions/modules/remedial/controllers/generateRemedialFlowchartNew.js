@@ -19,43 +19,44 @@ function calculateCost(model, inputTokens, outputTokens) {
   };
 }
 
-function buildRemedialPrompt(studentContext, sectionNumber, sectionText) {
-  return `You are an expert educational content creator. Create 2-3 Mermaid flowcharts based EXCLUSIVELY on the section content below.
+const SYSTEM_PROMPT = `
+You are a student-friendly visual learning assistant.
 
-**Section ${sectionNumber} Content:**
+Rules:
+- Use ONLY the provided section text as source.
+- Do NOT add outside facts, knowledge, or interpretations.
+- Do NOT invent decision points unless they clearly exist in the text.
+- Do NOT invent examples not present in the section.
+- Use exact or simplified wording directly from the section.
+- Keep flowcharts concise.
+- Output ONLY valid Mermaid flowchart code blocks.
+- No explanations. No markdown labels. No extra commentary.
+`;
+
+function buildRemedialPrompt(studentContext, sectionNumber, sectionText) {
+  return `
+Create 2 or 3 Mermaid flowcharts based ONLY on Section ${sectionNumber}.
+
+SECTION:
 ${sectionText}
 
-**Student Information:**
-- Name: ${studentContext.studentName}
-- Learning Gap: ${studentContext.conceptGap}
-- Grade Level: ${studentContext.standardId || 'Grade 6-8'}
+Student:
+Name: ${studentContext.studentName}
+Grade: ${studentContext.standardId || '6-8'}
 
-**IMPORTANT REQUIREMENTS:**
-- ONLY use content from the section text above
-- DO NOT use general knowledge
-- Use the EXACT terminology from the section
-- Create 2-3 flowcharts covering the main concepts
+Instructions:
+- Each flowchart must start with: flowchart TD
+- Show the sequence of events or main ideas from the section.
+- Only include events, characters, or details directly mentioned.
+- Keep each flowchart under 12 nodes.
+- Do NOT add extra explanation.
+- Do NOT invent decision branches unless clearly shown in the section.
+- Use short student-friendly labels.
 
-**Output Format:**
-Output ONLY Mermaid code blocks. Each flowchart must:
-- Start with \`flowchart TD\`
-- Use student-friendly language from the section
-- Include decision points and examples from the section
-- Add colors with style commands
-
-\`\`\`mermaid
+Return ONLY Mermaid code blocks.
+Each must begin with:
 flowchart TD
-    Start([Title from Section ${sectionNumber}]) --> Concept[Main concept from section]
-    Concept --> Detail1[Detail 1 from section]
-    Concept --> Detail2[Detail 2 from section]
-    Detail1 --> Example[Example from section]
-    Detail2 --> Example
-    Example --> Practice([Practice what you learned])
-    style Start fill:#667eea,color:#fff
-    style Practice fill:#16a34a,color:#fff
-\`\`\`
-
-Output ONLY the Mermaid code blocks, nothing else.`;
+`;
 }
 
 function extractMermaidFlowcharts(claudeResponse) {
@@ -119,8 +120,9 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 8000,
+        max_tokens: 2500,
         temperature: 0.2,
+        system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
       }),
     });

@@ -24,42 +24,65 @@ function calculateCost(model, inputTokens, outputTokens) {
   };
 }
 
-function buildStepsPrompt(studentContext, sectionNumber, sectionText) {
-  return `You are an expert educational content creator. Your task is to generate a clear step-by-step walkthrough for Section ${sectionNumber}.
+const SYSTEM_PROMPT = `
+You are a student-friendly educational assistant.
 
-**Section Content:**
+Rules:
+- Use ONLY the provided section text as the source.
+- Do NOT add outside facts, examples, or knowledge.
+- Do NOT create cross-subject analogies.
+- Only connect to the learning gap if it is explicitly mentioned in the section text.
+- If the learning gap is not present, ignore it.
+- Keep language simple for Grade 6-8.
+- Do NOT invent practice questions unrelated to the section.
+- Output valid JSON only. No markdown. No extra text.
+`;
+
+function buildStepsPrompt(studentContext, sectionNumber, sectionText) {
+  return `
+Create a clear step-by-step walkthrough for Section ${sectionNumber}
+using ONLY the section text below.
+
+SECTION:
 ${sectionText}
 
-**Student Context:**
-- Name: ${studentContext.studentName}
-- Learning Gap: ${studentContext.conceptGap}
-- Grade: ${studentContext.standardId || 'Grade 6-8'}
+STUDENT:
+Name: ${studentContext.studentName}
+Learning Gap: ${studentContext.conceptGap}
+Grade: ${studentContext.standardId || '6-8'}
 
-**Output Format (JSON ONLY):**
-\`\`\`json
+Instructions:
+- Explain in simple language using "you".
+- Break the section into 4-6 logical learning steps.
+- Each step must come directly from the section text.
+- Do NOT add outside examples.
+- Do NOT invent extra information.
+- Only relate to the learning gap if it appears in the section.
+- Practice questions must be based directly on events or facts in the section.
+
+Return JSON in this format:
+
 {
-  "title": "Step-by-Step Guide: [topic name]",
-  "description": "Brief overview of what this guide covers...",
+  "title": "",
+  "description": "",
   "steps": [
     {
       "number": 1,
-      "title": "Step title",
-      "description": "Clear explanation of this step...",
-      "example": "A concrete example...",
-      "tips": ["Tip 1", "Tip 2"],
-      "commonMistakes": ["Mistake to avoid 1"],
+      "title": "",
+      "description": "",
+      "example": "",
+      "tips": [],
+      "commonMistakes": [],
       "practiceQuestion": {
-        "question": "A practice question?",
-        "options": ["Option A", "Option B", "Option C", "Option D"],
-        "answer": "Option A",
-        "explanation": "Why this is correct..."
+        "question": "",
+        "options": [],
+        "answer": "",
+        "explanation": ""
       }
     }
   ]
 }
-\`\`\`
-
-Generate 4-6 logical steps. Output valid JSON only. No markdown, no extra text.`;
+`;
 }
 
 function extractStepsJSON(claudeResponse) {
@@ -107,8 +130,9 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 4096,
-        temperature: 0.7,
+        max_tokens: 3000,
+        temperature: 0.3,
+        system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
       }),
     });

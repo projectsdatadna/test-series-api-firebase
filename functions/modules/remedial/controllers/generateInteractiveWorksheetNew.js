@@ -19,53 +19,73 @@ function calculateCost(model, inputTokens, outputTokens) {
   };
 }
 
-function buildWorksheetPrompt(studentContext, sectionNumber, sectionText) {
-  return `You are an expert educational content designer. Create an interactive worksheet based ONLY on the section content below.
+const SYSTEM_PROMPT = `
+You are a student-friendly worksheet generator.
 
-**Section ${sectionNumber} Content:**
+Rules:
+- Use ONLY the provided section text.
+- Do NOT add outside knowledge or examples.
+- Only connect to the learning gap if it appears in the section.
+- If the learning gap is not present, ignore it.
+- Keep language simple for Grade 6-8.
+- Keep answers concise.
+- Output valid JSON only. No markdown. No extra commentary.
+`;
+
+function buildWorksheetPrompt(studentContext, sectionNumber, sectionText) {
+  return `
+Create an interactive worksheet for Section ${sectionNumber}
+using ONLY the section text below.
+
+SECTION:
 ${sectionText}
 
-**Student Context:**
-- Name: ${studentContext.studentName}
-- Learning Gap: ${studentContext.conceptGap}
-- Grade: ${studentContext.standardId || 'Grade 6-8'}
+Student:
+Name: ${studentContext.studentName}
+Grade: ${studentContext.standardId || '6-8'}
+Learning Gap: ${studentContext.conceptGap}
 
-**Instructions:**
-- Create 3-4 DIFFERENT activity types from: matching, fill-blank, true-false
-- All content must be from the section above ONLY
-- Focus on "${studentContext.conceptGap}" learning gaps
-- Age-appropriate for ${studentContext.standardId || 'Grade 6-8'}
+Instructions:
+- Create 3 different activity types from: matching, fill-blank, true-false.
+- All questions must come directly from the section content.
+- Only focus on the learning gap if it appears in the section.
+- Do NOT add outside examples.
+- Keep wording simple and clear.
 
-**Output Format (JSON ONLY):**
-\`\`\`json
+Return JSON:
+
 {
-  "title": "Section ${sectionNumber} Interactive Worksheet",
-  "description": "Practice exercises to reinforce your understanding",
+  "title": "",
+  "description": "",
   "activities": [
     {
       "type": "matching",
-      "title": "Match the Terms",
-      "instructions": "Match each term with its correct definition",
-      "items": [{ "left": "Term", "right": "Definition", "id": 1 }]
+      "title": "",
+      "instructions": "",
+      "items": [
+        { "left": "", "right": "", "id": 1 }
+      ]
     },
     {
       "type": "fill-blank",
-      "title": "Complete the Sentences",
-      "instructions": "Fill in the blanks with the correct words",
-      "questions": [{ "id": 1, "sentence": "A ____ represents a part of a whole", "answer": "fraction" }],
-      "wordBank": ["fraction", "numerator", "denominator"]
+      "title": "",
+      "instructions": "",
+      "questions": [
+        { "id": 1, "sentence": "", "answer": "" }
+      ],
+      "wordBank": []
     },
     {
       "type": "true-false",
-      "title": "True or False",
-      "instructions": "Select True or False for each statement",
-      "questions": [{ "id": 1, "statement": "The statement here", "answer": true, "explanation": "Why" }]
+      "title": "",
+      "instructions": "",
+      "questions": [
+        { "id": 1, "statement": "", "answer": true, "explanation": "" }
+      ]
     }
   ]
 }
-\`\`\`
-
-Output valid JSON only. No extra text.`;
+`;
 }
 
 function extractWorksheetJSON(claudeResponse) {
@@ -128,8 +148,9 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 4096,
+        max_tokens: 2000,
         temperature: 0.3,
+        system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
       }),
     });

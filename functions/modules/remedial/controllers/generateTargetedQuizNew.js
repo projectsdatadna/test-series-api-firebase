@@ -19,46 +19,58 @@ function calculateCost(model, inputTokens, outputTokens) {
   };
 }
 
-function buildQuizPrompt(studentContext, sectionNumber, sectionText, numberOfQuestions) {
-  return `You are an expert educational assessment creator. Generate ${numberOfQuestions} targeted quiz questions based ONLY on the section content below.
+const SYSTEM_PROMPT = `
+You are a student-friendly assessment generator.
 
-**Section ${sectionNumber} Content:**
+Rules:
+- Use ONLY the provided section text.
+- Do NOT add outside knowledge or examples.
+- Do NOT create cross-subject questions.
+- Only focus on the learning gap if it appears in the section.
+- Keep language simple for Grade 6-8.
+- Keep explanations short (1-2 sentences).
+- Output valid JSON only. No markdown. No commentary.
+`;
+
+function buildQuizPrompt(studentContext, sectionNumber, sectionText, numberOfQuestions) {
+  return `
+Generate EXACTLY ${numberOfQuestions} multiple-choice questions
+based ONLY on Section ${sectionNumber}.
+
+SECTION:
 ${sectionText}
 
-**Student Context:**
-- Name: ${studentContext.studentName}
-- Learning Gap: ${studentContext.conceptGap}
-- Grade: ${studentContext.standardId || 'Grade 6-8'}
+Student:
+Name: ${studentContext.studentName}
+Grade: ${studentContext.standardId || '6-8'}
+Learning Gap: ${studentContext.conceptGap}
 
-**Requirements:**
-- Generate EXACTLY ${numberOfQuestions} multiple-choice questions
-- Based ONLY on the section content above
-- Each question must have 4 options (A, B, C, D)
-- Mix difficulty: 2 easy, 2 medium, 1 hard
-- Focus on "${studentContext.conceptGap}" concepts
-- Test understanding, not memorization
+Instructions:
+- Each question must have 4 options (A, B, C, D).
+- Questions must be based directly on events, details, or descriptions in the section.
+- Only relate to the learning gap if it appears in the section.
+- Keep explanations short (1-2 sentences).
+- Do NOT add outside knowledge.
 
-**Output Format (JSON ONLY):**
-\`\`\`json
+Return JSON:
+
 {
   "questions": [
     {
       "id": 1,
-      "question": "Question text?",
+      "question": "",
       "options": [
-        { "label": "A", "text": "First option" },
-        { "label": "B", "text": "Second option" },
-        { "label": "C", "text": "Third option" },
-        { "label": "D", "text": "Fourth option" }
+        { "label": "A", "text": "" },
+        { "label": "B", "text": "" },
+        { "label": "C", "text": "" },
+        { "label": "D", "text": "" }
       ],
-      "correctAnswer": "B",
-      "explanation": "Why B is correct"
+      "correctAnswer": "",
+      "explanation": ""
     }
   ]
 }
-\`\`\`
-
-Output valid JSON only. No extra text.`;
+`;
 }
 
 function extractQuizJSON(claudeResponse) {
@@ -122,8 +134,9 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 4096,
+        max_tokens: 2000,
         temperature: 0.3,
+        system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
       }),
     });

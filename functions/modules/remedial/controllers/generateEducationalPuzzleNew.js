@@ -18,53 +18,60 @@ function calculateCost(model, inputTokens, outputTokens) {
   };
 }
 
-function buildPuzzlePrompt(studentContext, sectionNumber, sectionText) {
-  return `You are an expert educational game designer. Create a crossword puzzle based ONLY on the section content below.
 
-**Section ${sectionNumber} Content:**
+const SYSTEM_PROMPT = `
+You are a student-friendly educational puzzle generator.
+
+Rules:
+- Use ONLY the provided section text.
+- Do NOT add outside knowledge.
+- Only connect to the learning gap if it appears in the section.
+- If the learning gap is not present, ignore it.
+- Extract key words directly from the section.
+- Keep clues simple and clear.
+- Do NOT invent technical crossword grid logic.
+- Output valid JSON only. No markdown. No commentary.
+`;
+
+function buildPuzzlePrompt(studentContext, sectionNumber, sectionText) {
+  return `
+Create a crossword-style puzzle using ONLY Section ${sectionNumber}.
+
+SECTION:
 ${sectionText}
 
-**Student Context:**
-- Name: ${studentContext.studentName}
-- Learning Gap: ${studentContext.conceptGap}
-- Grade: ${studentContext.standardId || 'Grade 6-8'}
+Student:
+Name: ${studentContext.studentName}
+Grade: ${studentContext.standardId || '6-8'}
+Learning Gap: ${studentContext.conceptGap}
 
-**Requirements:**
-- Extract 8-10 KEY TERMS from the section above ONLY
-- All words must come from Section ${sectionNumber}
-- Words must intersect to form a valid crossword
-- Clues reinforce "${studentContext.conceptGap}" concepts
-- All answers UPPERCASE, single words (underscore for phrases)
-- Grid positions must allow words to intersect properly
+Instructions:
+- Extract 8 to 10 key terms directly from the section.
+- All answers must be UPPERCASE.
+- Answers must be single words (use underscore for phrases).
+- Create simple clues based only on the section.
+- Only focus on the learning gap if it appears in the section.
+- Do NOT create complex grid intersection logic.
+- Provide simple row and column placeholders.
 
-**Output Format (JSON ONLY):**
-\`\`\`json
+Return JSON:
+
 {
-  "title": "Section ${sectionNumber} Crossword Challenge",
-  "description": "Test your knowledge of key concepts",
-  "gridSize": 15,
+  "title": "",
+  "description": "",
+  "gridSize": 12,
   "clues": [
     {
       "number": 1,
       "direction": "across",
-      "clue": "The top number in a fraction",
-      "answer": "NUMERATOR",
-      "row": 2,
-      "col": 1
-    },
-    {
-      "number": 2,
-      "direction": "down",
-      "clue": "The bottom number in a fraction",
-      "answer": "DENOMINATOR",
-      "row": 2,
+      "clue": "",
+      "answer": "",
+      "row": 1,
       "col": 1
     }
   ]
 }
-\`\`\`
-
-Output valid JSON only. No extra text.`;
+`;
 }
 
 function extractPuzzleJSON(claudeResponse) {
@@ -127,8 +134,9 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 4096,
+        max_tokens: 2000,
         temperature: 0.3,
+        system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
       }),
     });

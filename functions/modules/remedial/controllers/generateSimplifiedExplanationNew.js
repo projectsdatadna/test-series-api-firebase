@@ -1,9 +1,11 @@
 const logger = require('../utils/logger');
 
+const MODEL = 'claude-haiku-4-5-20251001';
+
 const CLAUDE_PRICING = {
-  'claude-haiku-4-5-20251001': {
-    inputCostPerMillion:  1.00,   // $1.00 per 1M input tokens
-    outputCostPerMillion: 5.00,   // $5.00 per 1M output tokens
+  [MODEL]: {
+    inputCostPerMillion: 1.00,
+    outputCostPerMillion: 5.00,
   },
 };
 
@@ -24,50 +26,88 @@ function calculateCost(model, inputTokens, outputTokens) {
   };
 }
 
-function buildExplanationPrompt(studentContext, sectionNumber, sectionText) {
-  return `You are an expert educational content creator. Your task is to generate a simplified explanation of Section ${sectionNumber}.
+/* ================================
+   🔒 SYSTEM PROMPT (Guardrails)
+================================ */
+const SYSTEM_PROMPT = `
+You are a student-friendly educational assistant.
 
-**Section Content:**
+Rules:
+- Use ONLY the provided section text as the source.
+- Do NOT add outside facts or knowledge.
+- Do NOT classify the chapter (e.g., "this is literature").
+- Do NOT mention textbooks or external advice.
+- Always explain the section in a direct student-facing way using "you" and "your".
+- If the learning gap is not directly present in the section,
+  explain the section clearly without forcing that concept.
+- Never return empty fields unless the section truly lacks content.
+- Output valid JSON only. No markdown. No extra commentary.
+`;
+
+/* ================================
+   🧠 USER PROMPT (Optimized)
+================================ */
+function buildExplanationPrompt(studentContext, sectionNumber, sectionText) {
+  return `
+Explain Section ${sectionNumber} using ONLY the text below.
+
+SECTION:
 ${sectionText}
 
-**Student Context:**
-- Name: ${studentContext.studentName}
-- Learning Gap: ${studentContext.conceptGap}
-- Grade: ${studentContext.standardId || 'Grade 6-8'}
+STUDENT:
+Name: ${studentContext.studentName}
+Learning Gap: ${studentContext.conceptGap}
+Grade: ${studentContext.standardId || '6-8'}
 
-**Output Format (JSON ONLY):**
-\`\`\`json
+Instructions:
+- Speak directly to the student using "you".
+- Use simple language for Grade ${studentContext.standardId || '6-8'}.
+- Explain what happens in the section clearly.
+- Only connect to the learning gap if the concept is explicitly mentioned in the section text.
+- If it is not mentioned, ignore the learning gap and focus only on explaining the section.
+- Do not mention missing concepts.
+
+Return JSON:
+
 {
-  "mainExplanation": "...",
-  "analogy": { "title": "Think of it this way...", "description": "..." },
-  "keyPoints": ["...", "..."],
-  "highlightedTerms": [{ "term": "...", "definition": "..." }],
-  "visualSuggestions": [
-    { "type": "diagram", "icon": "pie_chart", "label": "Visual 1/3", "description": "..." }
-  ],
-  "practiceHint": "..."
+  "mainExplanation": "",
+  "analogy": {
+    "title": "Think of it this way...",
+    "description": ""
+  },
+  "keyPoints": [ "Key point 1 from the content, explained in student-friendly language.", "Key point 2 from the content..." ],
+  "highlightedTerms": [ { "term": "Term from the content", "definition": "Definition as explained in the content, in simple words." } ],
+  "visualSuggestions": [ { "type": "diagram", "icon": "pie_chart", "label": "Visual 1/3", "description": "A visual idea based on the content to help you understand." } ],
+  "practiceHint": "A practice tip or reflection question based only on what was covered in the section."
 }
-\`\`\`
-
-Output valid JSON only. No markdown, no extra text.`;
-}
-
-function extractExplanationJSON(claudeResponse) {
-  try { return JSON.parse(claudeResponse); } catch (e) {}
-  const jsonMatch = claudeResponse.match(/```json\s*\n([\s\S]*?)```/);
-  if (jsonMatch) { try { return JSON.parse(jsonMatch[1]); } catch (e) {} }
-  const objectMatch = claudeResponse.match(/\{[\s\S]*\}/);
-  if (objectMatch) { try { return JSON.parse(objectMatch[0]); } catch (e) {} }
-  throw new Error('Could not extract valid explanation JSON from response');
+`;
 }
 
-const MODEL = 'claude-haiku-4-5-20251001';
+/* ================================
+   🔍 Safe JSON Extraction
+================================ */
+function extractExplanationJSON(responseText) {
+  try {
+    return JSON.parse(responseText);
+  } catch {}
 
+  const objectMatch = responseText.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    try {
+      return JSON.parse(objectMatch[0]);
+    } catch {}
+  }
+
+  throw new Error('Could not extract valid JSON from Claude response');
+}
+
+/* ================================
+   🚀 MAIN CONTROLLER
+================================ */
 module.exports = async (req, res) => {
   try {
     const { sectionNumber, sectionText, studentContext } = req.body;
 
-    // ✅ Validate — no fileId needed
     if (!sectionNumber || !sectionText || !studentContext) {
       return res.status(400).json({
         success: false,
@@ -76,19 +116,26 @@ module.exports = async (req, res) => {
     }
 
     if (!process.env.CLAUDE_API_KEY) {
-      return res.status(500).json({ success: false, message: 'Server configuration error' });
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error',
+      });
     }
 
-    // Trim text to avoid token overflow (~100K char limit safe margin)
-    const trimmedText = sectionText.length > 80000
-      ? sectionText.substring(0, 80000) + '\n...[content truncated]'
-      : sectionText;
+    // 🔹 Trim long text to prevent token explosion
+    const trimmedText =
+      sectionText.length > 60000
+        ? sectionText.substring(0, 60000) + '\n...[content truncated]'
+        : sectionText;
 
-    const prompt = buildExplanationPrompt(studentContext, sectionNumber, trimmedText);
+    const prompt = buildExplanationPrompt(
+      studentContext,
+      sectionNumber,
+      trimmedText
+    );
 
     logger.info('🤖 Calling Claude API...');
 
-    // ✅ Plain messages API — no Files API, no file_id, no beta header
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -98,9 +145,15 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 4096,
-        temperature: 0.7,
-        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1500,          // Reduced from 4096 (cost control)
+        temperature: 0.3,          // Lower hallucination risk
+        system: SYSTEM_PROMPT,     // 🔒 Guardrails here
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
       }),
     });
 
@@ -116,20 +169,21 @@ module.exports = async (req, res) => {
     const responseText = claudeResponse.content?.[0]?.text;
 
     if (!responseText) {
-      return res.status(500).json({ success: false, message: 'Invalid response from Claude' });
+      return res.status(500).json({
+        success: false,
+        message: 'Invalid response from Claude',
+      });
     }
 
     const inputTokens  = claudeResponse.usage?.input_tokens  ?? 0;
     const outputTokens = claudeResponse.usage?.output_tokens ?? 0;
     const totalTokens  = inputTokens + outputTokens;
 
-    // ✅ Cost calculation
     const cost = calculateCost(MODEL, inputTokens, outputTokens);
 
-    // ✅ Structured log per API hit
     logger.info(`📊 Token Usage | Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens}`);
     logger.info(`💰 API Cost    | Input: $${cost.inputCost} | Output: $${cost.outputCost} | Total: $${cost.totalCost} USD`);
-    
+
     const explanationData = extractExplanationJSON(responseText);
 
     return res.status(200).json({
@@ -141,10 +195,19 @@ module.exports = async (req, res) => {
         sectionNumber,
         explanation: explanationData,
         generatedAt: new Date().toISOString(),
+        usage: {
+          inputTokens,
+          outputTokens,
+          totalTokens,
+          costUSD: cost.totalCost,
+        },
       },
     });
   } catch (error) {
     logger.error('❌ Unexpected error:', error.message);
-    return res.status(500).json({ success: false, message: error.message || 'Internal server error' });
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error',
+    });
   }
 };
