@@ -120,8 +120,8 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 2500,
-        temperature: 0.2,
+        max_tokens: 3000,
+        temperature: 0.3,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
       }),
