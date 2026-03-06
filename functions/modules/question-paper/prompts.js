@@ -3,7 +3,19 @@ function getMCQPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `Generate ${count} MCQ questions (${marks} marks each, ${difficultyLevel} difficulty):
-[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","options":["","","",""],"answer":{"option":"","text":""},"marks":${marks}}`).join(',')}]`;
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","options":["","","",""],"answer":"","option":"","marks":${marks}}`).join(',')}]
+
+CRITICAL: For each question, provide:
+1. question: The MCQ question text
+2. options: Array of exactly 4 options (A, B, C, D)
+3. answer: The full text of the correct answer option
+4. option: The correct option letter (A, B, C, or D)
+5. marks: ${marks}
+
+Example:
+{"questionNumber":1,"question":"What is the capital of India?","options":["New Delhi","Mumbai","Bangalore","Chennai"],"answer":"New Delhi","option":"A","marks":${marks}}
+
+You MUST generate all ${count} questions. Do not stop early. Fill in all fields completely.`;
 }
 
 // Short Answer Questions Prompt
@@ -79,6 +91,17 @@ function getEssayPrompt(params) {
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","answer":"","marks":${marks}}`).join(',')}]`;
 }
 
+
+
+// Internal Choice Questions Prompt
+function getInternalChoicePrompt(params) {
+  const { count, marks, difficultyLevel, subject } = params;
+  
+  return `Generate ${count} Internal Choice questions (${marks} marks each, ${difficultyLevel} difficulty). Each question has two long questions labeled (a) and (b). Students answer either (a) or (b):
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"questionA":"","questionB":"","answerA":"","answerB":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions with both (a) and (b) options. Do not stop early. Fill in all question and answer fields completely.`;
+}
+
 // Main prompt for exam details and sections
 function getExamDetailsPrompt(params) {
   const {
@@ -93,6 +116,15 @@ function getExamDetailsPrompt(params) {
     trueorfalse,
     essay,
     internalChoice,
+    veryShortAnswer,
+    assertionReason,
+    caseStudy,
+    diagramBased,
+    mapBased,
+    dataInterpretation,
+    differentiate,
+    sequencing,
+    geometry,
   } = params;
 
   let totalQuestions = 0;
@@ -212,6 +244,134 @@ function getExamDetailsPrompt(params) {
     });
   }
 
+  // Very Short Answer Section
+  if (veryShortAnswer) {
+    const veryShortMandatory = veryShortAnswer.compulsory || veryShortAnswer.count;
+    totalQuestions += veryShortAnswer.count;
+    totalMarks += veryShortMandatory * veryShortAnswer.marks;
+    sections.push({
+      sectionName: "Very Short Answer",
+      totalQuestions: veryShortAnswer.count,
+      marksPerQuestion: veryShortAnswer.marks,
+      totalMarks: veryShortMandatory * veryShortAnswer.marks,
+      note: veryShortAnswer.compulsory ? `Answer any ${veryShortAnswer.compulsory}` : "Answer all",
+    });
+  }
+
+  // Assertion & Reason Section
+  if (assertionReason) {
+    const assertionMandatory = assertionReason.compulsory || assertionReason.count;
+    totalQuestions += assertionReason.count;
+    totalMarks += assertionMandatory * assertionReason.marks;
+    sections.push({
+      sectionName: "Assertion & Reason",
+      totalQuestions: assertionReason.count,
+      marksPerQuestion: assertionReason.marks,
+      totalMarks: assertionMandatory * assertionReason.marks,
+      note: assertionReason.compulsory ? `Answer any ${assertionReason.compulsory}` : "Answer all",
+    });
+  }
+
+  // Case Study Section
+  if (caseStudy) {
+    const caseStudyMandatory = caseStudy.compulsory || 1;
+    totalQuestions += 1;
+    totalMarks += caseStudyMandatory * caseStudy.marks;
+    sections.push({
+      sectionName: "Case Study",
+      totalQuestions: 1,
+      subQuestions: 4,
+      marksPerQuestion: caseStudy.marks,
+      totalMarks: caseStudyMandatory * caseStudy.marks,
+      note: caseStudy.compulsory ? `Answer any ${caseStudy.compulsory}` : "Answer all",
+    });
+  }
+
+  // Diagram Based Section
+  if (diagramBased) {
+    const diagramMandatory = diagramBased.compulsory || diagramBased.count;
+    totalQuestions += diagramBased.count;
+    totalMarks += diagramMandatory * diagramBased.marks;
+    sections.push({
+      sectionName: "Answer the following questions from the diagram",
+      totalQuestions: diagramBased.count,
+      marksPerQuestion: diagramBased.marks,
+      totalMarks: diagramMandatory * diagramBased.marks,
+      note: diagramBased.compulsory ? `Answer any ${diagramBased.compulsory}` : "Answer all",
+    });
+  }
+
+  // Map Based Section
+  if (mapBased) {
+    const mapMandatory = mapBased.compulsory || mapBased.count;
+    totalQuestions += mapBased.count;
+    totalMarks += mapMandatory * mapBased.marks;
+    sections.push({
+      sectionName: "Answer the following questions from the map",
+      totalQuestions: mapBased.count,
+      marksPerQuestion: mapBased.marks,
+      totalMarks: mapMandatory * mapBased.marks,
+      note: mapBased.compulsory ? `Answer any ${mapBased.compulsory}` : "Answer all",
+    });
+  }
+
+  // Data Interpretation Section
+  if (dataInterpretation) {
+    const dataMandatory = dataInterpretation.compulsory || 1;
+    totalQuestions += 1;
+    totalMarks += dataMandatory * dataInterpretation.marks;
+    sections.push({
+      sectionName: "Answer the following questions from the data",
+      totalQuestions: 1,
+      subQuestions: 4,
+      marksPerQuestion: dataInterpretation.marks,
+      totalMarks: dataMandatory * dataInterpretation.marks,
+      note: dataInterpretation.compulsory ? `Answer any ${dataInterpretation.compulsory}` : "Answer all",
+    });
+  }
+
+  // Differentiate Between Section
+  if (differentiate) {
+    const differentiateMandatory = differentiate.compulsory || differentiate.count;
+    totalQuestions += differentiate.count;
+    totalMarks += differentiateMandatory * differentiate.marks;
+    sections.push({
+      sectionName: "Differentiate Between",
+      totalQuestions: differentiate.count,
+      marksPerQuestion: differentiate.marks,
+      totalMarks: differentiateMandatory * differentiate.marks,
+      note: differentiate.compulsory ? `Answer any ${differentiate.compulsory}` : "Answer all",
+    });
+  }
+
+  // Sequencing Section
+  if (sequencing) {
+    const sequencingMandatory = sequencing.compulsory || sequencing.count;
+    totalQuestions += sequencing.count;
+    totalMarks += sequencingMandatory * sequencing.marks;
+    sections.push({
+      sectionName: "Arrange in Correct Order",
+      totalQuestions: sequencing.count,
+      marksPerQuestion: sequencing.marks,
+      totalMarks: sequencingMandatory * sequencing.marks,
+      note: sequencing.compulsory ? `Answer any ${sequencing.compulsory}` : "Answer all",
+    });
+  }
+
+  // Geometry Section
+  if (geometry) {
+    const geometryMandatory = geometry.compulsory || geometry.count;
+    totalQuestions += geometry.count;
+    totalMarks += geometryMandatory * geometry.marks;
+    sections.push({
+      sectionName: "Geometry",
+      totalQuestions: geometry.count,
+      marksPerQuestion: geometry.marks,
+      totalMarks: geometryMandatory * geometry.marks,
+      note: geometry.compulsory ? `Answer any ${geometry.compulsory}` : "Answer all",
+    });
+  }
+
   return {
     examDetails: {
       duration,
@@ -234,13 +394,141 @@ module.exports = {
   getEssayPrompt,
   getInternalChoicePrompt,
   getExamDetailsPrompt,
+  getVeryShortAnswerPrompt,
+  getAssertionReasonPrompt,
+  getCaseStudyPrompt,
+  getDiagramBasedPrompt,
+  getMapBasedPrompt,
+  getDataInterpretationPrompt,
+  getDifferentiatePrompt,
+  getSequencingPrompt,
+  getGeometryPrompt,
 };
 
-// Internal Choice Questions Prompt
-function getInternalChoicePrompt(params) {
+// Very Short Answer (1 Mark) - NCERT Pattern
+function getVeryShortAnswerPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
-  return `Generate ${count} Internal Choice questions (${marks} marks each, ${difficultyLevel} difficulty). Each question has two long questions labeled (a) and (b). Students answer either (a) or (b):
-[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"questionA":"","questionB":"","answerA":"","answerB":"","marks":${marks}}`).join(',')}]
-CRITICAL: You MUST generate all ${count} questions with both (a) and (b) options. Do not stop early. Fill in all question and answer fields completely.`;
+  return `GENERATE EXACTLY ${count} VERY SHORT ANSWER QUESTIONS (${marks} mark each, ${difficultyLevel} difficulty) for ${subject}. Each answer must be 1 or 2 lines only. No long explanations.
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","answer":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions. Answers must be concise and not exceed 2 lines per answer. Do not stop early. Fill in all question and answer fields completely.`;
+}
+
+// Assertion & Reason (New Pattern) - NCERT Pattern
+function getAssertionReasonPrompt(params) {
+  const { count, marks, difficultyLevel, subject } = params;
+  
+  return `GENERATE EXACTLY ${count} ASSERTION AND REASON QUESTIONS (${marks} mark each, ${difficultyLevel} difficulty) for ${subject}. Each question must contain Assertion (A) and Reason (R) with four options.
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"assertion":"","reason":"","options":["Both A and R are true and R explains A","Both A and R are true but R does not explain A","A is true but R is false","A is false but R is true"],"answer":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions. Follow NCERT logical reasoning style. Do not stop early. Fill in all assertion, reason and answer fields completely.`;
+}
+
+// Case Study Based Questions
+function getCaseStudyPrompt(params) {
+  const { marks, difficultyLevel, subject } = params;
+  
+  return `GENERATE EXACTLY 1 CASE STUDY BASED QUESTION SET for ${subject} (${difficultyLevel} difficulty). Structure: One detailed passage (8-12 lines) with 4 sub-questions mixing 1 and 2 mark questions.
+[{
+  "questionNumber":1,
+  "passage":"",
+  "questions":[
+    {"questionNumber":1,"question":"","answer":"","marks":1},
+    {"questionNumber":2,"question":"","answer":"","marks":1},
+    {"questionNumber":3,"question":"","answer":"","marks":2},
+    {"questionNumber":4,"question":"","answer":"","marks":2}
+  ]
+}]
+CRITICAL: Passage must relate to real-life scenario. Questions must be based ONLY on passage. Do NOT generate more than one case study. Fill in all fields completely.`;
+}
+
+// Diagram Based Questions (Science / Maths)
+function getDiagramBasedPrompt(params) {
+  const { count, marks, difficultyLevel, subject } = params;
+  
+  return `GENERATE EXACTLY ${count} DIAGRAM-BASED QUESTIONS for ${subject} (${marks} marks each, ${difficultyLevel} difficulty). Each question must describe a diagram scenario and ask to label/draw/identify parts.
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","diagramDescription":"","diagramInstructions":"","expectedAnswer":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions. For each question, provide:
+1. question: The question asking student to identify/label parts from the diagram
+2. diagramDescription: Detailed text description of what the diagram shows
+3. diagramInstructions: Step-by-step instructions to draw/create this diagram (e.g., "Draw a circle in center, add 4 lines extending outward, label each line as A, B, C, D")
+4. expectedAnswer: What student should identify/label
+Do not stop early. Fill in all fields completely.`;
+}
+
+// Map Based Questions (Social Science)
+function getMapBasedPrompt(params) {
+  const { count, marks, difficultyLevel } = params;
+  
+  return `GENERATE EXACTLY ${count} MAP-BASED QUESTIONS (${marks} marks each, ${difficultyLevel} difficulty). Each question must ask students to locate and label places based on Indian geography or history.
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","locations":[],"mapInstructions":"","answer":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions. For each question, provide:
+1. question: The question asking student to locate and label places on the map
+2. locations: Array of location names to mark on map (e.g., ["Delhi", "Mumbai", "Bangalore"])
+3. mapInstructions: Detailed instructions to draw the map (e.g., "Draw outline of India, mark Delhi in north, Mumbai on west coast, Bangalore in south")
+4. answer: Correct placement/identification of locations
+Do not stop early. Fill in all fields completely.`;
+}
+
+// Data Interpretation (Graph/Table Based)
+function getDataInterpretationPrompt(params) {
+  const { marks, difficultyLevel, subject } = params;
+  
+  return `GENERATE EXACTLY 1 DATA INTERPRETATION QUESTION SET for ${subject} (${difficultyLevel} difficulty). Structure: Provide a data table or graph description with 4 sub-questions.
+[{
+  "questionNumber":1,
+  "dataDescription":"",
+  "dataInstructions":"",
+  "questions":[
+    {"questionNumber":1,"question":"","answer":"","marks":1},
+    {"questionNumber":2,"question":"","answer":"","marks":1},
+    {"questionNumber":3,"question":"","answer":"","marks":2},
+    {"questionNumber":4,"question":"","answer":"","marks":2}
+  ]
+}]
+CRITICAL: Data must be realistic. Questions must require analysis, not direct copying. For each question, provide:
+1. dataDescription: Detailed text description of the data (values, labels, what it represents)
+2. dataInstructions: Step-by-step instructions to create the visualization (e.g., "Create a bar chart with X-axis showing months (Jan-Dec), Y-axis showing sales (0-1000), bars showing: Jan=200, Feb=350, Mar=400...")
+
+IMPORTANT: ALWAYS include questionNumber field (1, 2, 3, 4) for each sub-question. Do NOT skip or omit question numbers.
+
+Do NOT generate more than one data interpretation set. Fill in all fields completely.`;
+}
+
+// Differentiate Between
+function getDifferentiatePrompt(params) {
+  const { count, marks, difficultyLevel, subject } = params;
+  
+  return `GENERATE EXACTLY ${count} DIFFERENTIATE BETWEEN QUESTIONS (${marks} marks each, ${difficultyLevel} difficulty) for ${subject}. Each question must ask difference between two concepts with minimum 3 comparison points.
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"Differentiate between","conceptA":"","conceptB":"","answer":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions. For each question, provide:
+1. question: "Differentiate between [conceptA] and [conceptB]"
+2. conceptA: First concept name
+3. conceptB: Second concept name
+4. answer: Structured comparison with minimum 3 comparison points
+Do not stop early. Fill in all fields completely.`;
+}
+
+// Sequencing / Arrange in Order
+function getSequencingPrompt(params) {
+  const { count, marks, difficultyLevel, subject } = params;
+  
+  return `GENERATE EXACTLY ${count} ARRANGE IN CORRECT ORDER QUESTIONS (${marks} marks each, ${difficultyLevel} difficulty) for ${subject}.
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"Arrange the following in correct order:","items":[],"correctOrder":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions. For each question, provide:
+1. question: "Arrange the following in correct order:"
+2. items: Array of items to arrange (e.g., ["Mitosis", "Prophase", "Metaphase", "Anaphase"])
+3. correctOrder: The correct sequence/order of items
+Do not stop early. Fill in all fields completely.`;
+}
+
+// Geometry Based Questions
+function getGeometryPrompt(params) {
+  const { count, marks, difficultyLevel } = params;
+  
+  return `GENERATE EXACTLY ${count} GEOMETRY QUESTIONS (${marks} marks each, ${difficultyLevel} difficulty). Each question MUST:
+- Involve geometric figures (angles, triangles, lines, polygons, circles, etc.)
+- Require a diagram
+- Include a clear figure description
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","figureDescription":"","answer":"","marks":${marks}}`).join(',')}]
+CRITICAL: You MUST generate all ${count} questions. Diagram must be necessary to solve. Clearly describe figure in text. Do not stop early. Fill in all fields completely.`;
 }

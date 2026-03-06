@@ -330,6 +330,25 @@ async function generatePDFBuffer(html, css, options = {}) {
               list-style-type: disc;
             }
 
+            /* SVG Container Styles */
+            [data-svg-container], .svg-container {
+              display: inline-block;
+              width: 100%;
+              max-width: 100%;
+              margin: 0.5rem 0;
+              page-break-inside: avoid;
+              break-inside: avoid;
+              text-align: center;
+            }
+
+            [data-svg-container] svg, .svg-container svg {
+              max-width: 100%;
+              height: auto;
+              display: inline-block;
+              margin: 0 auto;
+            }
+            }
+
             /* Print-friendly overrides */
             @media print {
               body {
@@ -348,8 +367,24 @@ async function generatePDFBuffer(html, css, options = {}) {
 
             /* Hide non-printable elements */
             button, input, select, textarea, [role="button"],
-            .material-symbols-outlined, svg {
+            .material-symbols-outlined {
               display: none !important;
+            }
+
+            /* SVG Rendering Styles */
+            svg {
+              max-width: 100%;
+              height: auto;
+              display: block;
+              margin: 0.5rem 0;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+
+            svg * {
+              color: #000;
+              fill: currentColor;
+              stroke: currentColor;
             }
           </style>
         </head>
@@ -377,11 +412,12 @@ async function generatePDFBuffer(html, css, options = {}) {
     // Generate PDF with optimized settings
     const pdf = await page.pdf({
       format,
-      printBackground,
+      printBackground: true,
       margin,
       preferCSSPageSize: false,
       timeout: 60000,
       displayHeaderFooter: false,
+      scale: 1,
     });
 
     console.log(`[PDF] PDF generated successfully: ${filename} (${pdf.length} bytes)`);
