@@ -3,7 +3,6 @@ const express = require('express');
 const corsMiddleware = require('./config/cors');
 const errorHandler = require('./middleware/errorHandler');
 const adaptiveContentRoutes = require('./modules/adaptive-content/routes');
-const adaptiveContentRagRoutes = require('./modules/adaptive-content-rag/routes');
 const questionPaperRoutes = require('./modules/question-paper/routes');
 const generatePdfRoutes = require('./modules/generate-pdf/routes');
 const remedialRoutes = require("./modules/remedial/routes");
@@ -136,7 +135,6 @@ app.get('/debug/azure-openai', async (req, res) => {
 
 // API routes
 app.use('/adaptive-content', adaptiveContentRoutes);
-app.use('/adaptive-content-rag', adaptiveContentRagRoutes);
 app.use('/question-paper', questionPaperRoutes);
 app.use('/pdf', generatePdfRoutes);
 app.use('/remedial', remedialRoutes);
@@ -154,7 +152,7 @@ app.use(errorHandler);
 // 404 handler - serve index.html for SPA routing
 app.use((req, res) => {
   // If it's an API route, return 404 JSON
-  if (req.path.startsWith('/api') || req.path.startsWith('/adaptive-content') || req.path.startsWith('/adaptive-content-rag') || req.path.startsWith('/question-paper') || req.path.startsWith('/pdf') || req.path.startsWith('/rag') || req.path.startsWith('/book-upload') || req.path.startsWith('/remedial')) {
+  if (req.path.startsWith('/api') || req.path.startsWith('/adaptive-content') || req.path.startsWith('/question-paper') || req.path.startsWith('/pdf') || req.path.startsWith('/rag') || req.path.startsWith('/book-upload') || req.path.startsWith('/remedial')) {
     return res.status(404).json({ error: 'Route not found' });
   }
   // Otherwise serve index.html for SPA

@@ -9,7 +9,18 @@ const {
   getEssayPrompt,
   getInternalChoicePrompt,
   getExamDetailsPrompt,
+  getVeryShortAnswerPrompt,
+  getAssertionReasonPrompt,
+  getCaseStudyPrompt,
+  getDiagramBasedPrompt,
+  getMapBasedPrompt,
+  getDataInterpretationPrompt,
+  getDifferentiatePrompt,
+  getSequencingPrompt,
+  getGeometryPrompt,
 } = require("./prompts");
+
+const { generateImageFromInstructions } = require("./imageGenerator");
 
 // Use native fetch (Node.js 18+) or import node-fetch
 let fetch;
@@ -36,7 +47,7 @@ async function generateQuestionPaper(req, res) {
 
     // Extract parameters from request body
     const {
-      fileIds = [],
+      chunks = [],
       duration = 60,
       difficultyLevel = "medium",
       subject = "",
@@ -48,19 +59,25 @@ async function generateQuestionPaper(req, res) {
       trueorfalse,
       essay,
       internalChoice,
+      veryShortAnswer,
+      assertionReason,
+      caseStudy,
+      diagramBased,
+      mapBased,
+      dataInterpretation,
+      differentiate,
+      sequencing,
+      geometry,
     } = req.body;
 
-    // Validate required fields
-    if (!fileIds || fileIds.length === 0) {
+    // Validate required fields - chunks must be provided
+    if (!chunks || chunks.length === 0) {
       clearTimeout(timeoutId);
       return res.status(400).json({
         success: false,
-        message: "Missing required field: fileIds",
+        message: "Missing required field: chunks (array of chunk objects with text)",
       });
     }
-
-    console.log("Starting question paper generation...");
-    console.log(`Processing ${fileIds.length} file(s)...`);
 
     // Get exam details and sections
     const examDetailsData = getExamDetailsPrompt({
@@ -75,6 +92,15 @@ async function generateQuestionPaper(req, res) {
       trueorfalse,
       essay,
       internalChoice,
+      veryShortAnswer,
+      assertionReason,
+      caseStudy,
+      diagramBased,
+      mapBased,
+      dataInterpretation,
+      differentiate,
+      sequencing,
+      geometry,
     });
 
     // Build combined prompt with all question types
@@ -161,6 +187,92 @@ async function generateQuestionPaper(req, res) {
         }) + "\n\n";
     }
 
+    if (veryShortAnswer && veryShortAnswer.count > 0) {
+      combinedPrompt +=
+        getVeryShortAnswerPrompt({
+          count: veryShortAnswer.count,
+          marks: veryShortAnswer.marks,
+          difficultyLevel,
+          subject,
+        }) + "\n\n";
+    }
+
+    if (assertionReason && assertionReason.count > 0) {
+      combinedPrompt +=
+        getAssertionReasonPrompt({
+          count: assertionReason.count,
+          marks: assertionReason.marks,
+          difficultyLevel,
+          subject,
+        }) + "\n\n";
+    }
+
+    if (caseStudy && caseStudy.count > 0) {
+      combinedPrompt +=
+        getCaseStudyPrompt({
+          marks: caseStudy.marks,
+          difficultyLevel,
+          subject,
+        }) + "\n\n";
+    }
+
+    if (diagramBased && diagramBased.count > 0) {
+      combinedPrompt +=
+        getDiagramBasedPrompt({
+          count: diagramBased.count,
+          marks: diagramBased.marks,
+          difficultyLevel,
+          subject,
+        }) + "\n\n";
+    }
+
+    if (mapBased && mapBased.count > 0) {
+      combinedPrompt +=
+        getMapBasedPrompt({
+          count: mapBased.count,
+          marks: mapBased.marks,
+          difficultyLevel,
+        }) + "\n\n";
+    }
+
+    if (dataInterpretation && dataInterpretation.count > 0) {
+      combinedPrompt +=
+        getDataInterpretationPrompt({
+          marks: dataInterpretation.marks,
+          difficultyLevel,
+          subject,
+        }) + "\n\n";
+    }
+
+    if (differentiate && differentiate.count > 0) {
+      combinedPrompt +=
+        getDifferentiatePrompt({
+          count: differentiate.count,
+          marks: differentiate.marks,
+          difficultyLevel,
+          subject,
+        }) + "\n\n";
+    }
+
+    if (sequencing && sequencing.count > 0) {
+      combinedPrompt +=
+        getSequencingPrompt({
+          count: sequencing.count,
+          marks: sequencing.marks,
+          difficultyLevel,
+          subject,
+        }) + "\n\n";
+    }
+
+    if (geometry && geometry.count > 0) {
+      combinedPrompt +=
+        getGeometryPrompt({
+          count: geometry.count,
+          marks: geometry.marks,
+          difficultyLevel,
+        }) + "\n\n";
+    }
+
     // Helper function to generate generic prompt for undefined question types
     function getGenericQuestionPrompt(questionType, count, marks, difficultyLevel) {
       return `Generate ${count} ${questionType} questions (${marks} marks each, ${difficultyLevel} difficulty):
@@ -169,7 +281,7 @@ CRITICAL: You MUST generate all ${count} questions. Do not stop early. Fill in a
     }
 
     // Handle any additional custom question types from request body
-    const predefinedKeys = ['fileIds', 'duration', 'difficultyLevel', 'subject', 'mcq', 'shortAnswer', 'fillups', 'longans', 'match', 'trueorfalse', 'essay', 'internalChoice'];
+    const predefinedKeys = ['fileIds', 'duration', 'difficultyLevel', 'subject', 'mcq', 'shortAnswer', 'fillups', 'longans', 'match', 'trueorfalse', 'essay', 'internalChoice', 'veryShortAnswer', 'assertionReason', 'caseStudy', 'diagramBased', 'mapBased', 'dataInterpretation', 'differentiate', 'sequencing', 'geometry'];
     const customQuestionTypes = Object.keys(req.body).filter(key => !predefinedKeys.includes(key));
     
     customQuestionTypes.forEach(questionType => {
@@ -198,6 +310,24 @@ CRITICAL: You MUST generate all ${count} questions. Do not stop early. Fill in a
     if (essay && essay.count > 0) requestedKeys.push('"essay"');
     if (internalChoice && internalChoice.count > 0)
       requestedKeys.push('"internalChoice"');
+    if (veryShortAnswer && veryShortAnswer.count > 0)
+      requestedKeys.push('"veryShortAnswer"');
+    if (assertionReason && assertionReason.count > 0)
+      requestedKeys.push('"assertionReason"');
+    if (caseStudy && caseStudy.count > 0)
+      requestedKeys.push('"caseStudy"');
+    if (diagramBased && diagramBased.count > 0)
+      requestedKeys.push('"diagramBased"');
+    if (mapBased && mapBased.count > 0)
+      requestedKeys.push('"mapBased"');
+    if (dataInterpretation && dataInterpretation.count > 0)
+      requestedKeys.push('"dataInterpretation"');
+    if (differentiate && differentiate.count > 0)
+      requestedKeys.push('"differentiate"');
+    if (sequencing && sequencing.count > 0)
+      requestedKeys.push('"sequencing"');
+    if (geometry && geometry.count > 0)
+      requestedKeys.push('"geometry"');
     
     // Add custom question types to requested keys
     customQuestionTypes.forEach(questionType => {
@@ -224,14 +354,14 @@ CRITICAL REQUIREMENTS:
       },
     ];
 
-    fileIds.forEach((fId) => {
-      contentArray.push({
-        type: "document",
-        source: {
-          type: "file",
-          file_id: fId,
-        },
-      });
+    // Format chunks as context text
+    const contextText = chunks
+      .map((chunk, idx) => `[Context ${idx + 1}] ${chunk.text}`)
+      .join("\n\n");
+    
+    contentArray.push({
+      type: "text",
+      text: `\n\nUse the following context from the document to generate questions:\n\n${contextText}`,
     });
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -239,12 +369,11 @@ CRITICAL REQUIREMENTS:
       headers: {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": "files-api-2025-04-14",
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
-        max_tokens: 8192,
+        model: "claude-haiku-4-5",
+        max_tokens: 16384, // Increased from 8192 to handle large question papers
         temperature: 0.3,
         system: `You are a question paper generator. Output ONLY valid JSON, nothing else.
 
@@ -257,7 +386,8 @@ CRITICAL RULES:
 - Return complete, filled data for ALL questions.
 - Ensure ALL requested question types are present in response.
 - Start with { and end with } - nothing else.
-- IMPORTANT: If you are asked to generate 12 Short Answer questions, you MUST generate exactly 12, not 10 or fewer.`,
+- IMPORTANT: If you are asked to generate 12 Short Answer questions, you MUST generate exactly 12, not 10 or fewer.
+- Keep answers concise to fit within token limits while maintaining quality.`,
         messages: [
           {
             role: "user",
@@ -287,8 +417,6 @@ CRITICAL RULES:
     const content =
       data.content && data.content.length > 0 ? data.content[0].text : "";
 
-    console.log("Claude Response Content:", content);
-
     let questions;
     try {
       // Extract JSON from response, handling markdown code blocks and text
@@ -313,7 +441,7 @@ CRITICAL RULES:
       questions = JSON.parse(jsonStr);
 
       // Define predefined question type keys
-      const predefinedKeys = ['mcq', 'shortAnswer', 'fillups', 'longans', 'match', 'trueorfalse', 'essay', 'internalChoice', 'customQuestions'];
+      const predefinedKeys = ['mcq', 'shortAnswer', 'fillups', 'longans', 'match', 'trueorfalse', 'essay', 'internalChoice', 'veryShortAnswer', 'assertionReason', 'caseStudy', 'diagramBased', 'mapBased', 'dataInterpretation', 'differentiate', 'sequencing', 'geometry', 'customQuestions'];
       
       // Validate question counts
       const validation = {
@@ -349,6 +477,42 @@ CRITICAL RULES:
           requested: internalChoice?.count || 0,
           received: questions.internalChoice?.length || 0,
         },
+        veryShortAnswer: {
+          requested: veryShortAnswer?.count || 0,
+          received: questions.veryShortAnswer?.length || 0,
+        },
+        assertionReason: {
+          requested: assertionReason?.count || 0,
+          received: questions.assertionReason?.length || 0,
+        },
+        caseStudy: {
+          requested: caseStudy?.count || 0,
+          received: Array.isArray(questions.caseStudy) ? questions.caseStudy.length : 0,
+        },
+        diagramBased: {
+          requested: diagramBased?.count || 0,
+          received: questions.diagramBased?.length || 0,
+        },
+        mapBased: {
+          requested: mapBased?.count || 0,
+          received: questions.mapBased?.length || 0,
+        },
+        dataInterpretation: {
+          requested: dataInterpretation?.count || 0,
+          received: Array.isArray(questions.dataInterpretation) ? questions.dataInterpretation.length : 0,
+        },
+        differentiate: {
+          requested: differentiate?.count || 0,
+          received: questions.differentiate?.length || 0,
+        },
+        sequencing: {
+          requested: sequencing?.count || 0,
+          received: questions.sequencing?.length || 0,
+        },
+        geometry: {
+          requested: geometry?.count || 0,
+          received: questions.geometry?.length || 0,
+        },
       };
 
       // Add custom question types to validation
@@ -374,11 +538,6 @@ CRITICAL RULES:
           };
         });
       }
-
-      console.log(
-        "Question Count Validation:",
-        JSON.stringify(validation, null, 2),
-      );
 
       // Check for mismatches
       const mismatches = Object.entries(validation).filter(
@@ -406,29 +565,90 @@ CRITICAL RULES:
       }
     } catch (parseError) {
       console.error("Error parsing JSON response:", parseError);
-      console.error("Raw content:", content.substring(0, 1000));
+      console.error("Raw content length:", content.length);
+      console.error("Raw content preview (first 1000 chars):", content.substring(0, 1000));
+      console.error("Raw content end (last 500 chars):", content.substring(content.length - 500));
       console.error(
         "Token Usage - Input:",
         data.usage?.input_tokens,
         "Output:",
         data.usage?.output_tokens,
       );
+      
+      // Check if response was truncated
+      const wasTruncated = data.usage?.output_tokens >= 16000 || data.stop_reason === 'max_tokens';
+      
       clearTimeout(timeoutId);
       return res.status(500).json({
         success: false,
-        message: "Failed to parse question paper response",
+        message: wasTruncated 
+          ? "Response was truncated due to length. Please reduce the number of questions or simplify the requirements."
+          : "Failed to parse question paper response",
         error: parseError.message,
-        rawContent: content.substring(0, 1000),
+        wasTruncated,
         tokenUsage: {
           inputTokens: data.usage?.input_tokens || 0,
           outputTokens: data.usage?.output_tokens || 0,
           totalTokens:
             (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
         },
+        suggestion: wasTruncated 
+          ? "Try reducing the number of questions, especially for essay and long answer types, or split into multiple requests."
+          : "The response format may be invalid. Please try again.",
       });
     }
 
     clearTimeout(timeoutId);
+
+    // Generate images for diagram-based, map-based, and data interpretation questions
+    console.log('[Question Paper] Generating images for visual questions...');
+    
+    if (questions.diagramBased && Array.isArray(questions.diagramBased)) {
+      for (let i = 0; i < questions.diagramBased.length; i++) {
+        const q = questions.diagramBased[i];
+        if (q.diagramInstructions) {
+          try {
+            console.log(`[Question Paper] Generating diagram image ${i + 1}/${questions.diagramBased.length}`);
+            q.diagramImage = await generateImageFromInstructions(q.diagramInstructions, 250, 250, 'diagram');
+          } catch (err) {
+            console.error(`[Question Paper] Error generating diagram image ${i + 1}:`, err.message);
+            q.diagramImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+          }
+        }
+      }
+    }
+
+    if (questions.mapBased && Array.isArray(questions.mapBased)) {
+      for (let i = 0; i < questions.mapBased.length; i++) {
+        const q = questions.mapBased[i];
+        if (q.mapInstructions) {
+          try {
+            console.log(`[Question Paper] Generating map image ${i + 1}/${questions.mapBased.length}`);
+            q.mapImage = await generateImageFromInstructions(q.mapInstructions, 280, 300, 'map');
+          } catch (err) {
+            console.error(`[Question Paper] Error generating map image ${i + 1}:`, err.message);
+            q.mapImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+          }
+        }
+      }
+    }
+
+    if (questions.dataInterpretation && Array.isArray(questions.dataInterpretation)) {
+      for (let i = 0; i < questions.dataInterpretation.length; i++) {
+        const q = questions.dataInterpretation[i];
+        if (q.dataInstructions) {
+          try {
+            console.log(`[Question Paper] Generating data interpretation image ${i + 1}/${questions.dataInterpretation.length}`);
+            q.dataImage = await generateImageFromInstructions(q.dataInstructions, 280, 220, 'data');
+          } catch (err) {
+            console.error(`[Question Paper] Error generating data interpretation image ${i + 1}:`, err.message);
+            q.dataImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+          }
+        }
+      }
+    }
+
+    console.log('[Question Paper] Image generation complete');
 
     // Combine all responses into final structure
     const finalResponse = {
@@ -446,15 +666,6 @@ CRITICAL RULES:
       },
     };
 
-    console.log("Question paper generated successfully");
-    console.log(
-      "Token Usage - Input:",
-      data.usage?.input_tokens,
-      "Output:",
-      data.usage?.output_tokens,
-      "Total:",
-      (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
-    );
     return res.status(200).json(finalResponse);
   } catch (error) {
     clearTimeout(timeoutId);

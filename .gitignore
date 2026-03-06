@@ -10,3 +10,14 @@ settings.json
 .gcloudignore
 index.html
 firebase.json
+
+# Puppeteer cache
+functions/.cache/
+.cache/
+
+# Firebase cache
+.firebase/
+*-debug.log
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

@@ -5,11 +5,45 @@ require('dotenv').config();
  * Uses puppeteer for local, @sparticuz/chromium for Firebase Cloud Functions
  */
 async function getPuppeteerAndOptions() {
-  const isFirebase = !!process.env.FIREBASE_CONFIG || !!process.env.FUNCTION_NAME;
+  // Check if running in actual Firebase Cloud Functions (not emulator)
+  // GCP_PROJECT is set in actual cloud environment, not in emulator
+  const isActualCloudFunction = !!process.env.GCP_PROJECT || !!process.env.FUNCTION_TARGET;
+  const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
+  
+  console.log('[PDF] Environment detection:', {
+    GCP_PROJECT: !!process.env.GCP_PROJECT,
+    FUNCTION_TARGET: !!process.env.FUNCTION_TARGET,
+    FIREBASE_CONFIG: !!process.env.FIREBASE_CONFIG,
+    FUNCTIONS_EMULATOR: process.env.FUNCTIONS_EMULATOR,
+    isActualCloudFunction,
+    isEmulator,
+  });
   
   try {
-    if (isFirebase) {
-      // Firebase Cloud Functions - use @sparticuz/chromium
+    // Force local puppeteer for emulator or local development
+    if (isEmulator || !isActualCloudFunction) {
+      // Local environment or emulator - use regular puppeteer
+      const puppeteer = require('puppeteer');
+      
+      console.log('[PDF] Using puppeteer for local development/emulator');
+      
+      // Check if Chromium is available
+      try {
+        const executablePath = puppeteer.executablePath();
+        console.log('[PDF] Chromium path:', executablePath);
+      } catch (e) {
+        console.warn('[PDF] Could not get Chromium path:', e.message);
+      }
+      
+      return {
+        puppeteer,
+        launchOptions: {
+          headless: 'new',
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        },
+      };
+    } else {
+      // Actual Firebase Cloud Functions - use @sparticuz/chromium
       const chromium = require('@sparticuz/chromium');
       const puppeteerCore = require('puppeteer-core');
       
@@ -24,38 +58,20 @@ async function getPuppeteerAndOptions() {
           headless: chromium.headless,
         },
       };
-    } else {
-      // Local environment - use regular puppeteer
-      const puppeteer = require('puppeteer');
-      
-      console.log('[PDF] Using puppeteer for local development');
-      
-      return {
-        puppeteer,
-        launchOptions: {
-          headless: 'new',
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        },
-      };
     }
   } catch (error) {
     console.error('[PDF] Failed to load puppeteer:', error.message);
+    console.error('[PDF] Error details:', error);
     
-    // Fallback to regular puppeteer for local
-    try {
-      const puppeteer = require('puppeteer');
-      console.log('[PDF] Falling back to puppeteer');
-      
-      return {
-        puppeteer,
-        launchOptions: {
-          headless: 'new',
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        },
-      };
-    } catch (fallbackError) {
-      throw new Error('Puppeteer not available. Please install: npm install puppeteer');
+    // Provide helpful error message
+    if (error.message.includes('ENOENT') || error.message.includes('spawn')) {
+      throw new Error(
+        'Chromium not found. Please run: cd functions && npx puppeteer browsers install chrome\n' +
+        'Or reinstall puppeteer: npm install puppeteer --force'
+      );
     }
+    
+    throw new Error(`Puppeteer error: ${error.message}`);
   }
 }
 
@@ -314,6 +330,25 @@ async function generatePDFBuffer(html, css, options = {}) {
               list-style-type: disc;
             }
 
+            /* SVG Container Styles */
+            [data-svg-container], .svg-container {
+              display: inline-block;
+              width: 100%;
+              max-width: 100%;
+              margin: 0.5rem 0;
+              page-break-inside: avoid;
+              break-inside: avoid;
+              text-align: center;
+            }
+
+            [data-svg-container] svg, .svg-container svg {
+              max-width: 100%;
+              height: auto;
+              display: inline-block;
+              margin: 0 auto;
+            }
+            }
+
             /* Print-friendly overrides */
             @media print {
               body {
@@ -332,8 +367,24 @@ async function generatePDFBuffer(html, css, options = {}) {
 
             /* Hide non-printable elements */
             button, input, select, textarea, [role="button"],
-            .material-symbols-outlined, svg {
+            .material-symbols-outlined {
               display: none !important;
+            }
+
+            /* SVG Rendering Styles */
+            svg {
+              max-width: 100%;
+              height: auto;
+              display: block;
+              margin: 0.5rem 0;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+
+            svg * {
+              color: #000;
+              fill: currentColor;
+              stroke: currentColor;
             }
           </style>
         </head>
@@ -361,11 +412,12 @@ async function generatePDFBuffer(html, css, options = {}) {
     // Generate PDF with optimized settings
     const pdf = await page.pdf({
       format,
-      printBackground,
+      printBackground: true,
       margin,
       preferCSSPageSize: false,
       timeout: 60000,
       displayHeaderFooter: false,
+      scale: 1,
     });
 
     console.log(`[PDF] PDF generated successfully: ${filename} (${pdf.length} bytes)`);
