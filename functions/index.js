@@ -163,11 +163,6 @@ app.use((req, res) => {
   });
 });
 
-const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
-});
-
 exports.api = functions
   .runWith({
     timeoutSeconds: 540,      // 9 minutes (max for Gen 1)
