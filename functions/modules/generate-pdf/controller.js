@@ -744,9 +744,92 @@ async function generatePDFFile(html, css, filepath, options = {}) {
   }
 }
 
+/**
+ * Generate PDF and share via WhatsApp
+ * Returns a shareable link or WhatsApp API URL
+ */
+async function shareViaWhatsApp(req, res) {
+  try {
+    const { html, css, filename, examData, phoneNumber, message } = req.body;
+
+    // Validate phone number
+    if (!phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required for WhatsApp sharing',
+      });
+    }
+
+    console.log(`[WhatsApp] Generating PDF for sharing: ${filename || 'document'}`);
+
+    // If examData is provided, generate HTML from exam structure
+    let finalHTML = html;
+    let finalCSS = css;
+
+    if (examData) {
+      console.log(`[WhatsApp] Generating PDF from exam data`);
+      finalHTML = generateExamHTML(examData);
+      finalCSS = '';
+    }
+
+    // Validate input
+    if (!finalHTML) {
+      return res.status(400).json({
+        success: false,
+        message: 'HTML content or examData is required',
+      });
+    }
+
+    // Generate PDF as base64
+    const pdfBase64 = await generatePDFBase64(finalHTML, finalCSS, {
+      filename: filename || 'document',
+      format: 'A4',
+      margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
+      printBackground: true,
+      preferCSSPageSize: false,
+    });
+
+    console.log(`[WhatsApp] PDF generated successfully (${pdfBase64.length} bytes)`);
+
+    // Format phone number (remove special characters, ensure it starts with country code)
+    const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
+    const formattedPhoneNumber = cleanPhoneNumber.startsWith('91') ? cleanPhoneNumber : '91' + cleanPhoneNumber;
+
+    // Create WhatsApp message with PDF
+    // Note: WhatsApp Web API doesn't support direct PDF sharing via URL
+    // Instead, we provide options for the frontend to handle sharing
+
+    const whatsappShareData = {
+      success: true,
+      data: {
+        pdfBase64,
+        phoneNumber: formattedPhoneNumber,
+        filename: filename || 'document',
+        message: message || 'Check out this question paper!',
+        // WhatsApp Web URL (for web-based sharing)
+        whatsappWebUrl: `https://web.whatsapp.com/send?phone=${formattedPhoneNumber}&text=${encodeURIComponent(message || 'Check out this question paper!')}`,
+        // WhatsApp API URL (for mobile)
+        whatsappMobileUrl: `whatsapp://send?phone=${formattedPhoneNumber}&text=${encodeURIComponent(message || 'Check out this question paper!')}`,
+      },
+    };
+
+    console.log(`[WhatsApp] Share data prepared for phone: ${formattedPhoneNumber}`);
+
+    res.status(200).json(whatsappShareData);
+  } catch (error) {
+    console.error('[WhatsApp] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to prepare WhatsApp sharing',
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   generatePDF,
   generatePDFBuffer,
   generatePDFBase64,
   generatePDFFile,
+  shareViaWhatsApp,
 };

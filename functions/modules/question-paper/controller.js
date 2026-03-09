@@ -606,12 +606,18 @@ CRITICAL RULES:
     if (questions.diagramBased && Array.isArray(questions.diagramBased)) {
       for (let i = 0; i < questions.diagramBased.length; i++) {
         const q = questions.diagramBased[i];
-        if (q.diagramInstructions) {
+        if (q.diagramInstructions || q.diagramImageUrl) {
           try {
-            console.log(`[Question Paper] Generating diagram image ${i + 1}/${questions.diagramBased.length}`);
-            q.diagramImage = await generateImageFromInstructions(q.diagramInstructions, 250, 250, 'diagram');
+            console.log(`[Question Paper] Processing diagram image ${i + 1}/${questions.diagramBased.length}`);
+            q.diagramImage = await generateImageFromInstructions(
+              q.diagramInstructions || 'Generate a simple diagram',
+              250,
+              250,
+              'diagram',
+              q.diagramImageUrl
+            );
           } catch (err) {
-            console.error(`[Question Paper] Error generating diagram image ${i + 1}:`, err.message);
+            console.error(`[Question Paper] Error processing diagram image ${i + 1}:`, err.message);
             q.diagramImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
           }
         }
@@ -621,12 +627,18 @@ CRITICAL RULES:
     if (questions.mapBased && Array.isArray(questions.mapBased)) {
       for (let i = 0; i < questions.mapBased.length; i++) {
         const q = questions.mapBased[i];
-        if (q.mapInstructions) {
+        if (q.mapInstructions || q.mapImageUrl) {
           try {
-            console.log(`[Question Paper] Generating map image ${i + 1}/${questions.mapBased.length}`);
-            q.mapImage = await generateImageFromInstructions(q.mapInstructions, 280, 300, 'map');
+            console.log(`[Question Paper] Processing map image ${i + 1}/${questions.mapBased.length}`);
+            q.mapImage = await generateImageFromInstructions(
+              q.mapInstructions || 'Generate a map of India',
+              280,
+              300,
+              'map',
+              q.mapImageUrl
+            );
           } catch (err) {
-            console.error(`[Question Paper] Error generating map image ${i + 1}:`, err.message);
+            console.error(`[Question Paper] Error processing map image ${i + 1}:`, err.message);
             q.mapImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
           }
         }
@@ -636,12 +648,18 @@ CRITICAL RULES:
     if (questions.dataInterpretation && Array.isArray(questions.dataInterpretation)) {
       for (let i = 0; i < questions.dataInterpretation.length; i++) {
         const q = questions.dataInterpretation[i];
-        if (q.dataInstructions) {
+        if (q.dataInstructions || q.dataImageUrl) {
           try {
-            console.log(`[Question Paper] Generating data interpretation image ${i + 1}/${questions.dataInterpretation.length}`);
-            q.dataImage = await generateImageFromInstructions(q.dataInstructions, 280, 220, 'data');
+            console.log(`[Question Paper] Processing data interpretation image ${i + 1}/${questions.dataInterpretation.length}`);
+            q.dataImage = await generateImageFromInstructions(
+              q.dataInstructions || 'Generate a data chart',
+              280,
+              220,
+              'data',
+              q.dataImageUrl
+            );
           } catch (err) {
-            console.error(`[Question Paper] Error generating data interpretation image ${i + 1}:`, err.message);
+            console.error(`[Question Paper] Error processing data interpretation image ${i + 1}:`, err.message);
             q.dataImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
           }
         }

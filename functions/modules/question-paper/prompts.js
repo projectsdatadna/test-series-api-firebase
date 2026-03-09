@@ -446,12 +446,13 @@ function getDiagramBasedPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `GENERATE EXACTLY ${count} DIAGRAM-BASED QUESTIONS for ${subject} (${marks} marks each, ${difficultyLevel} difficulty). Each question must describe a diagram scenario and ask to label/draw/identify parts.
-[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","diagramDescription":"","diagramInstructions":"","expectedAnswer":"","marks":${marks}}`).join(',')}]
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","diagramDescription":"","diagramImageUrl":"","diagramInstructions":"","expectedAnswer":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. For each question, provide:
 1. question: The question asking student to identify/label parts from the diagram
 2. diagramDescription: Detailed text description of what the diagram shows
-3. diagramInstructions: Step-by-step instructions to draw/create this diagram (e.g., "Draw a circle in center, add 4 lines extending outward, label each line as A, B, C, D")
-4. expectedAnswer: What student should identify/label
+3. diagramImageUrl: If you know a real, high-quality image URL from Wikimedia Commons, Wikipedia, or educational resources that matches this diagram, provide it. Otherwise leave empty "". Format: "https://..." or ""
+4. diagramInstructions: Step-by-step instructions to draw/create this diagram (used only if diagramImageUrl is empty)
+5. expectedAnswer: What student should identify/label
 Do not stop early. Fill in all fields completely.`;
 }
 
@@ -460,12 +461,13 @@ function getMapBasedPrompt(params) {
   const { count, marks, difficultyLevel } = params;
   
   return `GENERATE EXACTLY ${count} MAP-BASED QUESTIONS (${marks} marks each, ${difficultyLevel} difficulty). Each question must ask students to locate and label places based on Indian geography or history.
-[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","locations":[],"mapInstructions":"","answer":"","marks":${marks}}`).join(',')}]
+[${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","locations":[],"mapImageUrl":"","mapInstructions":"","answer":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. For each question, provide:
 1. question: The question asking student to locate and label places on the map
 2. locations: Array of location names to mark on map (e.g., ["Delhi", "Mumbai", "Bangalore"])
-3. mapInstructions: Detailed instructions to draw the map (e.g., "Draw outline of India, mark Delhi in north, Mumbai on west coast, Bangalore in south")
-4. answer: Correct placement/identification of locations
+3. mapImageUrl: If you know a real, high-quality map image URL from Wikimedia Commons or educational resources showing India with regions/states, provide it. Otherwise leave empty "". Format: "https://..." or ""
+4. mapInstructions: Detailed instructions to draw the map (used only if mapImageUrl is empty, e.g., "Draw outline of India, mark Delhi in north, Mumbai on west coast")
+5. answer: Correct placement/identification of locations
 Do not stop early. Fill in all fields completely.`;
 }
 
@@ -477,6 +479,7 @@ function getDataInterpretationPrompt(params) {
 [{
   "questionNumber":1,
   "dataDescription":"",
+  "dataImageUrl":"",
   "dataInstructions":"",
   "questions":[
     {"questionNumber":1,"question":"","answer":"","marks":1},
@@ -487,7 +490,8 @@ function getDataInterpretationPrompt(params) {
 }]
 CRITICAL: Data must be realistic. Questions must require analysis, not direct copying. For each question, provide:
 1. dataDescription: Detailed text description of the data (values, labels, what it represents)
-2. dataInstructions: Step-by-step instructions to create the visualization (e.g., "Create a bar chart with X-axis showing months (Jan-Dec), Y-axis showing sales (0-1000), bars showing: Jan=200, Feb=350, Mar=400...")
+2. dataImageUrl: If you know a real, high-quality chart/graph/table image URL from Wikimedia Commons or educational resources that matches this data, provide it. Otherwise leave empty "". Format: "https://..." or ""
+3. dataInstructions: Step-by-step instructions to create the visualization (used only if dataImageUrl is empty, e.g., "Create a bar chart with X-axis showing months (Jan-Dec), Y-axis showing sales (0-1000)...")
 
 IMPORTANT: ALWAYS include questionNumber field (1, 2, 3, 4) for each sub-question. Do NOT skip or omit question numbers.
 
