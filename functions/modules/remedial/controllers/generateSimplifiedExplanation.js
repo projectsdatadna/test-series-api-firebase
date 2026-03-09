@@ -199,6 +199,14 @@ module.exports = async (req, res) => {
 
     const claudeResponse = await response.json();
 
+    if (claudeResponse.usage) {
+      logger.info('📊 Token Usage:', {
+        inputTokens: claudeResponse.usage.input_tokens,
+        outputTokens: claudeResponse.usage.output_tokens,
+        totalTokens: claudeResponse.usage.input_tokens + claudeResponse.usage.output_tokens,
+      });
+    }
+    
     if (!claudeResponse.content || !claudeResponse.content[0] || !claudeResponse.content[0].text) {
       logger.error('❌ Invalid response structure');
       return res.status(500).json({
