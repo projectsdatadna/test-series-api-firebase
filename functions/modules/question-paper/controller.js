@@ -51,6 +51,15 @@ async function generateQuestionPaper(req, res) {
       duration = 60,
       difficultyLevel = "medium",
       subject = "",
+      contentTypeId,
+      documentId,
+      userId,
+      sectionIds = [],
+      sectionNumbers = [],
+      sectionTitles = [],
+      topic,
+      learningStyle = "visual",
+      maxTokens = 16384,
       mcq,
       shortAnswer,
       fillups,
@@ -281,7 +290,7 @@ CRITICAL: You MUST generate all ${count} questions. Do not stop early. Fill in a
     }
 
     // Handle any additional custom question types from request body
-    const predefinedKeys = ['fileIds', 'duration', 'difficultyLevel', 'subject', 'mcq', 'shortAnswer', 'fillups', 'longans', 'match', 'trueorfalse', 'essay', 'internalChoice', 'veryShortAnswer', 'assertionReason', 'caseStudy', 'diagramBased', 'mapBased', 'dataInterpretation', 'differentiate', 'sequencing', 'geometry'];
+    const predefinedKeys = ['fileIds', 'chunks', 'duration', 'difficultyLevel', 'subject', 'contentTypeId', 'documentId', 'userId', 'sectionIds', 'sectionNumbers', 'sectionTitles', 'topic', 'learningStyle', 'maxTokens', 'mcq', 'shortAnswer', 'fillups', 'longans', 'match', 'trueorfalse', 'essay', 'internalChoice', 'veryShortAnswer', 'assertionReason', 'caseStudy', 'diagramBased', 'mapBased', 'dataInterpretation', 'differentiate', 'sequencing', 'geometry'];
     const customQuestionTypes = Object.keys(req.body).filter(key => !predefinedKeys.includes(key));
     
     customQuestionTypes.forEach(questionType => {

@@ -69,13 +69,22 @@ async function generateAdaptiveContent(req, res) {
       outputLanguage,
       // RAG-specific parameters
       chunks = [],
-      userId,
       documentId,
       topic,
       sectionTitle,
+      sectionTitles = [],
+      sectionIds = [],
+      sectionNumbers = [],
       learningStyle = "visual",
       difficulty = "intermediate",
+      maxTokens = 2000,
     } = req.body;
+
+    // Extract userId from JWT token (set by verifyJWT middleware)
+    const userId = req.user?.userId;
+    
+    // Use sectionTitles array if provided, otherwise use single sectionTitle
+    const sectionsToProcess = sectionTitles.length > 0 ? sectionTitles : (sectionTitle ? [sectionTitle] : []);
 
     // Determine mode: file-based or RAG-based
     const isRAGMode = chunks.length > 0;
@@ -108,11 +117,11 @@ async function generateAdaptiveContent(req, res) {
       }
     } else {
       // RAG mode validation
-      if (!userId || !documentId || !sectionTitle) {
+      if (!userId || !documentId || sectionsToProcess.length === 0) {
         clearTimeout(timeoutId);
         return res.status(400).json({
           success: false,
-          message: "Missing required fields for RAG mode: userId, documentId, sectionTitle",
+          message: "Missing required fields for RAG mode: userId, documentId, sectionTitle(s)",
         });
       }
     }
@@ -121,15 +130,16 @@ async function generateAdaptiveContent(req, res) {
     const depth = contentDepth || difficulty || "intermediate";
     const style = visualStyle || "academic";
     const language = outputLanguage || "english";
-    const finalTopicName = topicName || topic || sectionTitle;
+    const finalTopicName = topicName || topic || sectionsToProcess[0] || sectionTitle;
 
     let prompt;
     let context = "";
 
     // RAG Mode: Generate embedding and find similar chunks
     if (isRAGMode) {
-      console.log("[Adaptive Content] RAG Mode: Generating embedding for:", sectionTitle);
-      const topicEmbedding = await generateEmbedding(sectionTitle);
+      const currentSectionTitle = sectionsToProcess[0] || sectionTitle;
+      console.log("[Adaptive Content] RAG Mode: Generating embedding for:", currentSectionTitle);
+      const topicEmbedding = await generateEmbedding(currentSectionTitle);
       console.log("[Adaptive Content] Embedding generated, dimension:", topicEmbedding.length);
 
       // Find similar chunks using cosine similarity
