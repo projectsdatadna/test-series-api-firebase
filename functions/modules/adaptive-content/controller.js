@@ -3,7 +3,8 @@ const { getPrompt, getChatboxPrompt } = require("./prompts/content-generate-prom
 const {
   getDocumentStructureExtractionPrompt,
 } = require("./prompts/extraction-prompts");
-const { generateEmbedding, cosineSimilarity } = require("../rag/embeddings");
+// COMMENTED OUT: No longer using embeddings and cosine similarity
+// const { generateEmbedding, cosineSimilarity } = require("../rag/embeddings");
 const AWS = require("aws-sdk");
 
 // Initialize DynamoDB lazily
@@ -135,34 +136,38 @@ async function generateAdaptiveContent(req, res) {
     let prompt;
     let context = "";
 
-    // RAG Mode: Generate embedding and find similar chunks
+    // RAG Mode: Use chunks directly without similarity filtering
     if (isRAGMode) {
-      const currentSectionTitle = sectionsToProcess[0] || sectionTitle;
-      console.log("[Adaptive Content] RAG Mode: Generating embedding for:", currentSectionTitle);
-      const topicEmbedding = await generateEmbedding(currentSectionTitle);
-      console.log("[Adaptive Content] Embedding generated, dimension:", topicEmbedding.length);
+      console.log("[Adaptive Content] RAG Mode: Using provided chunks directly");
+      console.log("[Adaptive Content] Total chunks available:", chunks.length);
 
-      // Find similar chunks using cosine similarity
-      console.log("[Adaptive Content] Querying similar chunks from provided data...");
-      const similarChunks = chunks
-        .map((chunk) => {
-          const chunkEmbedding = chunk.embedding.slice(0, topicEmbedding.length);
-          return {
-            ...chunk,
-            similarity: cosineSimilarity(topicEmbedding, chunkEmbedding),
-          };
-        })
-        .sort((a, b) => b.similarity - a.similarity);
+      // COMMENTED OUT: Embedding generation and cosine similarity logic
+      // const currentSectionTitle = sectionsToProcess[0] || sectionTitle;
+      // console.log("[Adaptive Content] RAG Mode: Generating embedding for:", currentSectionTitle);
+      // const topicEmbedding = await generateEmbedding(currentSectionTitle);
+      // console.log("[Adaptive Content] Embedding generated, dimension:", topicEmbedding.length);
 
-      console.log("[Adaptive Content] Retrieved", similarChunks.length, "similar chunks");
-      console.log("[Adaptive Content] Top 5 similarities:", similarChunks.slice(0, 5).map(c => c.similarity.toFixed(4)));
+      // COMMENTED OUT: Find similar chunks using cosine similarity
+      // console.log("[Adaptive Content] Querying similar chunks from provided data...");
+      // const similarChunks = chunks
+      //   .map((chunk) => {
+      //     const chunkEmbedding = chunk.embedding.slice(0, topicEmbedding.length);
+      //     return {
+      //       ...chunk,
+      //       similarity: cosineSimilarity(topicEmbedding, chunkEmbedding),
+      //     };
+      //   })
+      //   .sort((a, b) => b.similarity - a.similarity);
 
-      // Format context from retrieved chunks
-      context = similarChunks
+      // console.log("[Adaptive Content] Retrieved", similarChunks.length, "similar chunks");
+      // console.log("[Adaptive Content] Top 5 similarities:", similarChunks.slice(0, 5).map(c => c.similarity.toFixed(4)));
+
+      // Format context from all provided chunks directly
+      context = chunks
         .map((chunk, idx) => `[Context ${idx + 1}] ${chunk.text}`)
         .join("\n\n");
 
-      console.log("[Adaptive Content] Context prepared, length:", context.length);
+      console.log("[Adaptive Content] Context prepared from all chunks, length:", context.length);
     }
 
     // Get dynamic prompt based on content type
@@ -861,33 +866,37 @@ async function chatboxQuery(req, res) {
       });
     }
 
-    // Step 1: Generate embedding for the query
-    console.log("[Adaptive Content - Chatbox] Generating embedding for query:", query);
-    const queryEmbedding = await generateEmbedding(query);
-    console.log("[Adaptive Content - Chatbox] Embedding generated, dimension:", queryEmbedding.length);
+    // Step 1: Use chunks directly without embedding generation
+    console.log("[Adaptive Content - Chatbox] Using provided chunks directly");
+    console.log("[Adaptive Content - Chatbox] Total chunks available:", chunks.length);
 
-    // Step 2: Find similar chunks using cosine similarity
-    console.log("[Adaptive Content - Chatbox] Querying similar chunks...");
+    // COMMENTED OUT: Generate embedding for the query
+    // console.log("[Adaptive Content - Chatbox] Generating embedding for query:", query);
+    // const queryEmbedding = await generateEmbedding(query);
+    // console.log("[Adaptive Content - Chatbox] Embedding generated, dimension:", queryEmbedding.length);
 
-    const similarChunks = chunks
-      .map((chunk) => {
-        const chunkEmbedding = chunk.embedding.slice(0, queryEmbedding.length);
-        return {
-          ...chunk,
-          similarity: cosineSimilarity(queryEmbedding, chunkEmbedding),
-        };
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 5); // Top 5 similar chunks
+    // COMMENTED OUT: Find similar chunks using cosine similarity
+    // console.log("[Adaptive Content - Chatbox] Querying similar chunks...");
+    // const similarChunks = chunks
+    //   .map((chunk) => {
+    //     const chunkEmbedding = chunk.embedding.slice(0, queryEmbedding.length);
+    //     return {
+    //       ...chunk,
+    //       similarity: cosineSimilarity(queryEmbedding, chunkEmbedding),
+    //     };
+    //   })
+    //   .sort((a, b) => b.similarity - a.similarity)
+    //   .slice(0, 5); // Top 5 similar chunks
 
-    console.log("[Adaptive Content - Chatbox] Retrieved", similarChunks.length, "similar chunks");
+    // console.log("[Adaptive Content - Chatbox] Retrieved", similarChunks.length, "similar chunks");
 
-    // Step 3: Format context from retrieved chunks
+    // Step 2: Format context from all provided chunks directly
+    const similarChunks = chunks; // Use all chunks directly
     const context = similarChunks
       .map((chunk, idx) => `[Source ${idx + 1}] ${chunk.text}`)
       .join("\n\n");
 
-    console.log("[Adaptive Content - Chatbox] Context prepared");
+    console.log("[Adaptive Content - Chatbox] Context prepared from all chunks, length:", context.length);
 
     // Step 4: Generate chatbox response using Claude
     const prompt = getChatboxPrompt({
