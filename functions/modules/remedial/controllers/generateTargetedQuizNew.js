@@ -124,6 +124,7 @@ module.exports = async (req, res) => {
 
     logger.info('🤖 Calling Claude API for quiz generation...');
 
+    const maxTokens = Math.min(4096, Math.max(2000, numberOfQuestions * 300));
     // ✅ Plain messages API — no Files API, no beta header
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -134,7 +135,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 2000,
+        max_tokens: maxTokens,
         temperature: 0.3,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
