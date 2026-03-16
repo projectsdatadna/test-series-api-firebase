@@ -10,6 +10,7 @@ settings.json
 .gcloudignore
 index.html
 firebase.json
+backup
 
 # Puppeteer cache
 functions/.cache/

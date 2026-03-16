@@ -1,5 +1,6 @@
 require("dotenv").config();
 const { getPrompt, getChatboxPrompt } = require("./prompts/content-generate-prompts");
+const { getSystemPrompt } = require("./prompts/systemPrompts");
 const {
   getDocumentStructureExtractionPrompt,
 } = require("./prompts/extraction-prompts");
@@ -180,6 +181,9 @@ async function generateAdaptiveContent(req, res) {
       contentType: contentType || '',
     });
 
+    // Get system prompt based on content type
+    const systemPrompt = getSystemPrompt(contentTypeId);
+
     // Append context for RAG mode
     if (isRAGMode && context) {
       prompt = `${basePrompt}\n\nUse the following context from the document to generate the content:\n\n${context}`;
@@ -222,12 +226,9 @@ async function generateAdaptiveContent(req, res) {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: isRAGMode ? "claude-haiku-4-5" : "claude-3-5-haiku-20241022",
-        max_tokens: 16384,
-        ...(isRAGMode ? { 
-          temperature: 0.7,
-          system: `You are an adaptive learning content generator. Create engaging educational content tailored to the student's learning style and difficulty level.`
-        } : {}),
+        model: "claude-haiku-4-5",
+        max_tokens: maxTokens,
+        system: systemPrompt,
         messages: [
           {
             role: "user",
