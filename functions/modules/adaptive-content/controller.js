@@ -8,7 +8,6 @@ const {
 // const { generateEmbedding, cosineSimilarity } = require("../rag/embeddings");
 const AWS = require("aws-sdk");
 
-// Initialize DynamoDB lazily
 let dynamodb = null;
 
 function initializeDynamoDB() {
@@ -19,7 +18,6 @@ function initializeDynamoDB() {
   const region = process.env.AWS_REGION || "ap-south-1";
 
   if (accessKeyId && secretAccessKey) {
-    console.log("Initializing DynamoDB with credentials...");
     AWS.config.update({
       region: region,
       credentials: new AWS.Credentials({
@@ -82,43 +80,17 @@ async function generateAdaptiveContent(req, res) {
       maxTokens = 2000,
     } = req.body;
 
-    // Extract userId from JWT token (set by verifyJWT middleware)
-    const userId = req.user?.userId;
-    
-    // Use sectionTitles array if provided, otherwise use single sectionTitle
+    const userId = req.user?.userId;    
     const sectionsToProcess = sectionTitles.length > 0 ? sectionTitles : (sectionTitle ? [sectionTitle] : []);
 
-    // Determine mode: file-based or RAG-based
-    const isRAGMode = chunks.length > 0;
-    const isFileMode = !!fileId;
-
-    console.log(`[Adaptive Content] Mode: ${isRAGMode ? 'RAG (chunks-based)' : 'File-based'}`);
-
-    // Validate required fields based on mode
-    if (!isRAGMode && !isFileMode) {
+    if (chunks.length == 0) {
       clearTimeout(timeoutId);
       return res.status(400).json({
         success: false,
-        message: "Either fileId or chunks array is required",
+        message: "Chunks array is required",
       });
     }
 
-    if (isFileMode) {
-      // File-based mode validation
-      const requiredFields = ["fileId", "sectionNumber", "topicName", "contentType"];
-      const missingFields = requiredFields.filter((field) => !req.body[field]);
-
-      if (missingFields.length > 0) {
-        clearTimeout(timeoutId);
-        return res.status(400).json({
-          success: false,
-          message: "Missing required fields for file-based mode",
-          requiredFields,
-          missingFields,
-        });
-      }
-    } else {
-      // RAG mode validation
       if (!userId || !documentId || sectionsToProcess.length === 0) {
         clearTimeout(timeoutId);
         return res.status(400).json({
@@ -126,9 +98,7 @@ async function generateAdaptiveContent(req, res) {
           message: "Missing required fields for RAG mode: userId, documentId, sectionTitle(s)",
         });
       }
-    }
-
-    // Set defaults for optional parameters
+    
     const depth = contentDepth || difficulty || "intermediate";
     const style = visualStyle || "academic";
     const language = outputLanguage || "english";
@@ -136,11 +106,6 @@ async function generateAdaptiveContent(req, res) {
 
     let prompt;
     let context = "";
-
-    // RAG Mode: Use chunks directly without similarity filtering
-    if (isRAGMode) {
-      console.log("[Adaptive Content] RAG Mode: Using provided chunks directly");
-      console.log("[Adaptive Content] Total chunks available:", chunks.length);
 
       // COMMENTED OUT: Embedding generation and cosine similarity logic
       // const currentSectionTitle = sectionsToProcess[0] || sectionTitle;
@@ -160,18 +125,10 @@ async function generateAdaptiveContent(req, res) {
       //   })
       //   .sort((a, b) => b.similarity - a.similarity);
 
-      // console.log("[Adaptive Content] Retrieved", similarChunks.length, "similar chunks");
-      // console.log("[Adaptive Content] Top 5 similarities:", similarChunks.slice(0, 5).map(c => c.similarity.toFixed(4)));
-
-      // Format context from all provided chunks directly
       context = chunks
         .map((chunk, idx) => `[Context ${idx + 1}] ${chunk.text}`)
         .join("\n\n");
 
-      console.log("[Adaptive Content] Context prepared from all chunks, length:", context.length);
-    }
-
-    // Get dynamic prompt based on content type
     const basePrompt = getPrompt(contentTypeId, {
       sectionNumber: sectionNumber || '',
       topicName: finalTopicName,
@@ -181,39 +138,9 @@ async function generateAdaptiveContent(req, res) {
       contentType: contentType || '',
     });
 
-    // Get system prompt based on content type
     const systemPrompt = getSystemPrompt(contentTypeId);
-
-    // Append context for RAG mode
-    if (isRAGMode && context) {
+    if (context) {
       prompt = `${basePrompt}\n\nUse the following context from the document to generate the content:\n\n${context}`;
-    } else {
-      prompt = basePrompt;
-    }
-
-    console.log("[Adaptive Content] Calling Anthropic API...");
-    console.log("[Adaptive Content] Content Type ID:", contentTypeId || "default");
-
-    // Build message content based on mode
-    let messageContent;
-    if (isFileMode) {
-      // File-based mode: include file reference
-      messageContent = [
-        {
-          type: "text",
-          text: prompt,
-        },
-        {
-          type: "document",
-          source: {
-            type: "file",
-            file_id: fileId,
-          },
-        },
-      ];
-    } else {
-      // RAG mode: text only (context already in prompt)
-      messageContent = prompt;
     }
 
     // Call Anthropic Messages API
@@ -222,7 +149,6 @@ async function generateAdaptiveContent(req, res) {
       headers: {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
-        ...(isFileMode ? { "anthropic-beta": "files-api-2025-04-14" } : {}),
         "content-type": "application/json",
       },
       body: JSON.stringify({
@@ -232,15 +158,13 @@ async function generateAdaptiveContent(req, res) {
         messages: [
           {
             role: "user",
-            content: messageContent,
+            content: prompt,
           },
         ],
       }),
       signal: controller.signal,
     });
-
     clearTimeout(timeoutId);
-
     if (!response.ok) {
       const error = await response.json();
       return res.status(400).json({
@@ -251,36 +175,21 @@ async function generateAdaptiveContent(req, res) {
     }
 
     const data = await response.json();
-    console.log("Adaptive content generated successfully");
-
-    // Extract the content from the response
     const content =
       data.content && data.content.length > 0 ? data.content[0].text : "";
 
-    console.log("First API response content preview:", content.substring(0, 200));
-    
-    // Check if response was truncated
     if (data.stop_reason === "max_tokens") {
       console.warn("⚠️ WARNING: Claude response was truncated due to max_tokens limit!");
       console.warn("⚠️ The generated HTML may be incomplete. Consider increasing max_tokens.");
     }
 
-    // Extract HTML from the content (remove markdown, backticks, quotes, etc.)
     let htmlContent = content;
-    
-    // Remove markdown code blocks (```html ... ``` or ``` ... ```)
     htmlContent = htmlContent.replace(/```(?:html)?\s*/g, '');
     htmlContent = htmlContent.replace(/```\s*/g, '');
-    
-    // Remove leading/trailing quotes
     htmlContent = htmlContent.replace(/^["'`]+|["'`]+$/g, '');
-    
-    // Remove any JSON wrapper patterns like {"htmlText": "..."}
-    // This handles cases where Claude returns JSON despite instructions
     htmlContent = htmlContent.replace(/^\s*\{\s*["']?htmlText["']?\s*:\s*["']?/i, '');
     htmlContent = htmlContent.replace(/["']?\s*\}\s*$/, '');
-    
-    // Check if content is wrapped in JSON (e.g., {"htmlText": "..."})
+
     try {
       const jsonMatch = htmlContent.match(/^\s*\{[\s\S]*\}\s*$/);
       if (jsonMatch) {
@@ -289,13 +198,11 @@ async function generateAdaptiveContent(req, res) {
           htmlContent = parsed.htmlText;
           console.log("Extracted HTML from JSON wrapper");
         } else if (typeof parsed === 'object') {
-          // Try to find HTML in any property
           const htmlProp = Object.values(parsed).find(val => 
             typeof val === 'string' && val.includes('<!DOCTYPE')
           );
           if (htmlProp) {
             htmlContent = htmlProp;
-            console.log("Extracted HTML from JSON property");
           }
         }
       }
@@ -303,28 +210,51 @@ async function generateAdaptiveContent(req, res) {
       // Not JSON, continue with normal extraction
     }
     
-    // Extract HTML if it's wrapped in quotes or other text
     const htmlMatch = htmlContent.match(/<!DOCTYPE[^>]*>[\s\S]*<\/html>/i);
     if (htmlMatch) {
       htmlContent = htmlMatch[0];
     }
-    
-    // Clean up any remaining escape characters
     htmlContent = htmlContent.replace(/\\n/g, '');
     htmlContent = htmlContent.replace(/\\"/g, '"');
     htmlContent = htmlContent.replace(/\\'/g, "'");
-    
-    // Final cleanup: remove any remaining JSON artifacts at the start
     htmlContent = htmlContent.replace(/^[^<]*(?=<!DOCTYPE)/i, '');
-
     clearTimeout(timeoutId);    console.log("HTML extracted successfully");
 
-    // Count the number of page divs to determine pages parameter
-    // For sticky-notes, always use 1 page regardless of page divs
+    // Skip image conversion for flash-cards (returns JSON, not HTML)
+    if (contentTypeId === 'flash-cards') {
+      console.log("Flash cards: skipping image conversion, returning JSON directly");
+      
+      // Extract JSON from markdown code blocks if present
+      let flashCardsJson = content;
+      
+      // Remove markdown code block wrappers
+      flashCardsJson = flashCardsJson.replace(/```(?:json)?\s*/g, '');
+      flashCardsJson = flashCardsJson.replace(/```\s*/g, '');
+      flashCardsJson = flashCardsJson.trim();
+      
+      try {
+        // Parse the JSON string
+        const parsedData = JSON.parse(flashCardsJson);
+        
+        // Return the parsed JSON directly
+        return res.status(200).json(parsedData);
+      } catch (parseError) {
+        console.error("Failed to parse flash cards JSON:", parseError);
+        return res.status(200).json({
+          success: true,
+          flashCards: {
+            flashCards: [],
+            uiConfig: { colors: [] }
+          },
+          rawContent: content,
+          parseError: parseError.message
+        });
+      }
+    }
+
     let pageCount = (htmlContent.match(/class=["']page["']/g) || []).length || 1;
     if (contentTypeId === 'sticky-notes') {
       pageCount = 1;
-      console.log("Sticky notes: forcing single page output");
     }
 
     const conversionController = new AbortController();
@@ -354,11 +284,8 @@ async function generateAdaptiveContent(req, res) {
       if (conversionResponse.ok) {
         const respContentType =
           conversionResponse.headers.get("content-type") || "";
-        console.log("Conversion response content-type:", respContentType);
-
         if (respContentType.includes("application/json")) {
           const imageRes = await conversionResponse.json();
-          console.log("Conversion API JSON response:", imageRes);
 
           if (imageRes && Array.isArray(imageRes.images)) {
             return res.status(200).json({
@@ -368,8 +295,6 @@ async function generateAdaptiveContent(req, res) {
               htmlContent: htmlContent,
             });
           }
-
-          // Some variants might wrap result differently; return as-is for UI handling
           return res.status(200).json({
             success: true,
             conversion: imageRes,
@@ -810,12 +735,6 @@ function parseTextFormatResponse(content) {
     },
   };
 }
-
-/**
- * Chatbox API - Get responses based on query using RAG
- * Accepts chunks array and query
- * Returns conversational responses suitable for chatbox
- */
 async function chatboxQuery(req, res) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 300000);

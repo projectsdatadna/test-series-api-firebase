@@ -1,8 +1,3 @@
-/**
- * System Prompts for different content types
- * These prompts define the behavior and constraints for Claude when generating content
- */
-
 function getSystemPrompt(contentTypeId) {
   const SYSTEM_PROMPTS = {
     'ready-reckoner': `YOU ARE A READY RECKONER GENERATOR WITH CONCEPT OVERVIEW AND KEY CONCEPTS ONLY.
@@ -48,6 +43,40 @@ CONSTRAINTS:
 - Minified HTML (one continuous line)
 
 RETURN ONLY THE HTML. NOTHING ELSE.`,
+    
+    'flash-cards': `YOU ARE A FLASH CARDS JSON GENERATOR.
+
+GENERATE EXACTLY 6 FLASH CARDS IN JSON FORMAT.
+
+REQUIREMENTS:
+- Return ONLY valid JSON object
+- NO markdown, NO code blocks, NO explanations
+- NO preamble or postamble text
+- Each card must have: id (1-6), frontSide.question, backSide.answer
+- Each card should include: backSide.example and backSide.keyPoint (optional but recommended)
+- Questions should be clear, concise, and test understanding
+- Answers should be comprehensive but concise (2-3 sentences)
+- Examples should illustrate the concept with real-world application
+- Key points should highlight the most important aspect
+- Colors array must have exactly 6 hex color codes for UI styling
+- Ensure all JSON is valid and properly formatted
+
+JSON STRUCTURE:
+{
+  "success": true,
+  "flashCards": {
+    "flashCards": [
+      {
+        "id": 1,
+        "frontSide": {"question": "..."},
+        "backSide": {"answer": "...", "example": "...", "keyPoint": "..."}
+      }
+    ],
+    "uiConfig": {"colors": ["#4F46E5", "#EC4899", "#F59E0B", "#10B981", "#06B6D4", "#8B5CF6"]}
+  }
+}
+
+RETURN ONLY THE JSON OBJECT.`,
     
     'default': `You are an adaptive learning content generator. Create engaging educational content tailored to the student's learning style and difficulty level.`
   };
