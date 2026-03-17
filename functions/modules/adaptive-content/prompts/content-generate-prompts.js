@@ -145,7 +145,62 @@ function getMindMapsPrompt(params) {
     visualStyle = 'academic'
   } = params;
 
-  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents a mind map for each key concept. Each mind map node should include a central topic with connected branches showing related concepts, subtopics, and relationships. The design should be visually appealing and easy to read, with a consistent layout and color scheme. The mind map should be organized with a central circular card connected to multiple surrounding rectangular cards, with each card having a uniform size and shape. The overall design should be professional and suitable for use in an educational or training setting. Create an interactive mind map of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature as a structured, visually elegant, and interactive reference sheet. The layout should serve as a quick-access knowledge companion for students and professionals — focused on clarity, visual memory cues, and ease of scanning. Design Style: 'A4 Vertical Radial Mind Map Layout' — EXACT HTML STRUCTURE REQUIRED: <!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\" /><title>A4 Vertical Mind Map</title><style>@page {size: A4 portrait;margin: 0;}body {margin: 0;background: #e5e7eb;font-family: Inter, system-ui, sans-serif;}.page {width: 210mm;height: 297mm;margin: auto;background: #f4f6fb;position: relative;overflow: hidden;}.center {position: absolute;top: 50%;left: 55%;width: 40mm;height: 40mm;padding: 10px;transform: translate(-50%, -50%);background: #4f46e5;color: #fff;border-radius: 50%;display: flex;align-items: center;justify-content: center;text-align: center;font-size: 13pt;font-weight: 600;box-shadow: 0 10mm 20mm rgba(79,70,229,0.35);z-index: 5;}.card {position: absolute;width: 55mm;padding: 8mm;border-radius: 16mm;background: white;box-shadow: 0 6mm 14mm rgba(0,0,0,0.12);}.card h3 {margin: 0 0 4mm;font-size: 11pt;font-weight: 600;color: #1f2937;}.item {font-size: 10pt;color: #374151;margin-bottom: 2mm;}.blue {background: #eef2ff;}.green {background: #ecfdf5;}.pink {background: #fdf2f8;}.amber {background: #fffbeb;}.teal {background: #f0fdfa;}.purple {background: #faf5ff;}.c1 {top: 14%;left: 50%;transform: translateX(-50%);}.c2 {top: 34%;left: 70%;}.c3 {top: 58%;left: 70%;}.c4 {top: 76%;left: 50%;transform: translateX(-50%);}.c5 {top: 58%;left: 3%;}.c6 {top: 34%;left: 3%;}</style></head><body><div class=\"page\"><div class=\"center\">[Main Topic Title Here]</div><div class=\"card blue c1\"><h3>[Concept 1 Title]</h3><div class=\"item\">[Point 1]</div><div class=\"item\">[Point 2]</div><div class=\"item\">[Point 3]</div></div><div class=\"card green c2\"><h3>[Concept 2 Title]</h3><div class=\"item\">[Point 1]</div><div class=\"item\">[Point 2]</div><div class=\"item\">[Point 3]</div><div class=\"item\">[Point 4]</div></div><div class=\"card pink c3\"><h3>[Concept 3 Title]</h3><div class=\"item\">[Point 1]</div><div class=\"item\">[Point 2]</div><div class=\"item\">[Point 3]</div></div><div class=\"card amber c4\"><h3>[Concept 4 Title]</h3><div class=\"item\">[Point 1]</div><div class=\"item\">[Point 2]</div></div><div class=\"card teal c5\"><h3>[Concept 5 Title]</h3><div class=\"item\">[Point 1]</div><div class=\"item\">[Point 2]</div><div class=\"item\">[Point 3]</div></div><div class=\"card purple c6\"><h3>[Concept 6 Title]</h3><div class=\"item\">[Point 1]</div><div class=\"item\">[Point 2]</div><div class=\"item\">[Point 3]</div></div></div></body></html>. A4 page (210mm × 297mm portrait) with light background (#f4f6fb). Center circular card positioned at top: 50%, left: 55% with 40mm diameter, 10px padding, indigo background (#4f46e5), white text (13pt bold), circular shape (border-radius: 50%), shadow (0 10mm 20mm rgba(79,70,229,0.35)), z-index: 5. Six rectangular cards (width: 55mm, padding: 8mm, border-radius: 16mm, white base with pastel color overlays) positioned radially with specific coordinates: c1 class (top: 14%, left: 50%, transform: translateX(-50%)) with blue background (#eef2ff), c2 class (top: 34%, left: 72%) with green background (#ecfdf5), c3 class (top: 58%, left: 64%) with pink background (#fdf2f8), c4 class (top: 76%, left: 50%, transform: translateX(-50%)) with amber background (#fffbeb), c5 class (top: 58%, left: 6%) with teal background (#f0fdfa), c6 class (top: 34%, left: 6%) with purple background (#faf5ff). Each card contains h3 heading (11pt bold, #1f2937, margin: 0 0 4mm) and 2-4 div elements with class 'item' (10pt, #374151, margin-bottom: 2mm). Typography uses Inter font throughout. Print styles with @page (size: A4 portrait, margin: 0). Body styling (margin: 0, background: #e5e7eb). NO bullet points, NO numbered lists, NO arrows - only plain text in div.item elements. NO SVG, NO JavaScript - pure CSS layout. Output Format: CRITICAL - You MUST generate HTML that EXACTLY matches this structure. Use the EXACT class names (page, center, card, item, blue, green, pink, amber, teal, purple, c1, c2, c3, c4, c5, c6). Use the EXACT CSS properties and values shown above including the 10px padding on .center. The center div must contain only the main topic title as plain text. Each card div must have TWO classes: one color class (blue/green/pink/amber/teal/purple) and one position class (c1/c2/c3/c4/c5/c6). Inside each card: one h3 with concept title, followed by 2-4 div.item elements with plain text points. NO other HTML structure variations allowed. Strictly adhere to this format. CRITICAL REQUIREMENT: You MUST output the complete HTML code directly. DO NOT output bullet points, text summaries, or explanations. DO NOT describe the content - generate the actual HTML code with the extracted concepts populated into the exact mind map structure shown above. Replace [Main Topic Title Here] with the chapter's main topic, replace [Concept 1-6 Title] with extracted concept titles, and replace [Point 1], [Point 2], etc. with extracted key points. The response should START with <!DOCTYPE html> and END with </html>. The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely by removing all spaces between tags. The entire HTML must be one unbroken line from <!DOCTYPE to </html>. Do NOT format or pretty-print the HTML. Return ONLY the complete minified HTML code with extracted content, nothing else - no JSON, no quotes, no markdown, no explanations, no preamble, no postamble.Output Format: <!DOCTYPE html>...complete HTML script here.... Strictly adhere to the output format given. Additional Notes: The page must look structured, calm, and intuitive for study purposes — print-ready for A4 paper format. Ensure connection lines connect properly, cards are positioned precisely, and responsive design works on mobile devices. CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely by removing all spaces between tags. The entire HTML string inside the htmlText array must be one unbroken line from <!DOCTYPE to </html>. Do NOT format or pretty-print the HTML. Return only the JSON output with fully minified HTML inside quotes, nothing else. Give me the HTML script alone. Do not add any other text or markdown. Return only the JSON output with full HTML inside quotes, nothing else. Follow the output format strictly.`;
+  return `Generate a mind map with header, footer, and concept structure in JSON format.
+
+Topic: ${topicName}
+Depth: ${contentDepth}
+Language: ${outputLanguage}
+
+RETURN ONLY VALID JSON - NO MARKDOWN, NO CODE BLOCKS, NO EXPLANATIONS, NO PREAMBLE.
+
+JSON STRUCTURE REQUIRED:
+{
+  "success": true,
+  "header": {
+    "emoji": "📚",
+    "title": "Mind Map: ${sectionNumber}",
+    "subtitle": "Curated Summary | Powered by DATADNA AI Study Platform"
+  },
+  "mindMap": {
+    "mainTopic": "Main Topic",
+    "concepts": [
+      {
+        "title": "Concept 1",
+        "subconcepts": ["Subconcept 1", "Subconcept 2", "Subconcept 3"]
+      }
+    ]
+  },
+  "footer": {
+    "text": "© 2025 DATADNA AI Study Platform — Mind Map Generated by AI"
+  },
+  "styling": {
+    "colors": {
+      "header": "#1f2937",
+      "headerBg": "#f9fafb",
+      "centerCircle": "#4f46e5",
+      "cardColors": ["#eef2ff", "#ecfdf5", "#fdf2f8", "#fffbeb", "#f0fdfa", "#faf5ff"]
+    },
+    "fonts": {
+      "headerTitle": "28pt bold",
+      "conceptTitle": "11pt bold",
+      "subconcept": "10pt"
+    },
+    "spacing": {
+      "headerPadding": "15mm",
+      "cardPadding": "8mm",
+      "footerPadding": "10mm"
+    }
+  }
+}
+
+REQUIREMENTS:
+- Generate EXACTLY 4-6 main concepts
+- Each concept MUST have 2-3 subconcepts (as simple strings)
+- Use relevant subject-specific emoji for header (📘, 🧠, 📚, 💡, ✨, 🎯, 📊, 🔍, etc.)
+- Keep all text concise and scannable
+- Ensure valid JSON formatting
+- Return ONLY the JSON object, nothing else
+- No markdown code blocks, no explanations, no additional text`;
 }
 
 function getVisualExplainersPrompt(params) {

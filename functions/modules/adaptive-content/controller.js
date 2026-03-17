@@ -252,6 +252,38 @@ async function generateAdaptiveContent(req, res) {
       }
     }
 
+    // Skip image conversion for mind-maps (returns JSON, not HTML)
+    if (contentTypeId === 'mind-maps') {
+      console.log("Mind maps: skipping image conversion, returning JSON directly");
+      
+      // Extract JSON from markdown code blocks if present
+      let mindMapsJson = content;
+      
+      // Remove markdown code block wrappers
+      mindMapsJson = mindMapsJson.replace(/```(?:json)?\s*/g, '');
+      mindMapsJson = mindMapsJson.replace(/```\s*/g, '');
+      mindMapsJson = mindMapsJson.trim();
+      
+      try {
+        // Parse the JSON string
+        const parsedData = JSON.parse(mindMapsJson);
+        
+        // Return the parsed JSON directly
+        return res.status(200).json(parsedData);
+      } catch (parseError) {
+        console.error("Failed to parse mind maps JSON:", parseError);
+        return res.status(200).json({
+          success: true,
+          header: { title: "", subtitle: "", emoji: "" },
+          mindMap: { mainTopic: "", concepts: [] },
+          footer: { copyright: "", author: "" },
+          styling: {},
+          rawContent: content,
+          parseError: parseError.message
+        });
+      }
+    }
+
     let pageCount = (htmlContent.match(/class=["']page["']/g) || []).length || 1;
     if (contentTypeId === 'sticky-notes') {
       pageCount = 1;
