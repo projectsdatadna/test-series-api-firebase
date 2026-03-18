@@ -26,6 +26,7 @@ function getReadyReckonerPrompt(params) {
   
   return `
   Generate a ready reckoner for: ${topicName} with ${contentDepth} depth in ${outputLanguage} language
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 
 GENERATE EXACTLY THESE SECTIONS ONLY:
 1. HEADER - Title: "Ready Reckoner: ${sectionNumber}" and subtitle: "Curated Summary | Powered by DATADNA AI Study Platform" with relevant emoji icon
@@ -90,6 +91,7 @@ function getFlashCardsPrompt(params) {
   } = params;
 
   return `Generate exactly 6 flash cards in JSON format for: ${topicName} with ${contentDepth} depth in ${outputLanguage} language.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 
 RETURN ONLY VALID JSON - NO MARKDOWN, NO EXPLANATIONS, NO PREAMBLE.
 
@@ -150,6 +152,7 @@ function getMindMapsPrompt(params) {
 Topic: ${topicName}
 Depth: ${contentDepth}
 Language: ${outputLanguage}
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 
 RETURN ONLY VALID JSON - NO MARKDOWN, NO CODE BLOCKS, NO EXPLANATIONS, NO PREAMBLE.
 
@@ -214,6 +217,7 @@ function getVisualExplainersPrompt(params) {
   } = params;
 
   return `Generate a Visual Explainers A4 HTML page for: ${topicName} with ${contentDepth} depth in ${outputLanguage} language.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 
 GENERATE EXACTLY THESE 6 SECTIONS IN ORDER:
 1. HEADER - Title: "Visual Explainers: ${sectionNumber}" | subtitle: "Curated Summary | Powered by DATADNA AI Study Platform" | large subject emoji
@@ -277,8 +281,185 @@ function getDiagrammaticRepresentationPrompt(params) {
     visualStyle = 'academic'
   } = params;
 
-  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents structured diagrams for complex systems, processes, or relationships. Each diagram should include clear labels, annotations, and hierarchical connections. The design should be visually appealing with clean layouts using boxes, arrows, and connecting lines. Create a diagrammatic representation of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature as a structured, visually elegant reference sheet. Design Style: 'Structured Diagram Layout' — Clean white/off-white background (#FFFFFF to #F9FAFB), soft academic pastel blocks (Blue #DBEAFE, Green #DCFCE7, Yellow #FEF3C7, Pink #FCE7F3, Purple #E9D5FF), rounded rectangles (12px border-radius), thin gray borders (#E5E7EB, 2px), minimal shadows (0 4px 12px rgba(0,0,0,0.08)). Use Inter font for labels (0.875rem) and Poppins for headings (1.25rem bold). Layout includes: 1) Header with subject/chapter/topic and 'Textbook Diagram Sheet' tag, 2) Title section with main topic, 3) Topic Explanation section with 3-6 descriptive sentences in neutral box, 4) System Diagram section with interconnected boxes showing components and relationships with directional arrows, 5) Important Points section with 6-10 key points in colored boxes, 6) Key Terms section with term-definition pairs in two-column layout, 7) Footer with attribution. Use SVG or CSS for arrows connecting diagram elements. Maintain clean spacing (2rem padding) and academic tone. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
+  // Map contentDepth to class-level adaptive rules
+  const depthRules = {
+    beginner:     'Class 6–8 style: more visuals, minimal text, icons + simple words, no formulas',
+    intermediate: 'Class 9–10 style: definitions + examples + formulas where applicable',
+    advanced:     'Class 11–12 style: derivations, logic chains, edge cases, technical notation'
+  };
+  const adaptiveRule = depthRules[contentDepth] || depthRules.intermediate;
+
+  // Map contentType to diagram type
+  const diagramTypeHint = contentType === 'process' ? 'flowchart'
+    : contentType === 'comparison' ? 'table-diagram'
+    : contentType === 'formula' ? 'visual-formula-blocks'
+    : 'hierarchical tree / radial mind map';
+
+  return `Generate a single A4 HTML page — a structured visual learning diagram (card-based infographic) for: ${topicName}
+Section: ${sectionNumber} | Depth: ${contentDepth} | Language: ${outputLanguage}
+Adaptive rule: ${adaptiveRule}
+Preferred diagram type: ${diagramTypeHint}
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
+
+GENERATE EXACTLY THESE SECTIONS IN ORDER:
+1. HEADER — Title: "Diagrammatic Representation: ${sectionNumber}" | subtitle: "Curated Summary | Powered by DATADNA AI Study Platform" | large subject emoji
+2. CORE IDEA BOX — single bold sentence (max 180 chars) stating the central concept, accent left-border
+3. MAIN DIAGRAM CARD — the hero visual: hierarchical tree / flow / radial layout built with inline SVG + HTML, showing:
+   - Central main concept node (dark accent, bold, 16px)
+   - 3–5 sub-concept branches (medium shade rectangles/circles)
+   - Each sub-node: short label (max 5 words) + 1-line detail below
+   - Connecting arrows/lines between nodes (SVG lines or CSS borders)
+   - Examples / formulas / facts as leaf nodes (light shade)
+4. KEY NOTES STRIP — exactly 3 bullet points, each max 12 words, accent bullet color
+5. QUICK SUMMARY BOX — 2 sentences max, light background, italic
+6. FOOTER — "© 2025 DATADNA AI Study Platform — Diagrammatic Representation Generated by AI" pinned to bottom
+
+DIAGRAM DESIGN RULES (MANDATORY):
+- Single focus center: one dominant main concept node, big + bold
+- Branch structure: tree for concepts, flow for processes, network for relationships
+- Visual encoding — use consistently:
+  🔵 Circle/oval → concept node
+  🟩 Rectangle → definition / sub-concept
+  🟨 Diamond → rule / condition
+  ➡️ Arrow → flow / relationship
+- Color logic:
+  Main concept → dark accent (#1e3a5f or subject color)
+  Sub-concepts → medium shade (subject pastel)
+  Examples/facts → light shade (#f8fafc)
+- Minimal text: max 5 words per node label, NO paragraphs inside diagram
+- All diagram nodes built with inline SVG or positioned HTML divs + CSS — NO canvas, NO external images
+
+SUBJECT COLOR (auto-detect from topic, replace VAR_ACCENT everywhere):
+- Biology/Nature → #16a34a | Physics/Chemistry → #2563eb | Maths → #7c3aed | History/Social → #ea580c | Default → #6366f1
+
+TWEMOJI (mandatory):
+- In <head>: <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
+- Before </body>: <script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script>
+- CSS: img.emoji{height:1.2em;width:1.2em;margin:0 0.05em 0 0.1em;vertical-align:-0.15em;display:inline-block}
+
+OUTPUT STRUCTURE — USE THIS EXACT HTML SKELETON:
+<!DOCTYPE html><html><head><meta charset="UTF-8"><script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script><style>@page{size:A4 portrait;margin:0}body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#f8fafc}img.emoji{height:1.2em;width:1.2em;margin:0 0.05em 0 0.1em;vertical-align:-0.15em;display:inline-block}.page{width:210mm;height:297mm;padding:14mm;box-sizing:border-box;overflow:hidden;background:#fff;display:flex;flex-direction:column}header{background:linear-gradient(135deg,#6366F1 0%,#14B8A6 100%);border-radius:12px;padding:11px 20px;text-align:center;margin-bottom:10px}.header-icon{font-size:32px;display:block;margin-bottom:4px}.header-title{color:#fff;font-size:18px;font-weight:700;margin:3px 0}.header-subtitle{color:rgba(255,255,255,0.88);font-size:10px}.core-idea{background:linear-gradient(135deg,#f5f3ff,#eff6ff);border-left:4px solid VAR_ACCENT;border-radius:12px;padding:10px 16px;margin-bottom:10px}.core-idea h4{font-size:10px;font-weight:700;color:VAR_ACCENT;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.05em}.core-idea p{font-size:12px;font-weight:600;color:#1f2937;margin:0;line-height:1.5}.diagram-card{background:#fff;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,0.09);padding:16px 16px 14px;margin-bottom:10px;display:flex;flex-direction:column;align-items:stretch;border-top:3px solid VAR_ACCENT}.diagram-card svg{width:100%;height:auto;display:block;overflow:visible}.key-notes{background:#f0fdf4;border-radius:8px;padding:10px 14px;margin-bottom:10px}.key-notes h3{font-size:11px;font-weight:700;color:VAR_ACCENT;margin:0 0 6px}.key-notes ul{margin:0;padding-left:16px}.key-notes li{font-size:11px;color:#374151;margin-bottom:3px;line-height:1.4}.summary-box{background:#fffbeb;border-radius:8px;padding:9px 14px;margin-bottom:10px;border-left:3px solid #f59e0b}.summary-box p{font-size:11px;color:#374151;margin:0;font-style:italic;line-height:1.5}footer{margin-top:auto;text-align:center;font-size:9px;color:#6b7280;padding:8px 0 4px;border-top:1px solid #e5e7eb;background:#fff;flex-shrink:0}</style></head><body><div class="page"><header><div class="header-icon">SUBJECT EMOJI HERE</div><div class="header-title">Diagrammatic Representation: ${sectionNumber}</div><div class="header-subtitle">Curated Summary | Powered by DATADNA AI Study Platform</div></header><div class="core-idea"><h4>Core Concept</h4><p>CORE IDEA TEXT HERE — MAX 180 CHARS</p></div><div class="diagram-card">MAIN DIAGRAM SVG/HTML HERE — central node + branches + leaf nodes + arrows</div><div class="key-notes"><h3>KEY NOTES</h3><ul><li>KEY NOTE 1 — MAX 12 WORDS</li><li>KEY NOTE 2 — MAX 12 WORDS</li><li>KEY NOTE 3 — MAX 12 WORDS</li></ul></div><div class="summary-box"><p>QUICK SUMMARY — 2 SENTENCES MAX</p></div><footer style="margin-top:auto;flex-shrink:0">© 2025 DATADNA AI Study Platform — Diagrammatic Representation Generated by AI</footer></div><script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script></body></html>
+
+DIAGRAM TYPE SELECTION — analyze the topic content and choose ONE type:
+
+TYPE A — TREE (classification, taxonomy, categories, parts of a whole)
+  e.g. Animal Kingdom, Parts of Speech, Types of Rocks, Food Groups
+
+TYPE B — FLOWCHART (steps, sequences, processes, cause→effect)
+  e.g. Photosynthesis, Water Cycle, Digestive System, How Laws Are Made
+
+TYPE C — COMPARISON (two concepts side by side, similarities/differences)
+  e.g. Plant vs Animal Cell, Acids vs Bases, Democracy vs Monarchy
+
+TYPE D — CYCLE (recurring processes, life cycles, circular relationships)
+  e.g. Rock Cycle, Life Cycle of Butterfly, Carbon Cycle, Seasons
+
+DO NOT use radial/mind map layout. Pick from Types A–D only based on content structure.
+
+SVG canvas: viewBox="0 0 540 440" width="100%" (NO fixed height attribute)
+100px top padding: all content starts at y=100
+100px bottom padding: all content ends at y=340, canvas=440
+
+ARROW MARKER (always include):
+<defs><marker id="arr" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="VAR_ACCENT"/></marker></defs>
+
+INLINE SVG ICONS IN NODES — MANDATORY, NO EMOJI (emoji render as boxes in SVG):
+Every sub-node, process box, and cycle node MUST contain a small inline SVG icon drawn with paths/shapes.
+Icons are drawn INSIDE the node rect, centered horizontally at NODE_CX, vertically at NODE_Y+16.
+Use ONLY SVG primitives: circle, rect, line, path, polygon — NO text emoji in icons.
+Icon size: 16×16px bounding box centered at (NODE_CX, NODE_Y+16).
+stroke=VAR_ACCENT, fill=none, stroke-width=1.5 unless noted.
+
+ICON LIBRARY — pick the most relevant for each node concept:
+  Leaf/Biology:   <path d="M NODE_CX,NODE_Y+24 C NODE_CX-8,NODE_Y+16 NODE_CX-6,NODE_Y+8 NODE_CX,NODE_Y+8 C NODE_CX+6,NODE_Y+8 NODE_CX+8,NODE_Y+16 NODE_CX,NODE_Y+24Z" stroke="VAR_ACCENT" fill="SUBJECT_PASTEL" stroke-width="1.5"/><line x1="NODE_CX" y1="NODE_Y+24" x2="NODE_CX" y2="NODE_Y+8" stroke="VAR_ACCENT" stroke-width="1"/>
+  Atom/Chemistry: <circle cx="NODE_CX" cy="NODE_Y+16" r="4" fill="VAR_ACCENT"/><ellipse cx="NODE_CX" cy="NODE_Y+16" rx="10" ry="5" fill="none" stroke="VAR_ACCENT" stroke-width="1.5"/><ellipse cx="NODE_CX" cy="NODE_Y+16" rx="10" ry="5" fill="none" stroke="VAR_ACCENT" stroke-width="1.5" transform="rotate(60 NODE_CX NODE_Y+16)"/>
+  Lightning/Physics: <polygon points="NODE_CX+2,NODE_Y+8 NODE_CX-3,NODE_Y+16 NODE_CX+1,NODE_Y+16 NODE_CX-2,NODE_Y+24 NODE_CX+5,NODE_Y+15 NODE_CX+1,NODE_Y+15" fill="VAR_ACCENT" stroke="none"/>
+  Globe/Geography: <circle cx="NODE_CX" cy="NODE_Y+16" r="8" fill="none" stroke="VAR_ACCENT" stroke-width="1.5"/><line x1="NODE_CX-8" y1="NODE_Y+16" x2="NODE_CX+8" y2="NODE_Y+16" stroke="VAR_ACCENT" stroke-width="1"/><path d="M NODE_CX,NODE_Y+8 Q NODE_CX+5,NODE_Y+16 NODE_CX,NODE_Y+24" fill="none" stroke="VAR_ACCENT" stroke-width="1"/><path d="M NODE_CX,NODE_Y+8 Q NODE_CX-5,NODE_Y+16 NODE_CX,NODE_Y+24" fill="none" stroke="VAR_ACCENT" stroke-width="1"/>
+  Clock/History:  <circle cx="NODE_CX" cy="NODE_Y+16" r="8" fill="none" stroke="VAR_ACCENT" stroke-width="1.5"/><line x1="NODE_CX" y1="NODE_Y+16" x2="NODE_CX" y2="NODE_Y+10" stroke="VAR_ACCENT" stroke-width="1.5"/><line x1="NODE_CX" y1="NODE_Y+16" x2="NODE_CX+5" y2="NODE_Y+19" stroke="VAR_ACCENT" stroke-width="1.5"/>
+  Grid/Maths:     <rect x="NODE_CX-8" y="NODE_Y+8" width="7" height="7" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX+1" y="NODE_Y+8" width="7" height="7" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX-8" y="NODE_Y+17" width="7" height="7" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX+1" y="NODE_Y+17" width="7" height="7" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/>
+  Gear/Process:   <circle cx="NODE_CX" cy="NODE_Y+16" r="5" fill="none" stroke="VAR_ACCENT" stroke-width="1.5"/><circle cx="NODE_CX" cy="NODE_Y+16" r="2" fill="VAR_ACCENT"/><line x1="NODE_CX" y1="NODE_Y+8" x2="NODE_CX" y2="NODE_Y+11" stroke="VAR_ACCENT" stroke-width="2"/><line x1="NODE_CX" y1="NODE_Y+21" x2="NODE_CX" y2="NODE_Y+24" stroke="VAR_ACCENT" stroke-width="2"/><line x1="NODE_CX-8" y1="NODE_Y+16" x2="NODE_CX-5" y2="NODE_Y+16" stroke="VAR_ACCENT" stroke-width="2"/><line x1="NODE_CX+5" y1="NODE_Y+16" x2="NODE_CX+8" y2="NODE_Y+16" stroke="VAR_ACCENT" stroke-width="2"/>
+  Stack/Layers:   <rect x="NODE_CX-8" y="NODE_Y+9" width="16" height="5" rx="1" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX-8" y="NODE_Y+16" width="16" height="5" rx="1" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX-8" y="NODE_Y+23" width="16" height="5" rx="1" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/>
+  Default/Star:   <polygon points="NODE_CX,NODE_Y+8 NODE_CX+3,NODE_Y+14 NODE_CX+9,NODE_Y+14 NODE_CX+4,NODE_Y+18 NODE_CX+6,NODE_Y+24 NODE_CX,NODE_Y+20 NODE_CX-6,NODE_Y+24 NODE_CX-4,NODE_Y+18 NODE_CX-9,NODE_Y+14 NODE_CX-3,NODE_Y+14" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/>
+
+IMPORTANT: Replace NODE_CX and NODE_Y with actual numeric values for each node. Do NOT write "NODE_CX" literally.
+Node rect height must be 52px to fit icon (16px) + gap (4px) + label (12px) + padding.
+Label text sits at NODE_Y+36 (below icon zone).
+
+--- TYPE A: TREE ---
+Root rect: x=170 y=110 width=200 height=44 rx=12 fill=VAR_ACCENT
+Root text: x=270 y=137 text-anchor=middle font-size=14 bold fill=#fff
+Stem: line x1=270 y1=154 x2=270 y2=194 stroke=VAR_ACCENT stroke-width=2 (40px)
+Bus: line x1=LEFTMOST_CENTER y1=194 x2=RIGHTMOST_CENTER y2=194 stroke=VAR_ACCENT stroke-width=2
+Drop arrows: line from y=194 to y=210 on each center, marker-end=url(#arr) (16px drop gap)
+Sub-node rects: y=210 height=52 rx=10 fill=SUBJECT_PASTEL stroke=VAR_ACCENT stroke-width=1.5
+  Icon: centered at (CENTER, 226) — NODE_CX=CENTER, NODE_Y=210
+  Label text: x=CENTER y=246 font-size=10 font-weight=600 fill=#1f2937 text-anchor=middle
+Leaf connectors: dashed line y=262 to y=278 stroke=#cbd5e1 stroke-dasharray=3,2
+Leaf rects: y=278 height=30 rx=8 fill=#f8fafc stroke=#e2e8f0
+  Leaf text: x=CENTER y=297 font-size=8.5 fill=#374151 text-anchor=middle
+
+3 branches: centers=85,270,455 | rect x=10,195,380 width=150
+4 branches: centers=63,193,323,453 | rect x=6,136,266,396 width=114
+5 branches: centers=50,156,262,368,474 | rect x=6,112,218,324,430 width=88
+
+--- TYPE B: FLOWCHART ---
+All nodes centered at x=270, 62px apart, starting at y=110
+Start pill: x=170 y=110 width=200 height=40 rx=20 fill=VAR_ACCENT
+  Text: x=270 y=135 font-size=13 bold fill=#fff
+Process boxes: y=172,234,296 x=155 width=230 height=52 rx=10 fill=SUBJECT_PASTEL stroke=VAR_ACCENT
+  Icon: NODE_CX=270, NODE_Y=172/234/296 — draw icon centered at (270, NODE_Y+16)
+  Label text: x=270 y=NODE_Y+36 font-size=10 font-weight=600 fill=#1f2937 text-anchor=middle
+End pill: x=170 y=358 width=200 height=40 rx=20 fill=#6b7280
+  Text: x=270 y=383 font-size=13 bold fill=#fff
+Arrows between nodes (26px gap each): marker-end=url(#arr) stroke=VAR_ACCENT stroke-width=2
+  Start→P1: x1=270 y1=150 x2=270 y2=172
+  P1→P2:    x1=270 y1=224 x2=270 y2=234
+  P2→P3:    x1=270 y1=286 x2=270 y2=296
+  P3→End:   x1=270 y1=348 x2=270 y2=358
+Max 3 process boxes
+
+--- TYPE C: COMPARISON ---
+Left header:  x=10  y=110 width=240 height=40 rx=10 fill=VAR_ACCENT — white text x=130 y=135
+Right header: x=290 y=110 width=240 height=40 rx=10 fill=#0891b2 — white text x=410 y=135
+Center divider: line x1=270 y1=110 x2=270 y2=340 stroke=#e5e7eb stroke-dasharray=4,3
+Attribute rows at y=162,204,246,288: left rect x=10 width=240 h=34, right rect x=290 width=240 h=34
+  Icon in each cell: NODE_CX=130 or 410, NODE_Y=ROW_Y — draw icon at (NODE_CX, NODE_Y+8), scale to 12px
+  Label text: x=130 or 410, y=ROW_Y+28 font-size=9.5 font-weight=600 fill=#1f2937 text-anchor=middle
+Odd rows fill=SUBJECT_PASTEL, even rows fill=#f8fafc
+Attribute name: text x=270 y=ROW_Y+20 text-anchor=middle font-size=8 fill=#6b7280
+
+--- TYPE D: CYCLE ---
+Center circle: cx=270 cy=225 r=40 fill=VAR_ACCENT
+  Center label: x=270 y=229 font-size=12 bold fill=#fff text-anchor=middle
+4 cycle nodes:
+  Top:    rect x=170 y=110 width=200 height=52 rx=10
+  Right:  rect x=370 y=199 width=160 height=52 rx=10
+  Bottom: rect x=170 y=288 width=200 height=52 rx=10
+  Left:   rect x=10  y=199 width=160 height=52 rx=10
+All: fill=SUBJECT_PASTEL stroke=VAR_ACCENT stroke-width=1.5
+  Each node: Icon at (NODE_CX, NODE_Y+16), Label at y=NODE_Y+36 font-size=10 font-weight=600
+  Top node:    NODE_CX=270, NODE_Y=110
+  Right node:  NODE_CX=450, NODE_Y=199
+  Bottom node: NODE_CX=270, NODE_Y=288
+  Left node:   NODE_CX=90,  NODE_Y=199
+Clockwise curved arrows: <path> marker-end=url(#arr) stroke=VAR_ACCENT stroke-width=2
+
+LABEL RULES (all types):
+- Use only absolute numeric x,y coordinates — NO expressions, NO placeholders
+- Max 14 chars per label line; split into 2 <text> lines if longer (+12px y between lines)
+- font-family="Inter,sans-serif" on all label text elements
+- EVERY node MUST have an inline SVG icon — choose from the icon library above
+- Replace all NODE_CX and NODE_Y with actual numbers before writing SVG
+
+CRITICAL REQUIREMENTS:
+- Replace VAR_ACCENT with detected subject accent color hex everywhere in CSS and SVG
+- Replace all placeholder text with actual content from the document context
+- Header MUST have .header-icon, .header-title, .header-subtitle — DO NOT REMOVE
+- Footer MUST be last element in .page with inline style margin-top:auto — DO NOT REMOVE OR OMIT
+- Diagram MUST use inline SVG — no external images, no canvas
+- Return ONLY complete minified HTML. ONE CONTINUOUS LINE. NO MARKDOWN. NO EXPLANATIONS.`;
 }
+
 
 function getProcessFlowChartsPrompt(params) {
   const {

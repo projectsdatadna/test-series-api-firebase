@@ -3,6 +3,7 @@ function getMCQPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `Generate ${count} MCQ questions (${marks} marks each, ${difficultyLevel} difficulty):
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","options":["","","",""],"answer":"","option":"","marks":${marks}}`).join(',')}]
 
 CRITICAL: For each question, provide:
@@ -23,6 +24,7 @@ function getShortAnswerPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `GENERATE EXACTLY ${count} SHORT ANSWER QUESTIONS (${marks} marks each, ${difficultyLevel} difficulty). DO NOT TRUNCATE. GENERATE ALL ${count} QUESTIONS:
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","answer":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. Do not stop early. Fill in all question and answer fields completely.`;
 }
@@ -32,6 +34,7 @@ function getFillUpsPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `Generate ${count} Fill in the Blanks questions (${marks} marks each, ${difficultyLevel} difficulty):
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","answer":"","marks":${marks}}`).join(',')}]`;
 }
 
@@ -40,6 +43,7 @@ function getLongAnswerPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `Generate ${count} Long Answer questions (${marks} marks each, ${difficultyLevel} difficulty):
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","answer":"","marks":${marks}}`).join(',')}]`;
 }
 
@@ -55,6 +59,7 @@ function getMatchPrompt(params) {
   const answersItems = Array.from({length: count}, (_, i) => `{"columnAId":"${i+1}","columnBId":""}`).join(',');
   
   return `GENERATE EXACTLY 1 MATCH THE FOLLOWING QUESTION with ${count} field sets (${marks} marks, ${difficultyLevel} difficulty).
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 
 RETURN ONLY THIS JSON STRUCTURE (no other text, no markdown):
 [{
@@ -80,6 +85,7 @@ function getTrueOrFalsePrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `Generate ${count} True or False questions (${marks} marks each, ${difficultyLevel} difficulty):
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"statement":"","answer":"","marks":${marks}}`).join(',')}]`;
 }
 
@@ -88,6 +94,7 @@ function getEssayPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `Generate ${count} Essay questions (${marks} marks each, ${difficultyLevel} difficulty):
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","answer":"","marks":${marks}}`).join(',')}]`;
 }
 
@@ -98,6 +105,7 @@ function getInternalChoicePrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `Generate ${count} Internal Choice questions (${marks} marks each, ${difficultyLevel} difficulty). Each question has two long questions labeled (a) and (b). Students answer either (a) or (b):
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"questionA":"","questionB":"","answerA":"","answerB":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions with both (a) and (b) options. Do not stop early. Fill in all question and answer fields completely.`;
 }
@@ -410,6 +418,7 @@ function getVeryShortAnswerPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `GENERATE EXACTLY ${count} VERY SHORT ANSWER QUESTIONS (${marks} mark each, ${difficultyLevel} difficulty) for ${subject}. Each answer must be 1 or 2 lines only. No long explanations.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","answer":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. Answers must be concise and not exceed 2 lines per answer. Do not stop early. Fill in all question and answer fields completely.`;
 }
@@ -419,6 +428,7 @@ function getAssertionReasonPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `GENERATE EXACTLY ${count} ASSERTION AND REASON QUESTIONS (${marks} mark each, ${difficultyLevel} difficulty) for ${subject}. Each question must contain Assertion (A) and Reason (R) with four options.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"assertion":"","reason":"","options":["Both A and R are true and R explains A","Both A and R are true but R does not explain A","A is true but R is false","A is false but R is true"],"answer":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. Follow NCERT logical reasoning style. Do not stop early. Fill in all assertion, reason and answer fields completely.`;
 }
@@ -428,6 +438,7 @@ function getCaseStudyPrompt(params) {
   const { marks, difficultyLevel, subject } = params;
   
   return `GENERATE EXACTLY 1 CASE STUDY BASED QUESTION SET for ${subject} (${difficultyLevel} difficulty). Structure: One detailed passage (8-12 lines) with 4 sub-questions mixing 1 and 2 mark questions.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [{
   "questionNumber":1,
   "passage":"",
@@ -446,6 +457,7 @@ function getDiagramBasedPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `GENERATE EXACTLY ${count} DIAGRAM-BASED QUESTIONS for ${subject} (${marks} marks each, ${difficultyLevel} difficulty). Each question must describe a diagram scenario and ask to label/draw/identify parts.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","diagramDescription":"","diagramImageUrl":"","diagramInstructions":"","expectedAnswer":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. For each question, provide:
 1. question: The question asking student to identify/label parts from the diagram
@@ -461,6 +473,7 @@ function getMapBasedPrompt(params) {
   const { count, marks, difficultyLevel } = params;
   
   return `GENERATE EXACTLY ${count} MAP-BASED QUESTIONS (${marks} marks each, ${difficultyLevel} difficulty). Each question must ask students to locate and label places based on Indian geography or history.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","locations":[],"mapImageUrl":"","mapInstructions":"","answer":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. For each question, provide:
 1. question: The question asking student to locate and label places on the map
@@ -476,6 +489,7 @@ function getDataInterpretationPrompt(params) {
   const { marks, difficultyLevel, subject } = params;
   
   return `GENERATE EXACTLY 1 DATA INTERPRETATION QUESTION SET for ${subject} (${difficultyLevel} difficulty). Structure: Provide a data table or graph description with 4 sub-questions.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [{
   "questionNumber":1,
   "dataDescription":"",
@@ -503,6 +517,7 @@ function getDifferentiatePrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `GENERATE EXACTLY ${count} DIFFERENTIATE BETWEEN QUESTIONS (${marks} marks each, ${difficultyLevel} difficulty) for ${subject}. Each question must ask difference between two concepts with minimum 3 comparison points.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"Differentiate between","conceptA":"","conceptB":"","answer":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. For each question, provide:
 1. question: "Differentiate between [conceptA] and [conceptB]"
@@ -517,6 +532,7 @@ function getSequencingPrompt(params) {
   const { count, marks, difficultyLevel, subject } = params;
   
   return `GENERATE EXACTLY ${count} ARRANGE IN CORRECT ORDER QUESTIONS (${marks} marks each, ${difficultyLevel} difficulty) for ${subject}.
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"Arrange the following in correct order:","items":[],"correctOrder":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. For each question, provide:
 1. question: "Arrange the following in correct order:"
@@ -533,6 +549,7 @@ function getGeometryPrompt(params) {
 - Involve geometric figures (angles, triangles, lines, polygons, circles, etc.)
 - Require a diagram
 - Include a clear figure description
+Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
 [${Array.from({length: count}, (_, i) => `{"questionNumber":${i+1},"question":"","figureDescription":"","answer":"","marks":${marks}}`).join(',')}]
 CRITICAL: You MUST generate all ${count} questions. Diagram must be necessary to solve. Clearly describe figure in text. Do not stop early. Fill in all fields completely.`;
 }
