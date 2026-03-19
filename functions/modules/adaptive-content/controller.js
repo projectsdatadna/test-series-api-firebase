@@ -284,6 +284,34 @@ async function generateAdaptiveContent(req, res) {
       }
     }
 
+    // Skip image conversion for diagrammatic-representation (returns JSON, not HTML)
+    if (contentTypeId === 'diagrammatic-representation') {
+      console.log("Diagrammatic representation: skipping image conversion, returning JSON directly");
+
+      let diagramJson = content;
+      diagramJson = diagramJson.replace(/```(?:json)?\s*/g, '');
+      diagramJson = diagramJson.replace(/```\s*/g, '');
+      diagramJson = diagramJson.trim();
+
+      try {
+        const parsedData = JSON.parse(diagramJson);
+        return res.status(200).json(parsedData);
+      } catch (parseError) {
+        console.error("Failed to parse diagrammatic representation JSON:", parseError);
+        return res.status(200).json({
+          success: true,
+          header: { title: "", subtitle: "", emoji: "" },
+          coreIdea: "",
+          diagram: { type: "", rootId: "", nodes: [], edges: [] },
+          keyNotes: [],
+          summary: "",
+          footer: { text: "" },
+          rawContent: content,
+          parseError: parseError.message
+        });
+      }
+    }
+
     let pageCount = (htmlContent.match(/class=["']page["']/g) || []).length || 1;
     if (contentTypeId === 'sticky-notes') {
       pageCount = 1;

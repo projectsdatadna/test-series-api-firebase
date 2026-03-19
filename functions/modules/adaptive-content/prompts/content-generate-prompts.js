@@ -10,7 +10,9 @@ function getStickyNotesPrompt(params) {
   } = params;
   
 
-  return `Extract key concepts from the section ${sectionNumber} in the chapter to form the basis of an HTML study guide and Generate a SINGLE A4 PAGE HTML script that visually presents a set of sticky notes for each key concept. Each sticky note must display concise content with clear information and supporting details. The design should be visually appealing and easy to read, with a consistent layout and color scheme. The sticky notes should be organized in a grid layout, with each card having a uniform size and shape. The overall design should be professional and suitable for use in an educational or training setting. notes of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature as a structured, visually elegant, and interactive reference sheet using Tailwind CSS. The layout should serve as a quick-access knowledge companion for students and professionals — focused on clarity, visual memory cues, and ease of scanning. CRITICAL EMOJI RENDERING REQUIREMENT: To ensure emojis render correctly in the generated image, you MUST use Twemoji library: 1. Add this script in the <head> section BEFORE the closing </head> tag: <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script> 2. Add this CSS in the <style> section to control emoji size: img.emoji { height: 1em; width: 1em; margin: 0 0.05em 0 0.1em; vertical-align: -0.1em; display: inline-block;   } 3. Add this script at the END of <body> section BEFORE the closing </body> tag: <script> window.addEventListener('DOMContentLoaded', (event) => { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); }); </script> 4. This will automatically convert all emoji characters (🌿, 📘, 💡, etc.) into properly sized SVG images that render perfectly in screenshots. 5. You can use emojis freely in the HTML - Twemoji will handle the rendering and sizing. CRITICAL A4 SINGLE PAGE REQUIREMENTS: 1. SINGLE PAGE ONLY: The entire content MUST fit within ONE A4 page (210mm × 297mm portrait). DO NOT create multiple pages. DO NOT exceed A4 dimensions. 2. Page Size: Use CSS @page rule with size: A4 portrait (210mm × 297mm). Set body margin to 0. 3. Page Container: Wrap all content in a SINGLE div with class "page" that has exact dimensions: width: 210mm, height: 297mm (NOT min-height), padding: 12mm, box-sizing: border-box, overflow: hidden. 4. Content Limits: Limit the number of sticky notes to fit within the single A4 page. Typically 4-6 sticky notes maximum depending on content length. Keep each note concise. 5. Compact Design: Use smaller fonts, tighter spacing, and compact layouts to ensure everything fits. Reduce padding and margins where necessary. 6. No Overflow: Set overflow: hidden on the page container to prevent content from exceeding A4 boundaries. Design Style: 'Sticky Notes Aesthetic' — handwritten font (Caveat) with pastel gradient backgrounds in 8 distinct color palettes (Yellow #FEF3C7 with border #FCD34D, Pink #FCE7F3 with border #F472B6, Blue #DBEAFE with border #60A5FA, Green #DCFCE7 with border #86EFAC, Purple #E9D5FF with border #D8B4FE, Orange #FFEDD5 with border #FDBA74, Red #FEE2E2 with border #FCA5A5, Cyan #CFFAFE with border #67E8F9), soft left border (4-5px), rounded corners (8px), soft shadows (0 8px 16px rgba), and subtle paper-like texture with organic rotations (-3deg to +3deg). Apply handwritten font (Caveat) for content and body text (Inter) for badges and labels. Consistent padding (1rem) for compact, digestible content. Layout Flow: 1. **Header / Title Section** — Compact title showing the topic name (1.5rem bold, Caveat) centered on paper-like background gradient (#FFFACD → #F5F5DC), with subtitle 'Curated Summary | Powered by DATADNA AI Study Platform' (0.7rem). You may include relevant emoji icons to make it visually appealing. Dashed border bottom (#D4AF37). Minimal padding (0.5rem). 2. **Concept Overview** — OPTIONAL: Only include if space permits. A brief introduction in a neutral sticky note (Yellow background) with handwritten typography. Keep very concise (2-3 sentences max). 3. **Key Concepts Grid** — A responsive 2-column layout of sticky note cards (using 8-color palette cyclically), each representing a main concept. LIMIT TO 4-6 CARDS TOTAL to fit within A4. Each card includes: Category badge (top-left, translucent rgba(0,0,0,0.15)), Title in bold handwritten text (0.9rem, Caveat), subtle divider line (rgba(0,0,0,0.2)), and content in handwritten font (0.85rem, Caveat). Add subtle rotation effect (-2deg to +2deg) for organic placement. Max-height: 180px, compact padding (0.75rem). 4. **Footer / Attribution** — Footer text "© 2025 DATADNA AI Study Platform" (0.6rem, Inter) on paper-like background (#F9FAFB) with center alignment, minimal padding (0.5rem). Typography: Use handwritten font (Caveat) for all content and headings (1.5rem for h1, 0.9rem for card titles, 0.85rem for body). Use Inter font exclusively for badge labels and metadata. Maintain compact padding (0.5-0.75rem) and minimal whitespace for A4 fit. All text on colored backgrounds rendered in dark ink. Animations: Subtle fade-in for sections, no hover effects, organic rotations (-2deg to +2deg) applied at render time for natural sticky note placement. Color rotation: Distribute pastel colors cyclically across cards using the 8-color palette. Page background: Paper-like gradient (#FFFACD → #F5F5DC → #FFF8DC). IMPORTANT: Skip optional sections (Formulae, Mind Map, Quick Reference Table, Smart Insights, Knowledge Check) to ensure content fits within single A4 page. Focus only on the most essential key concepts. Output Format: <!DOCTYPE html>...complete HTML script here.... Strictly adhere to the output format given. Additional Notes: The page must look structured, calm, and intuitive for study purposes — readable in both light and dark modes. Avoid clutter, ensure responsive alignment, and use color cues for grouping concepts. CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely by removing all spaces between tags. The entire HTML must be one unbroken line from <!DOCTYPE to </html>. Do NOT format or pretty-print the HTML. Do NOT wrap the HTML in JSON. Do NOT add quotes around the HTML. Return ONLY the raw HTML code starting with <!DOCTYPE and ending with </html>, nothing else - no JSON wrapper, no markdown, no explanations.`
+  return `Extract key concepts from the section ${sectionNumber} in the chapter to form the basis of an HTML study guide and Generate a SINGLE A4 PAGE HTML script that visually presents a set of sticky notes for each key concept.
+Bloom's Taxonomy Level — Remember (Recall & Recognition): Focus on recall and recognition — use simple definitions, key terms, and memory cues.
+Each sticky note must display concise content with clear information and supporting details. The design should be visually appealing and easy to read, with a consistent layout and color scheme. The sticky notes should be organized in a grid layout, with each card having a uniform size and shape. The overall design should be professional and suitable for use in an educational or training setting. notes of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature as a structured, visually elegant, and interactive reference sheet using Tailwind CSS. The layout should serve as a quick-access knowledge companion for students and professionals — focused on clarity, visual memory cues, and ease of scanning. CRITICAL EMOJI RENDERING REQUIREMENT: To ensure emojis render correctly in the generated image, you MUST use Twemoji library: 1. Add this script in the <head> section BEFORE the closing </head> tag: <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script> 2. Add this CSS in the <style> section to control emoji size: img.emoji { height: 1em; width: 1em; margin: 0 0.05em 0 0.1em; vertical-align: -0.1em; display: inline-block;   } 3. Add this script at the END of <body> section BEFORE the closing </body> tag: <script> window.addEventListener('DOMContentLoaded', (event) => { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); }); </script> 4. This will automatically convert all emoji characters (🌿, 📘, 💡, etc.) into properly sized SVG images that render perfectly in screenshots. 5. You can use emojis freely in the HTML - Twemoji will handle the rendering and sizing. CRITICAL A4 SINGLE PAGE REQUIREMENTS: 1. SINGLE PAGE ONLY: The entire content MUST fit within ONE A4 page (210mm × 297mm portrait). DO NOT create multiple pages. DO NOT exceed A4 dimensions. 2. Page Size: Use CSS @page rule with size: A4 portrait (210mm × 297mm). Set body margin to 0. 3. Page Container: Wrap all content in a SINGLE div with class "page" that has exact dimensions: width: 210mm, height: 297mm (NOT min-height), padding: 12mm, box-sizing: border-box, overflow: hidden. 4. Content Limits: Limit the number of sticky notes to fit within the single A4 page. Typically 4-6 sticky notes maximum depending on content length. Keep each note concise. 5. Compact Design: Use smaller fonts, tighter spacing, and compact layouts to ensure everything fits. Reduce padding and margins where necessary. 6. No Overflow: Set overflow: hidden on the page container to prevent content from exceeding A4 boundaries. Design Style: 'Sticky Notes Aesthetic' — handwritten font (Caveat) with pastel gradient backgrounds in 8 distinct color palettes (Yellow #FEF3C7 with border #FCD34D, Pink #FCE7F3 with border #F472B6, Blue #DBEAFE with border #60A5FA, Green #DCFCE7 with border #86EFAC, Purple #E9D5FF with border #D8B4FE, Orange #FFEDD5 with border #FDBA74, Red #FEE2E2 with border #FCA5A5, Cyan #CFFAFE with border #67E8F9), soft left border (4-5px), rounded corners (8px), soft shadows (0 8px 16px rgba), and subtle paper-like texture with organic rotations (-3deg to +3deg). Apply handwritten font (Caveat) for content and body text (Inter) for badges and labels. Consistent padding (1rem) for compact, digestible content. Layout Flow: 1. **Header / Title Section** — Compact title showing the topic name (1.5rem bold, Caveat) centered on paper-like background gradient (#FFFACD → #F5F5DC), with subtitle 'Curated Summary | Powered by DATADNA AI Study Platform' (0.7rem). You may include relevant emoji icons to make it visually appealing. Dashed border bottom (#D4AF37). Minimal padding (0.5rem). 2. **Concept Overview** — OPTIONAL: Only include if space permits. A brief introduction in a neutral sticky note (Yellow background) with handwritten typography. Keep very concise (2-3 sentences max). 3. **Key Concepts Grid** — A responsive 2-column layout of sticky note cards (using 8-color palette cyclically), each representing a main concept. LIMIT TO 4-6 CARDS TOTAL to fit within A4. Each card includes: Category badge (top-left, translucent rgba(0,0,0,0.15)), Title in bold handwritten text (0.9rem, Caveat), subtle divider line (rgba(0,0,0,0.2)), and content in handwritten font (0.85rem, Caveat). Add subtle rotation effect (-2deg to +2deg) for organic placement. Max-height: 180px, compact padding (0.75rem). 4. **Footer / Attribution** — Footer text "© 2025 DATADNA AI Study Platform" (0.6rem, Inter) on paper-like background (#F9FAFB) with center alignment, minimal padding (0.5rem). Typography: Use handwritten font (Caveat) for all content and headings (1.5rem for h1, 0.9rem for card titles, 0.85rem for body). Use Inter font exclusively for badge labels and metadata. Maintain compact padding (0.5-0.75rem) and minimal whitespace for A4 fit. All text on colored backgrounds rendered in dark ink. Animations: Subtle fade-in for sections, no hover effects, organic rotations (-2deg to +2deg) applied at render time for natural sticky note placement. Color rotation: Distribute pastel colors cyclically across cards using the 8-color palette. Page background: Paper-like gradient (#FFFACD → #F5F5DC → #FFF8DC). IMPORTANT: Skip optional sections (Formulae, Mind Map, Quick Reference Table, Smart Insights, Knowledge Check) to ensure content fits within single A4 page. Focus only on the most essential key concepts. Output Format: <!DOCTYPE html>...complete HTML script here.... Strictly adhere to the output format given. Additional Notes: The page must look structured, calm, and intuitive for study purposes — readable in both light and dark modes. Avoid clutter, ensure responsive alignment, and use color cues for grouping concepts. CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely by removing all spaces between tags. The entire HTML must be one unbroken line from <!DOCTYPE to </html>. Do NOT format or pretty-print the HTML. Do NOT wrap the HTML in JSON. Do NOT add quotes around the HTML. Return ONLY the raw HTML code starting with <!DOCTYPE and ending with </html>, nothing else - no JSON wrapper, no markdown, no explanations.`
 }
 
 function getReadyReckonerPrompt(params) {
@@ -26,7 +28,7 @@ function getReadyReckonerPrompt(params) {
   
   return `
   Generate a ready reckoner for: ${topicName} with ${contentDepth} depth in ${outputLanguage} language
-Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
+Bloom's Taxonomy Level — Remember (Recall & Recognition): Focus on recall and recognition — present key concepts and definitions for quick reference.
 
 GENERATE EXACTLY THESE SECTIONS ONLY:
 1. HEADER - Title: "Ready Reckoner: ${sectionNumber}" and subtitle: "Curated Summary | Powered by DATADNA AI Study Platform" with relevant emoji icon
@@ -91,7 +93,7 @@ function getFlashCardsPrompt(params) {
   } = params;
 
   return `Generate exactly 6 flash cards in JSON format for: ${topicName} with ${contentDepth} depth in ${outputLanguage} language.
-Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
+Bloom's Taxonomy Level — Remember (Recall & Recognition): Focus on recall and recognition — questions should test definitions, facts, and key terms.
 
 RETURN ONLY VALID JSON - NO MARKDOWN, NO EXPLANATIONS, NO PREAMBLE.
 
@@ -152,7 +154,7 @@ function getMindMapsPrompt(params) {
 Topic: ${topicName}
 Depth: ${contentDepth}
 Language: ${outputLanguage}
-Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
+Bloom's Taxonomy Level — Analyze & Create: Focus on analysis and creation — connect concepts, reveal patterns, and help students organise their own understanding.
 
 RETURN ONLY VALID JSON - NO MARKDOWN, NO CODE BLOCKS, NO EXPLANATIONS, NO PREAMBLE.
 
@@ -217,7 +219,7 @@ function getVisualExplainersPrompt(params) {
   } = params;
 
   return `Generate a Visual Explainers A4 HTML page for: ${topicName} with ${contentDepth} depth in ${outputLanguage} language.
-Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
+Bloom's Taxonomy Level — Understand (Comprehension): Focus on comprehension — simplify concepts visually to build clarity and intuitive understanding.
 
 GENERATE EXACTLY THESE 6 SECTIONS IN ORDER:
 1. HEADER - Title: "Visual Explainers: ${sectionNumber}" | subtitle: "Curated Summary | Powered by DATADNA AI Study Platform" | large subject emoji
@@ -290,174 +292,82 @@ function getDiagrammaticRepresentationPrompt(params) {
   const adaptiveRule = depthRules[contentDepth] || depthRules.intermediate;
 
   // Map contentType to diagram type
-  const diagramTypeHint = contentType === 'process' ? 'flowchart'
-    : contentType === 'comparison' ? 'table-diagram'
-    : contentType === 'formula' ? 'visual-formula-blocks'
-    : 'hierarchical tree / radial mind map';
+  const diagramTypeHint = contentType === 'process' ? 'TYPE B — FLOWCHART'
+    : contentType === 'comparison' ? 'TYPE C — COMPARISON'
+    : contentType === 'formula' ? 'TYPE A — TREE'
+    : 'AUTO — analyze topic and pick TYPE A, B, C, or D (see selection rules below)';
 
-  return `Generate a single A4 HTML page — a structured visual learning diagram (card-based infographic) for: ${topicName}
-Section: ${sectionNumber} | Depth: ${contentDepth} | Language: ${outputLanguage}
+  return `You are generating structured diagram data. The UI renders the diagram directly from nodes and edges using SVG — no Mermaid dependency.
+Return ONLY a valid JSON object. NO markdown. NO explanation. NO html. Just raw JSON.
+
+Topic: ${topicName}
+Section: ${sectionNumber}
+Depth: ${contentDepth} | Language: ${outputLanguage}
 Adaptive rule: ${adaptiveRule}
-Preferred diagram type: ${diagramTypeHint}
-Apply Bloom's Taxonomy: align cognitive level to student standard — standards 6–8: Remember/Understand, 9–10: Apply/Analyse, 11–12: Evaluate/Create.
+Bloom's Taxonomy Level — Understand (Comprehension): Focus on comprehension — use diagrams to clarify structure, relationships, and simplified understanding.
 
-GENERATE EXACTLY THESE SECTIONS IN ORDER:
-1. HEADER — Title: "Diagrammatic Representation: ${sectionNumber}" | subtitle: "Curated Summary | Powered by DATADNA AI Study Platform" | large subject emoji
-2. CORE IDEA BOX — single bold sentence (max 180 chars) stating the central concept, accent left-border
-3. MAIN DIAGRAM CARD — the hero visual: hierarchical tree / flow / radial layout built with inline SVG + HTML, showing:
-   - Central main concept node (dark accent, bold, 16px)
-   - 3–5 sub-concept branches (medium shade rectangles/circles)
-   - Each sub-node: short label (max 5 words) + 1-line detail below
-   - Connecting arrows/lines between nodes (SVG lines or CSS borders)
-   - Examples / formulas / facts as leaf nodes (light shade)
-4. KEY NOTES STRIP — exactly 3 bullet points, each max 12 words, accent bullet color
-5. QUICK SUMMARY BOX — 2 sentences max, light background, italic
-6. FOOTER — "© 2025 DATADNA AI Study Platform — Diagrammatic Representation Generated by AI" pinned to bottom
+STEP 1 — CHOOSE DIAGRAM TYPE:
+Hint: ${diagramTypeHint}
+If AUTO, pick the best fit:
+  TYPE A — TREE: classification, taxonomy, categories, parts of a whole
+  TYPE B — FLOWCHART: steps, sequences, processes, cause→effect chains
+  TYPE C — COMPARISON: two concepts side by side, similarities/differences
+  TYPE D — CYCLE: recurring processes, life cycles, circular relationships
 
-DIAGRAM DESIGN RULES (MANDATORY):
-- Single focus center: one dominant main concept node, big + bold
-- Branch structure: tree for concepts, flow for processes, network for relationships
-- Visual encoding — use consistently:
-  🔵 Circle/oval → concept node
-  🟩 Rectangle → definition / sub-concept
-  🟨 Diamond → rule / condition
-  ➡️ Arrow → flow / relationship
-- Color logic:
-  Main concept → dark accent (#1e3a5f or subject color)
-  Sub-concepts → medium shade (subject pastel)
-  Examples/facts → light shade (#f8fafc)
-- Minimal text: max 5 words per node label, NO paragraphs inside diagram
-- All diagram nodes built with inline SVG or positioned HTML divs + CSS — NO canvas, NO external images
+STEP 2 — BUILD NODES AND EDGES:
+Node styles per type:
+  TREE     → root (1), branch (main categories), leaf (details)
+  FLOWCHART → start (1), step, decision (for branches), end (1)
+  COMPARISON → root (1), left, right, left-leaf, right-leaf
+  CYCLE    → cycle (all nodes same style, last edge loops back to first)
 
-SUBJECT COLOR (auto-detect from topic, replace VAR_ACCENT everywhere):
-- Biology/Nature → #16a34a | Physics/Chemistry → #2563eb | Maths → #7c3aed | History/Social → #ea580c | Default → #6366f1
+Edge rules:
+- Every edge: { "from": "<id>", "to": "<id>" }
+- FLOWCHART decision nodes only: add "label": "Yes" or "label": "No"
+- CYCLE: last node must have an edge back to rootId
+- COMPARISON: root connects to both left and right group heads
+- Max node label: 30 chars
 
-TWEMOJI (mandatory):
-- In <head>: <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
-- Before </body>: <script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script>
-- CSS: img.emoji{height:1.2em;width:1.2em;margin:0 0.05em 0 0.1em;vertical-align:-0.15em;display:inline-block}
+STEP 3 — DETECT SUBJECT COLOR:
+Biology/Nature: accent=#16a34a, pastel=#dcfce7
+Physics/Chemistry: accent=#2563eb, pastel=#dbeafe
+Maths: accent=#7c3aed, pastel=#ede9fe
+History/Social: accent=#ea580c, pastel=#ffedd5
+Default: accent=#6366f1, pastel=#eef2ff
 
-OUTPUT STRUCTURE — USE THIS EXACT HTML SKELETON:
-<!DOCTYPE html><html><head><meta charset="UTF-8"><script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script><style>@page{size:A4 portrait;margin:0}body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#f8fafc}img.emoji{height:1.2em;width:1.2em;margin:0 0.05em 0 0.1em;vertical-align:-0.15em;display:inline-block}.page{width:210mm;height:297mm;padding:14mm;box-sizing:border-box;overflow:hidden;background:#fff;display:flex;flex-direction:column}header{background:linear-gradient(135deg,#6366F1 0%,#14B8A6 100%);border-radius:12px;padding:11px 20px;text-align:center;margin-bottom:10px}.header-icon{font-size:32px;display:block;margin-bottom:4px}.header-title{color:#fff;font-size:18px;font-weight:700;margin:3px 0}.header-subtitle{color:rgba(255,255,255,0.88);font-size:10px}.core-idea{background:linear-gradient(135deg,#f5f3ff,#eff6ff);border-left:4px solid VAR_ACCENT;border-radius:12px;padding:10px 16px;margin-bottom:10px}.core-idea h4{font-size:10px;font-weight:700;color:VAR_ACCENT;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.05em}.core-idea p{font-size:12px;font-weight:600;color:#1f2937;margin:0;line-height:1.5}.diagram-card{background:#fff;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,0.09);padding:16px 16px 14px;margin-bottom:10px;display:flex;flex-direction:column;align-items:stretch;border-top:3px solid VAR_ACCENT}.diagram-card svg{width:100%;height:auto;display:block;overflow:visible}.key-notes{background:#f0fdf4;border-radius:8px;padding:10px 14px;margin-bottom:10px}.key-notes h3{font-size:11px;font-weight:700;color:VAR_ACCENT;margin:0 0 6px}.key-notes ul{margin:0;padding-left:16px}.key-notes li{font-size:11px;color:#374151;margin-bottom:3px;line-height:1.4}.summary-box{background:#fffbeb;border-radius:8px;padding:9px 14px;margin-bottom:10px;border-left:3px solid #f59e0b}.summary-box p{font-size:11px;color:#374151;margin:0;font-style:italic;line-height:1.5}footer{margin-top:auto;text-align:center;font-size:9px;color:#6b7280;padding:8px 0 4px;border-top:1px solid #e5e7eb;background:#fff;flex-shrink:0}</style></head><body><div class="page"><header><div class="header-icon">SUBJECT EMOJI HERE</div><div class="header-title">Diagrammatic Representation: ${sectionNumber}</div><div class="header-subtitle">Curated Summary | Powered by DATADNA AI Study Platform</div></header><div class="core-idea"><h4>Core Concept</h4><p>CORE IDEA TEXT HERE — MAX 180 CHARS</p></div><div class="diagram-card">MAIN DIAGRAM SVG/HTML HERE — central node + branches + leaf nodes + arrows</div><div class="key-notes"><h3>KEY NOTES</h3><ul><li>KEY NOTE 1 — MAX 12 WORDS</li><li>KEY NOTE 2 — MAX 12 WORDS</li><li>KEY NOTE 3 — MAX 12 WORDS</li></ul></div><div class="summary-box"><p>QUICK SUMMARY — 2 SENTENCES MAX</p></div><footer style="margin-top:auto;flex-shrink:0">© 2025 DATADNA AI Study Platform — Diagrammatic Representation Generated by AI</footer></div><script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script></body></html>
+OUTPUT — return exactly this JSON structure:
+{
+  "header": {
+    "title": "Diagrammatic Representation: ${sectionNumber}",
+    "subtitle": "Curated Summary | Powered by DATADNA AI Study Platform",
+    "emoji": "<single relevant subject emoji>",
+    "accentColor": "<hex from subject detection>",
+    "pastelColor": "<hex from subject detection>"
+  },
+  "coreIdea": "<single bold sentence max 180 chars summarising the central concept>",
+  "diagram": {
+    "type": "<TREE|FLOWCHART|COMPARISON|CYCLE>",
+    "rootId": "<id of the root/start node>",
+    "nodes": [
+      { "id": "A", "label": "<short label>", "style": "<root|branch|leaf|start|step|decision|end|cycle|left|right|left-leaf|right-leaf>" }
+    ],
+    "edges": [
+      { "from": "A", "to": "B", "label": "<optional, only for decision branches>" }
+    ]
+  },
+  "keyNotes": [
+    "<note 1 max 15 words>",
+    "<note 2 max 15 words>",
+    "<note 3 max 15 words>",
+    "<note 4 max 15 words>",
+    "<note 5 max 15 words>"
+  ],
+  "summary": "<3 sentences max summarising the topic>",
+  "footer": {
+    "text": "© 2025 DATADNA AI Study Platform — Diagrammatic Representation Generated by AI"
+  }
+}`;
 
-DIAGRAM TYPE SELECTION — analyze the topic content and choose ONE type:
-
-TYPE A — TREE (classification, taxonomy, categories, parts of a whole)
-  e.g. Animal Kingdom, Parts of Speech, Types of Rocks, Food Groups
-
-TYPE B — FLOWCHART (steps, sequences, processes, cause→effect)
-  e.g. Photosynthesis, Water Cycle, Digestive System, How Laws Are Made
-
-TYPE C — COMPARISON (two concepts side by side, similarities/differences)
-  e.g. Plant vs Animal Cell, Acids vs Bases, Democracy vs Monarchy
-
-TYPE D — CYCLE (recurring processes, life cycles, circular relationships)
-  e.g. Rock Cycle, Life Cycle of Butterfly, Carbon Cycle, Seasons
-
-DO NOT use radial/mind map layout. Pick from Types A–D only based on content structure.
-
-SVG canvas: viewBox="0 0 540 440" width="100%" (NO fixed height attribute)
-100px top padding: all content starts at y=100
-100px bottom padding: all content ends at y=340, canvas=440
-
-ARROW MARKER (always include):
-<defs><marker id="arr" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="VAR_ACCENT"/></marker></defs>
-
-INLINE SVG ICONS IN NODES — MANDATORY, NO EMOJI (emoji render as boxes in SVG):
-Every sub-node, process box, and cycle node MUST contain a small inline SVG icon drawn with paths/shapes.
-Icons are drawn INSIDE the node rect, centered horizontally at NODE_CX, vertically at NODE_Y+16.
-Use ONLY SVG primitives: circle, rect, line, path, polygon — NO text emoji in icons.
-Icon size: 16×16px bounding box centered at (NODE_CX, NODE_Y+16).
-stroke=VAR_ACCENT, fill=none, stroke-width=1.5 unless noted.
-
-ICON LIBRARY — pick the most relevant for each node concept:
-  Leaf/Biology:   <path d="M NODE_CX,NODE_Y+24 C NODE_CX-8,NODE_Y+16 NODE_CX-6,NODE_Y+8 NODE_CX,NODE_Y+8 C NODE_CX+6,NODE_Y+8 NODE_CX+8,NODE_Y+16 NODE_CX,NODE_Y+24Z" stroke="VAR_ACCENT" fill="SUBJECT_PASTEL" stroke-width="1.5"/><line x1="NODE_CX" y1="NODE_Y+24" x2="NODE_CX" y2="NODE_Y+8" stroke="VAR_ACCENT" stroke-width="1"/>
-  Atom/Chemistry: <circle cx="NODE_CX" cy="NODE_Y+16" r="4" fill="VAR_ACCENT"/><ellipse cx="NODE_CX" cy="NODE_Y+16" rx="10" ry="5" fill="none" stroke="VAR_ACCENT" stroke-width="1.5"/><ellipse cx="NODE_CX" cy="NODE_Y+16" rx="10" ry="5" fill="none" stroke="VAR_ACCENT" stroke-width="1.5" transform="rotate(60 NODE_CX NODE_Y+16)"/>
-  Lightning/Physics: <polygon points="NODE_CX+2,NODE_Y+8 NODE_CX-3,NODE_Y+16 NODE_CX+1,NODE_Y+16 NODE_CX-2,NODE_Y+24 NODE_CX+5,NODE_Y+15 NODE_CX+1,NODE_Y+15" fill="VAR_ACCENT" stroke="none"/>
-  Globe/Geography: <circle cx="NODE_CX" cy="NODE_Y+16" r="8" fill="none" stroke="VAR_ACCENT" stroke-width="1.5"/><line x1="NODE_CX-8" y1="NODE_Y+16" x2="NODE_CX+8" y2="NODE_Y+16" stroke="VAR_ACCENT" stroke-width="1"/><path d="M NODE_CX,NODE_Y+8 Q NODE_CX+5,NODE_Y+16 NODE_CX,NODE_Y+24" fill="none" stroke="VAR_ACCENT" stroke-width="1"/><path d="M NODE_CX,NODE_Y+8 Q NODE_CX-5,NODE_Y+16 NODE_CX,NODE_Y+24" fill="none" stroke="VAR_ACCENT" stroke-width="1"/>
-  Clock/History:  <circle cx="NODE_CX" cy="NODE_Y+16" r="8" fill="none" stroke="VAR_ACCENT" stroke-width="1.5"/><line x1="NODE_CX" y1="NODE_Y+16" x2="NODE_CX" y2="NODE_Y+10" stroke="VAR_ACCENT" stroke-width="1.5"/><line x1="NODE_CX" y1="NODE_Y+16" x2="NODE_CX+5" y2="NODE_Y+19" stroke="VAR_ACCENT" stroke-width="1.5"/>
-  Grid/Maths:     <rect x="NODE_CX-8" y="NODE_Y+8" width="7" height="7" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX+1" y="NODE_Y+8" width="7" height="7" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX-8" y="NODE_Y+17" width="7" height="7" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX+1" y="NODE_Y+17" width="7" height="7" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/>
-  Gear/Process:   <circle cx="NODE_CX" cy="NODE_Y+16" r="5" fill="none" stroke="VAR_ACCENT" stroke-width="1.5"/><circle cx="NODE_CX" cy="NODE_Y+16" r="2" fill="VAR_ACCENT"/><line x1="NODE_CX" y1="NODE_Y+8" x2="NODE_CX" y2="NODE_Y+11" stroke="VAR_ACCENT" stroke-width="2"/><line x1="NODE_CX" y1="NODE_Y+21" x2="NODE_CX" y2="NODE_Y+24" stroke="VAR_ACCENT" stroke-width="2"/><line x1="NODE_CX-8" y1="NODE_Y+16" x2="NODE_CX-5" y2="NODE_Y+16" stroke="VAR_ACCENT" stroke-width="2"/><line x1="NODE_CX+5" y1="NODE_Y+16" x2="NODE_CX+8" y2="NODE_Y+16" stroke="VAR_ACCENT" stroke-width="2"/>
-  Stack/Layers:   <rect x="NODE_CX-8" y="NODE_Y+9" width="16" height="5" rx="1" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX-8" y="NODE_Y+16" width="16" height="5" rx="1" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/><rect x="NODE_CX-8" y="NODE_Y+23" width="16" height="5" rx="1" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/>
-  Default/Star:   <polygon points="NODE_CX,NODE_Y+8 NODE_CX+3,NODE_Y+14 NODE_CX+9,NODE_Y+14 NODE_CX+4,NODE_Y+18 NODE_CX+6,NODE_Y+24 NODE_CX,NODE_Y+20 NODE_CX-6,NODE_Y+24 NODE_CX-4,NODE_Y+18 NODE_CX-9,NODE_Y+14 NODE_CX-3,NODE_Y+14" fill="SUBJECT_PASTEL" stroke="VAR_ACCENT" stroke-width="1.5"/>
-
-IMPORTANT: Replace NODE_CX and NODE_Y with actual numeric values for each node. Do NOT write "NODE_CX" literally.
-Node rect height must be 52px to fit icon (16px) + gap (4px) + label (12px) + padding.
-Label text sits at NODE_Y+36 (below icon zone).
-
---- TYPE A: TREE ---
-Root rect: x=170 y=110 width=200 height=44 rx=12 fill=VAR_ACCENT
-Root text: x=270 y=137 text-anchor=middle font-size=14 bold fill=#fff
-Stem: line x1=270 y1=154 x2=270 y2=194 stroke=VAR_ACCENT stroke-width=2 (40px)
-Bus: line x1=LEFTMOST_CENTER y1=194 x2=RIGHTMOST_CENTER y2=194 stroke=VAR_ACCENT stroke-width=2
-Drop arrows: line from y=194 to y=210 on each center, marker-end=url(#arr) (16px drop gap)
-Sub-node rects: y=210 height=52 rx=10 fill=SUBJECT_PASTEL stroke=VAR_ACCENT stroke-width=1.5
-  Icon: centered at (CENTER, 226) — NODE_CX=CENTER, NODE_Y=210
-  Label text: x=CENTER y=246 font-size=10 font-weight=600 fill=#1f2937 text-anchor=middle
-Leaf connectors: dashed line y=262 to y=278 stroke=#cbd5e1 stroke-dasharray=3,2
-Leaf rects: y=278 height=30 rx=8 fill=#f8fafc stroke=#e2e8f0
-  Leaf text: x=CENTER y=297 font-size=8.5 fill=#374151 text-anchor=middle
-
-3 branches: centers=85,270,455 | rect x=10,195,380 width=150
-4 branches: centers=63,193,323,453 | rect x=6,136,266,396 width=114
-5 branches: centers=50,156,262,368,474 | rect x=6,112,218,324,430 width=88
-
---- TYPE B: FLOWCHART ---
-All nodes centered at x=270, 62px apart, starting at y=110
-Start pill: x=170 y=110 width=200 height=40 rx=20 fill=VAR_ACCENT
-  Text: x=270 y=135 font-size=13 bold fill=#fff
-Process boxes: y=172,234,296 x=155 width=230 height=52 rx=10 fill=SUBJECT_PASTEL stroke=VAR_ACCENT
-  Icon: NODE_CX=270, NODE_Y=172/234/296 — draw icon centered at (270, NODE_Y+16)
-  Label text: x=270 y=NODE_Y+36 font-size=10 font-weight=600 fill=#1f2937 text-anchor=middle
-End pill: x=170 y=358 width=200 height=40 rx=20 fill=#6b7280
-  Text: x=270 y=383 font-size=13 bold fill=#fff
-Arrows between nodes (26px gap each): marker-end=url(#arr) stroke=VAR_ACCENT stroke-width=2
-  Start→P1: x1=270 y1=150 x2=270 y2=172
-  P1→P2:    x1=270 y1=224 x2=270 y2=234
-  P2→P3:    x1=270 y1=286 x2=270 y2=296
-  P3→End:   x1=270 y1=348 x2=270 y2=358
-Max 3 process boxes
-
---- TYPE C: COMPARISON ---
-Left header:  x=10  y=110 width=240 height=40 rx=10 fill=VAR_ACCENT — white text x=130 y=135
-Right header: x=290 y=110 width=240 height=40 rx=10 fill=#0891b2 — white text x=410 y=135
-Center divider: line x1=270 y1=110 x2=270 y2=340 stroke=#e5e7eb stroke-dasharray=4,3
-Attribute rows at y=162,204,246,288: left rect x=10 width=240 h=34, right rect x=290 width=240 h=34
-  Icon in each cell: NODE_CX=130 or 410, NODE_Y=ROW_Y — draw icon at (NODE_CX, NODE_Y+8), scale to 12px
-  Label text: x=130 or 410, y=ROW_Y+28 font-size=9.5 font-weight=600 fill=#1f2937 text-anchor=middle
-Odd rows fill=SUBJECT_PASTEL, even rows fill=#f8fafc
-Attribute name: text x=270 y=ROW_Y+20 text-anchor=middle font-size=8 fill=#6b7280
-
---- TYPE D: CYCLE ---
-Center circle: cx=270 cy=225 r=40 fill=VAR_ACCENT
-  Center label: x=270 y=229 font-size=12 bold fill=#fff text-anchor=middle
-4 cycle nodes:
-  Top:    rect x=170 y=110 width=200 height=52 rx=10
-  Right:  rect x=370 y=199 width=160 height=52 rx=10
-  Bottom: rect x=170 y=288 width=200 height=52 rx=10
-  Left:   rect x=10  y=199 width=160 height=52 rx=10
-All: fill=SUBJECT_PASTEL stroke=VAR_ACCENT stroke-width=1.5
-  Each node: Icon at (NODE_CX, NODE_Y+16), Label at y=NODE_Y+36 font-size=10 font-weight=600
-  Top node:    NODE_CX=270, NODE_Y=110
-  Right node:  NODE_CX=450, NODE_Y=199
-  Bottom node: NODE_CX=270, NODE_Y=288
-  Left node:   NODE_CX=90,  NODE_Y=199
-Clockwise curved arrows: <path> marker-end=url(#arr) stroke=VAR_ACCENT stroke-width=2
-
-LABEL RULES (all types):
-- Use only absolute numeric x,y coordinates — NO expressions, NO placeholders
-- Max 14 chars per label line; split into 2 <text> lines if longer (+12px y between lines)
-- font-family="Inter,sans-serif" on all label text elements
-- EVERY node MUST have an inline SVG icon — choose from the icon library above
-- Replace all NODE_CX and NODE_Y with actual numbers before writing SVG
-
-CRITICAL REQUIREMENTS:
-- Replace VAR_ACCENT with detected subject accent color hex everywhere in CSS and SVG
-- Replace all placeholder text with actual content from the document context
-- Header MUST have .header-icon, .header-title, .header-subtitle — DO NOT REMOVE
-- Footer MUST be last element in .page with inline style margin-top:auto — DO NOT REMOVE OR OMIT
-- Diagram MUST use inline SVG — no external images, no canvas
-- Return ONLY complete minified HTML. ONE CONTINUOUS LINE. NO MARKDOWN. NO EXPLANATIONS.`;
 }
 
 
@@ -471,7 +381,9 @@ function getProcessFlowChartsPrompt(params) {
     visualStyle = 'academic'
   } = params;
 
-  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents step-by-step flowcharts mapping sequential processes, decision trees, and algorithmic patterns. Include decision diamonds, process rectangles, and directional flow arrows. Create a process flow chart of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Flowchart Layout' — White background (#FFFFFF), flowchart shapes: rectangles for processes (Blue #3B82F6 background, white text, 8px border-radius, padding 1rem), diamonds for decisions (Yellow #FBBF24 background, 45deg rotation, white text), rounded rectangles for start/end (Green #10B981 for start, Red #EF4444 for end, 999px border-radius), arrows connecting shapes (Gray #6B7280, 3px stroke). Use CSS Grid or Flexbox for vertical/horizontal flow alignment. Layout includes: 1) Header with title 'Process Flow Chart: [Topic]', 2) Start node (rounded green rectangle), 3) Sequential process boxes connected by arrows, 4) Decision diamonds with Yes/No branches, 5) Alternative paths showing different outcomes, 6) End node (rounded red rectangle), 7) Legend explaining shape meanings, 8) Footer. Use Inter font (0.875rem for text, 1rem bold for labels). Maintain clear spacing (2rem gaps) between flow elements. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
+  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents step-by-step flowcharts mapping sequential processes, decision trees, and algorithmic patterns. Include decision diamonds, process rectangles, and directional flow arrows.
+Bloom's Taxonomy Level — Apply (Use Knowledge): Focus on application — show how concepts are used in sequences, procedures, and real contexts.
+Create a process flow chart of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Flowchart Layout' — White background (#FFFFFF), flowchart shapes: rectangles for processes (Blue #3B82F6 background, white text, 8px border-radius, padding 1rem), diamonds for decisions (Yellow #FBBF24 background, 45deg rotation, white text), rounded rectangles for start/end (Green #10B981 for start, Red #EF4444 for end, 999px border-radius), arrows connecting shapes (Gray #6B7280, 3px stroke). Use CSS Grid or Flexbox for vertical/horizontal flow alignment. Layout includes: 1) Header with title 'Process Flow Chart: [Topic]', 2) Start node (rounded green rectangle), 3) Sequential process boxes connected by arrows, 4) Decision diamonds with Yes/No branches, 5) Alternative paths showing different outcomes, 6) End node (rounded red rectangle), 7) Legend explaining shape meanings, 8) Footer. Use Inter font (0.875rem for text, 1rem bold for labels). Maintain clear spacing (2rem gaps) between flow elements. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
 }
 
 function getCompareContrastTablesPrompt(params) {
@@ -484,7 +396,9 @@ function getCompareContrastTablesPrompt(params) {
     visualStyle = 'academic'
   } = params;
 
-  return `Extract key concepts from the chapter and generate a complete 1-page HTML comparison table script presenting side-by-side matrices highlighting similarities, differences, and key distinguishing features for ${topicName} at ${contentDepth} content depth in ${outputLanguage} using ${contentType} style and ${visualStyle} visual design on clean white background (#FFFFFF) with 3-column layout (Feature | Item A | Item B), gradient header row (linear-gradient(90deg, #6366F1, #8B5CF6) white text 1rem bold), alternating row colors (white #FFFFFF/light gray #F9FAFB), 1px solid borders (#E5E7EB), 12px rounded table corners, 1rem cell padding, green highlights (#10B981) for similarities, red highlights (#EF4444) for differences, blue highlights (#3B82F6) for neutral features, Inter font (0.875rem table text, 1.125rem headings), checkmark (✓) and cross (✗) icons where applicable, including header title 'Comparison Analysis: [Identify 2 main entities from content]', introduction paragraph explaining comparison context, main table with 8-12 feature rows intelligently comparing key concepts/terms/processes from the source document, similarities summary section in green box, key differences section in orange box, summary insights in neutral blue box, and footer attribution, ensuring full responsive design and print compatibility, output as fully minified single-line HTML from <!DOCTYPE html> to </html> with absolutely no newlines, line breaks, tabs, or formatting whitespace.`;
+  return `Extract key concepts from the chapter and generate a complete 1-page HTML comparison table script presenting side-by-side matrices highlighting similarities, differences, and key distinguishing features for ${topicName} at ${contentDepth} content depth in ${outputLanguage}.
+Bloom's Taxonomy Level — Analyze & Evaluate: Focus on analysis and evaluation — highlight relationships, patterns, similarities, and differences to support deeper thinking and reasoning.
+Using ${contentType} style and ${visualStyle} visual design on clean white background (#FFFFFF) with 3-column layout (Feature | Item A | Item B), gradient header row (linear-gradient(90deg, #6366F1, #8B5CF6) white text 1rem bold), alternating row colors (white #FFFFFF/light gray #F9FAFB), 1px solid borders (#E5E7EB), 12px rounded table corners, 1rem cell padding, green highlights (#10B981) for similarities, red highlights (#EF4444) for differences, blue highlights (#3B82F6) for neutral features, Inter font (0.875rem table text, 1.125rem headings), checkmark (✓) and cross (✗) icons where applicable, including header title 'Comparison Analysis: [Identify 2 main entities from content]', introduction paragraph explaining comparison context, main table with 8-12 feature rows intelligently comparing key concepts/terms/processes from the source document, similarities summary section in green box, key differences section in orange box, summary insights in neutral blue box, and footer attribution, ensuring full responsive design and print compatibility, output as fully minified single-line HTML from <!DOCTYPE html> to </html> with absolutely no newlines, line breaks, tabs, or formatting whitespace.`;
 }
 
 function getCauseEffectChainsPrompt(params) {
@@ -497,7 +411,9 @@ function getCauseEffectChainsPrompt(params) {
     visualStyle = 'academic'
   } = params;
 
-  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents cause-and-effect diagrams showing causal relationships, consequences, and interconnected events. Create a cause-effect chain diagram of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Cause-Effect Chain Layout' — Light background (#F8FAFC), cause boxes (Purple #A855F7 background, white text, rounded-left 16px, padding 1.5rem), effect boxes (Teal #14B8A6 background, white text, rounded-right 16px, padding 1.5rem), connecting arrows (thick 4px, gradient from purple to teal), intermediate consequence boxes (Orange #F59E0B, standard 8px border-radius). Use vertical or horizontal chain layout with clear directional flow. Layout includes: 1) Header with title 'Cause & Effect Analysis: [Topic]', 2) Introduction explaining the causal relationship, 3) Primary Cause section (large purple box), 4) Arrow leading to Intermediate Effects (3-4 orange boxes), 5) Arrows leading to Final Consequences (2-3 teal boxes), 6) Feedback Loops section showing cyclical relationships (dashed arrows in Gray #6B7280), 7) Key Insights box summarizing the chain, 8) Footer. Use Poppins for cause/effect labels (1rem bold) and Inter for descriptions (0.875rem). Add icons: ⚡ for causes, → for direct effects, ↻ for feedback loops. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
+  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents cause-and-effect diagrams showing causal relationships, consequences, and interconnected events.
+Bloom's Taxonomy Level — Analyze & Evaluate: Focus on analysis and evaluation — map causal relationships and consequences to support reasoning and decision-making.
+Create a cause-effect chain diagram of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Cause-Effect Chain Layout' — Light background (#F8FAFC), cause boxes (Purple #A855F7 background, white text, rounded-left 16px, padding 1.5rem), effect boxes (Teal #14B8A6 background, white text, rounded-right 16px, padding 1.5rem), connecting arrows (thick 4px, gradient from purple to teal), intermediate consequence boxes (Orange #F59E0B, standard 8px border-radius). Use vertical or horizontal chain layout with clear directional flow. Layout includes: 1) Header with title 'Cause & Effect Analysis: [Topic]', 2) Introduction explaining the causal relationship, 3) Primary Cause section (large purple box), 4) Arrow leading to Intermediate Effects (3-4 orange boxes), 5) Arrows leading to Final Consequences (2-3 teal boxes), 6) Feedback Loops section showing cyclical relationships (dashed arrows in Gray #6B7280), 7) Key Insights box summarizing the chain, 8) Footer. Use Poppins for cause/effect labels (1rem bold) and Inter for descriptions (0.875rem). Add icons: ⚡ for causes, → for direct effects, ↻ for feedback loops. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
 }
 
 function getTimelineVisualsPrompt(params) {
@@ -510,7 +426,9 @@ function getTimelineVisualsPrompt(params) {
     visualStyle = 'academic'
   } = params;
 
-  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents chronological timelines mapping historical events, geographical changes, and temporal progressions. Create a timeline visual of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Vertical Timeline Layout' — Light gradient background (#FFFFFF to #F0F9FF), central vertical timeline bar (4px wide, gradient Blue #3B82F6 to Purple #8B5CF6), event nodes positioned alternately left and right of timeline, circular date markers (40px diameter, gradient background, white text, bold font), event cards (White background, rounded 12px, padding 1.5rem, shadow 0 4px 12px rgba(0,0,0,0.1), colored left border 4px solid matching date marker color). Use 6-color rotation: Blue #3B82F6, Green #10B981, Orange #F59E0B, Red #EF4444, Purple #8B5CF6, Teal #14B8A6. Layout includes: 1) Header with title 'Timeline: [Topic/Period]', 2) Introduction paragraph with date range, 3) Vertical timeline with 8-12 chronological events, 4) Each event card contains: date/year (bold, colored), event title (1rem bold), description (0.875rem, 2-3 sentences), optional image placeholder, 5) Era dividers (horizontal dashed lines with era labels like 'Ancient Period', 'Modern Era'), 6) Key Milestones section highlighting 3-4 most significant events, 7) Footer. Use Poppins for dates/titles (1rem bold) and Inter for descriptions (0.875rem). Icons: 📅 for dates, ⭐ for milestones, 🌍 for geographical events. Responsive: switches to left-aligned on mobile. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
+  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents chronological timelines mapping historical events, geographical changes, and temporal progressions.
+Bloom's Taxonomy Level — Apply (Use Knowledge): Focus on application — place concepts in real chronological or contextual sequences.
+Create a timeline visual of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Vertical Timeline Layout' — Light gradient background (#FFFFFF to #F0F9FF), central vertical timeline bar (4px wide, gradient Blue #3B82F6 to Purple #8B5CF6), event nodes positioned alternately left and right of timeline, circular date markers (40px diameter, gradient background, white text, bold font), event cards (White background, rounded 12px, padding 1.5rem, shadow 0 4px 12px rgba(0,0,0,0.1), colored left border 4px solid matching date marker color). Use 6-color rotation: Blue #3B82F6, Green #10B981, Orange #F59E0B, Red #EF4444, Purple #8B5CF6, Teal #14B8A6. Layout includes: 1) Header with title 'Timeline: [Topic/Period]', 2) Introduction paragraph with date range, 3) Vertical timeline with 8-12 chronological events, 4) Each event card contains: date/year (bold, colored), event title (1rem bold), description (0.875rem, 2-3 sentences), optional image placeholder, 5) Era dividers (horizontal dashed lines with era labels like 'Ancient Period', 'Modern Era'), 6) Key Milestones section highlighting 3-4 most significant events, 7) Footer. Use Poppins for dates/titles (1rem bold) and Inter for descriptions (0.875rem). Icons: 📅 for dates, ⭐ for milestones, 🌍 for geographical events. Responsive: switches to left-aligned on mobile. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
 }
 
 function getKeyFormulaPrompt(params) {
@@ -523,7 +441,9 @@ function getKeyFormulaPrompt(params) {
     visualStyle = 'academic'
   } = params;
 
-  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents a curated collection of essential formulas, equations, and mathematical expressions with usage examples and conditions. Create a key formula sheet of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Formula Sheet Layout' — Clean white background (#FFFFFF), formula cards in grid layout (2-column on desktop, 1-column on mobile), each card with light gradient background (linear-gradient(135deg, #EEF2FF, #FFFFFF)), rounded corners (16px), padding (2rem), shadow (0 6px 16px rgba(0,0,0,0.08)). Formula display in large monospace font (Fira Code or Courier New, 1.125rem), colored formula name badge (Blue #3B82F6 background, white text, rounded-full, padding 0.5rem 1rem). Layout includes: 1) Header with title 'Key Formula Sheet: [Topic]', 2) Subject/Chapter info subtitle, 3) Quick Index section with clickable formula names, 4) Formula Cards Grid containing 8-12 formulas, each with: Formula name badge, Large formula display (LaTeX-style rendering or HTML entities), 'Where' section explaining variables (small gray boxes with variable definitions), 'Usage' section with application context, 'Example' section with worked calculation, Color-coded difficulty badge (Easy=Green, Medium=Orange, Hard=Red), 5) Units & Constants reference table, 6) Common Mistakes section with warning boxes (Red #FEE2E2 background), 7) Quick Tips section (Blue #DBEAFE background), 8) Footer with print-friendly notice. Use Poppins for headings (1.25rem bold), Inter for descriptions (0.875rem), Fira Code for formulas and variables. Icons: ∑ for summations, ∫ for integrals, √ for roots, π for constants. Add copy-to-clipboard button for each formula. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
+  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a 1-page HTML script that visually presents a curated collection of essential formulas, equations, and mathematical expressions with usage examples and conditions.
+Bloom's Taxonomy Level — Remember (Recall & Recognition): Focus on recall and recognition — present formulas, constants, and rules for memorisation.
+Create a key formula sheet of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Formula Sheet Layout' — Clean white background (#FFFFFF), formula cards in grid layout (2-column on desktop, 1-column on mobile), each card with light gradient background (linear-gradient(135deg, #EEF2FF, #FFFFFF)), rounded corners (16px), padding (2rem), shadow (0 6px 16px rgba(0,0,0,0.08)). Formula display in large monospace font (Fira Code or Courier New, 1.125rem), colored formula name badge (Blue #3B82F6 background, white text, rounded-full, padding 0.5rem 1rem). Layout includes: 1) Header with title 'Key Formula Sheet: [Topic]', 2) Subject/Chapter info subtitle, 3) Quick Index section with clickable formula names, 4) Formula Cards Grid containing 8-12 formulas, each with: Formula name badge, Large formula display (LaTeX-style rendering or HTML entities), 'Where' section explaining variables (small gray boxes with variable definitions), 'Usage' section with application context, 'Example' section with worked calculation, Color-coded difficulty badge (Easy=Green, Medium=Orange, Hard=Red), 5) Units & Constants reference table, 6) Common Mistakes section with warning boxes (Red #FEE2E2 background), 7) Quick Tips section (Blue #DBEAFE background), 8) Footer with print-friendly notice. Use Poppins for headings (1.25rem bold), Inter for descriptions (0.875rem), Fira Code for formulas and variables. Icons: ∑ for summations, ∫ for integrals, √ for roots, π for constants. Add copy-to-clipboard button for each formula. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
 }
 
 function getChapterSummariesPrompt(params) {
@@ -536,7 +456,9 @@ function getChapterSummariesPrompt(params) {
     visualStyle = 'academic'
   } = params;
 
-  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a comprehensive 1-3 page HTML script that presents a detailed chapter summary capturing main concepts, key takeaways, and critical insights. Create a chapter summary of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Academic Summary Layout' — Clean A4-printable white background (#FFFFFF), structured sections with clear hierarchy, soft section dividers (1px solid #E5E7EB), generous line spacing (1.8), readable paragraph width (max-width: 65ch). Use subtle background colors for section headers (Blue #EEF2FF for Overview, Green #F0FDF4 for Key Concepts, Yellow #FFFBEB for Important Points, Purple #FAF5FF for Conclusion). Layout includes: 1) Cover Section with title 'Chapter Summary: [Chapter Name]', subject/board/standard info, chapter number, AI generation notice, 2) Table of Contents with section links, 3) Chapter Overview (2-3 paragraphs) introducing main theme and scope, 4) Learning Objectives section with numbered list of 5-8 key learning outcomes, 5) Key Concepts & Definitions section with sub-sections for each major concept, each containing: concept heading, detailed explanation (3-5 sentences), related terms in highlighted boxes, 6) Important Points section with 10-15 critical takeaways in numbered format with colored left borders, 7) Formulas & Rules section (if applicable) with formula cards, 8) Diagrams & Visual Aids section with placeholder boxes and descriptions, 9) Worked Examples section with 2-3 detailed problem solutions, 10) Summary & Conclusion with condensed main points, 11) Practice Questions section with 5-8 review questions, 12) Additional Resources section with reference links, 13) Footer with page numbers and copyright. Use Merriweather or Georgia for body text (1rem, line-height 1.8), Poppins for headings (h1: 2rem, h2: 1.5rem, h3: 1.25rem), monospace for code/formulas. Color scheme: Primary Blue #2563EB, Secondary Green #059669, Accent Orange #EA580C, Text Dark Gray #1F2937, Text Light Gray #6B7280. Icons: 📖 for sections, ✓ for key points, 💡 for insights, ⚠️ for important notes, 📝 for examples. Add print styles with page breaks and proper margins. Multi-column layout for dense sections. Highlight boxes for definitions, warnings, tips, and examples with appropriate icons and colors. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
+  return `Extract key concepts from the chapter to form the basis of an HTML study guide and Generate a comprehensive 1-3 page HTML script that presents a detailed chapter summary capturing main concepts, key takeaways, and critical insights.
+Bloom's Taxonomy Level — Understand (Comprehension): Focus on comprehension — summarise main ideas to support concept clarity and understanding.
+Create a chapter summary of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature. Design Style: 'Academic Summary Layout' — Clean A4-printable white background (#FFFFFF), structured sections with clear hierarchy, soft section dividers (1px solid #E5E7EB), generous line spacing (1.8), readable paragraph width (max-width: 65ch). Use subtle background colors for section headers (Blue #EEF2FF for Overview, Green #F0FDF4 for Key Concepts, Yellow #FFFBEB for Important Points, Purple #FAF5FF for Conclusion). Layout includes: 1) Cover Section with title 'Chapter Summary: [Chapter Name]', subject/board/standard info, chapter number, AI generation notice, 2) Table of Contents with section links, 3) Chapter Overview (2-3 paragraphs) introducing main theme and scope, 4) Learning Objectives section with numbered list of 5-8 key learning outcomes, 5) Key Concepts & Definitions section with sub-sections for each major concept, each containing: concept heading, detailed explanation (3-5 sentences), related terms in highlighted boxes, 6) Important Points section with 10-15 critical takeaways in numbered format with colored left borders, 7) Formulas & Rules section (if applicable) with formula cards, 8) Diagrams & Visual Aids section with placeholder boxes and descriptions, 9) Worked Examples section with 2-3 detailed problem solutions, 10) Summary & Conclusion with condensed main points, 11) Practice Questions section with 5-8 review questions, 12) Additional Resources section with reference links, 13) Footer with page numbers and copyright. Use Merriweather or Georgia for body text (1rem, line-height 1.8), Poppins for headings (h1: 2rem, h2: 1.5rem, h3: 1.25rem), monospace for code/formulas. Color scheme: Primary Blue #2563EB, Secondary Green #059669, Accent Orange #EA580C, Text Dark Gray #1F2937, Text Light Gray #6B7280. Icons: 📖 for sections, ✓ for key points, 💡 for insights, ⚠️ for important notes, 📝 for examples. Add print styles with page breaks and proper margins. Multi-column layout for dense sections. Highlight boxes for definitions, warnings, tips, and examples with appropriate icons and colors. Output Format: <!DOCTYPE html>...complete HTML script here.... CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely. Return only the JSON output with fully minified HTML inside quotes, nothing else. Follow the output format strictly.`;
 }
 
 function getPrompt(contentTypeId, params) {
