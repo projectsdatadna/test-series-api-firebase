@@ -48,8 +48,16 @@ async function generateAdaptiveContent(req, res) {
   const timeoutId = setTimeout(() => controller.abort(), 280000); // 280 second timeout for generation
 
   try {
+    console.log("=== [AdaptiveContent] REQUEST RECEIVED ===");
+    console.log("[AdaptiveContent] contentTypeId:", req.body?.contentTypeId);
+    console.log("[AdaptiveContent] topicName:", req.body?.topicName || req.body?.topic);
+    console.log("[AdaptiveContent] sectionTitle:", req.body?.sectionTitle);
+    console.log("[AdaptiveContent] chunks count:", req.body?.chunks?.length ?? 0);
+    console.log("[AdaptiveContent] maxTokens:", req.body?.maxTokens ?? 2000);
+
     const apiKey = process.env.CLAUDE_API_KEY;
     if (!apiKey) {
+      console.error("[AdaptiveContent] ERROR: CLAUDE_API_KEY not set");
       clearTimeout(timeoutId);
       return res.status(400).json({
         success: false,
@@ -84,6 +92,7 @@ async function generateAdaptiveContent(req, res) {
     const sectionsToProcess = sectionTitles.length > 0 ? sectionTitles : (sectionTitle ? [sectionTitle] : []);
 
     if (chunks.length == 0) {
+      console.error("[AdaptiveContent] ERROR: chunks array is empty");
       clearTimeout(timeoutId);
       return res.status(400).json({
         success: false,
@@ -92,6 +101,7 @@ async function generateAdaptiveContent(req, res) {
     }
 
       if (!userId || !documentId || sectionsToProcess.length === 0) {
+        console.error("[AdaptiveContent] ERROR: Missing required fields — userId:", userId, "| documentId:", documentId, "| sections:", sectionsToProcess.length);
         clearTimeout(timeoutId);
         return res.status(400).json({
           success: false,
@@ -103,6 +113,8 @@ async function generateAdaptiveContent(req, res) {
     const style = visualStyle || "academic";
     const language = outputLanguage || "english";
     const finalTopicName = topicName || topic || sectionsToProcess[0] || sectionTitle;
+
+    console.log("[AdaptiveContent] Resolved — depth:", depth, "| language:", language, "| topic:", finalTopicName);
 
     let prompt;
     let context = "";
@@ -129,6 +141,8 @@ async function generateAdaptiveContent(req, res) {
         .map((chunk, idx) => `[Context ${idx + 1}] ${chunk.text}`)
         .join("\n\n");
 
+    console.log("[AdaptiveContent] Context built — total chars:", context.length);
+
     const basePrompt = getPrompt(contentTypeId, {
       sectionNumber: sectionsToProcess[0] || sectionTitle || sectionNumber || '',
       topicName: finalTopicName,
@@ -142,6 +156,10 @@ async function generateAdaptiveContent(req, res) {
     if (context) {
       prompt = `${basePrompt}\n\nUse the following context from the document to generate the content:\n\n${context}`;
     }
+
+    console.log("[AdaptiveContent] Prompt built — total chars:", prompt?.length);
+    console.log("[AdaptiveContent] Calling Claude API (model: claude-haiku-4-5, maxTokens:", maxTokens, ")...");
+    const claudeStart = Date.now();
 
     // Call Anthropic Messages API
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -165,8 +183,12 @@ async function generateAdaptiveContent(req, res) {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
+
+    console.log("[AdaptiveContent] Claude API responded in", Date.now() - claudeStart, "ms — status:", response.status);
+
     if (!response.ok) {
       const error = await response.json();
+      console.error("[AdaptiveContent] Claude API error:", error);
       return res.status(400).json({
         success: false,
         message: "Failed to generate adaptive content",
@@ -177,6 +199,8 @@ async function generateAdaptiveContent(req, res) {
     const data = await response.json();
     const content =
       data.content && data.content.length > 0 ? data.content[0].text : "";
+
+    console.log("[AdaptiveContent] Claude response — stop_reason:", data.stop_reason, "| content length:", content.length, "chars");
 
     if (data.stop_reason === "max_tokens") {
       console.warn("⚠️ WARNING: Claude response was truncated due to max_tokens limit!");
@@ -209,11 +233,24 @@ async function generateAdaptiveContent(req, res) {
     } catch (e) {
       // Not JSON, continue with normal extraction
     }
-    
-    const htmlMatch = htmlContent.match(/<!DOCTYPE[^>]*>[\s\S]*<\/html>/i);
-    if (htmlMatch) {
-      htmlContent = htmlMatch[0];
+
+    // If truncated due to max_tokens, use whatever HTML we have — don't require closing </html>
+    if (data.stop_reason === "max_tokens") {
+      const partialMatch = htmlContent.match(/<!DOCTYPE[^>]*>[\s\S]*/i);
+      if (partialMatch) {
+        htmlContent = partialMatch[0];
+        // Close any unclosed tags so the browser can still render it
+        if (!htmlContent.includes('</html>')) {
+          htmlContent += '</body></html>';
+        }
+      }
+    } else {
+      const htmlMatch = htmlContent.match(/<!DOCTYPE[^>]*>[\s\S]*<\/html>/i);
+      if (htmlMatch) {
+        htmlContent = htmlMatch[0];
+      }
     }
+
     htmlContent = htmlContent.replace(/\\n/g, '');
     htmlContent = htmlContent.replace(/\\"/g, '"');
     htmlContent = htmlContent.replace(/\\'/g, "'");
@@ -222,7 +259,7 @@ async function generateAdaptiveContent(req, res) {
 
     // Skip image conversion for flash-cards (returns JSON, not HTML)
     if (contentTypeId === 'flash-cards') {
-      console.log("Flash cards: skipping image conversion, returning JSON directly");
+      console.log("[AdaptiveContent] flash-cards: returning JSON directly");
       
       // Extract JSON from markdown code blocks if present
       let flashCardsJson = content;
@@ -254,7 +291,7 @@ async function generateAdaptiveContent(req, res) {
 
     // Skip image conversion for mind-maps (returns JSON, not HTML)
     if (contentTypeId === 'mind-maps') {
-      console.log("Mind maps: skipping image conversion, returning JSON directly");
+      console.log("[AdaptiveContent] mind-maps: returning JSON directly");
       
       // Extract JSON from markdown code blocks if present
       let mindMapsJson = content;
@@ -286,7 +323,7 @@ async function generateAdaptiveContent(req, res) {
 
     // Skip image conversion for diagrammatic-representation (returns JSON, not HTML)
     if (contentTypeId === 'diagrammatic-representation') {
-      console.log("Diagrammatic representation: skipping image conversion, returning JSON directly");
+      console.log("[AdaptiveContent] diagrammatic-representation: returning JSON directly");
 
       let diagramJson = content;
       diagramJson = diagramJson.replace(/```(?:json)?\s*/g, '');
@@ -317,6 +354,10 @@ async function generateAdaptiveContent(req, res) {
       pageCount = 1;
     }
 
+    console.log("[AdaptiveContent] HTML extracted — length:", htmlContent.length, "| pageCount:", pageCount);
+    console.log("[AdaptiveContent] Calling image conversion API...");
+    const conversionStart = Date.now();
+
     const conversionController = new AbortController();
     const conversionTimeoutId = setTimeout(
       () => conversionController.abort(),
@@ -341,6 +382,8 @@ async function generateAdaptiveContent(req, res) {
 
       clearTimeout(conversionTimeoutId);
 
+      console.log("[AdaptiveContent] Image conversion responded in", Date.now() - conversionStart, "ms — status:", conversionResponse.status);
+
       if (conversionResponse.ok) {
         const respContentType =
           conversionResponse.headers.get("content-type") || "";
@@ -348,11 +391,13 @@ async function generateAdaptiveContent(req, res) {
           const imageRes = await conversionResponse.json();
 
           if (imageRes && Array.isArray(imageRes.images)) {
+            console.log("[AdaptiveContent] SUCCESS — returning", imageRes.images.length, "image(s)");
             return res.status(200).json({
               success: true,
               images: imageRes.images,
               content: content,
               htmlContent: htmlContent,
+              truncated: data.stop_reason === "max_tokens",
             });
           }
           return res.status(200).json({
@@ -360,12 +405,28 @@ async function generateAdaptiveContent(req, res) {
             conversion: imageRes,
             content: content,
             htmlContent: htmlContent,
+            truncated: data.stop_reason === "max_tokens",
           });
         }
+      } else {
+        // Conversion API returned non-2xx — log the error body and fall back to returning htmlContent
+        let conversionErrorBody = "";
+        try {
+          conversionErrorBody = await conversionResponse.text();
+        } catch (_) {}
+        console.error("[AdaptiveContent] Image conversion API error — status:", conversionResponse.status, "| body:", conversionErrorBody);
+        return res.status(200).json({
+          success: true,
+          images: [],
+          content: content,
+          htmlContent: htmlContent,
+          truncated: data.stop_reason === "max_tokens",
+          conversionError: `Conversion service returned ${conversionResponse.status}: ${conversionErrorBody}`,
+        });
       }
     } catch (conversionError) {
       clearTimeout(conversionTimeoutId);
-      console.error("HTML conversion error:", conversionError);
+      console.error("[AdaptiveContent] Image conversion error:", conversionError.name, conversionError.message);
 
       if (conversionError.name === "AbortError") {
         return res.status(504).json({
@@ -385,7 +446,7 @@ async function generateAdaptiveContent(req, res) {
     clearTimeout(timeoutId);
 
     if (error.name === "AbortError") {
-      console.error("API request timeout (20s exceeded)");
+      console.error("[AdaptiveContent] TIMEOUT: Claude API exceeded 280s");
       return res.status(504).json({
         success: false,
         message: "Request timeout",
@@ -394,7 +455,7 @@ async function generateAdaptiveContent(req, res) {
       });
     }
 
-    console.error("Adaptive content generation error:", error);
+    console.error("[AdaptiveContent] Unhandled error:", error.name, error.message);
     res.status(500).json({
       success: false,
       message: "Failed to generate adaptive content",
