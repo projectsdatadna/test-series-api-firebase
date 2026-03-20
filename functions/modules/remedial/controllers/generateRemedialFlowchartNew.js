@@ -28,7 +28,8 @@ Rules:
 - Do NOT invent decision points unless they clearly exist in the text.
 - Do NOT invent examples not present in the section.
 - Use exact or simplified wording directly from the section.
-- Keep flowcharts concise.
+- Keep flowcharts concise with simple, clear labels suitable for school students aged 10 to 18.
+- Do NOT reference any section name, section number, or worked examples from the section in node labels — show concepts only.
 - Output ONLY valid Mermaid flowchart code blocks.
 - No explanations. No markdown labels. No extra commentary.
 `;
@@ -49,9 +50,10 @@ Instructions:
 - Show the sequence of events or main ideas from the section.
 - Only include events, characters, or details directly mentioned.
 - Keep each flowchart under 12 nodes.
+- Use short, simple node labels written in clear language suitable for school students (age 10–18).
+- Do NOT mention section names, section numbers, or copy worked examples from the section into node labels.
 - Do NOT add extra explanation.
 - Do NOT invent decision branches unless clearly shown in the section.
-- Use short student-friendly labels.
 
 Return ONLY Mermaid code blocks.
 Each must begin with:

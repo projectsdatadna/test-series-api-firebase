@@ -25,7 +25,8 @@ Rules:
 - Do NOT add outside knowledge.
 - Extract key terms directly from the section text.
 - All answers must be single UPPERCASE words only (no spaces, no underscores, no hyphens).
-- Keep clues simple and clear (under 12 words).
+- Keep clues simple and clear (under 12 words) suitable for school students aged 10 to 18.
+- Do NOT reference any section name, section number, or examples from the section text in the clues — test the concept only.
 - Output valid JSON only. No markdown fences. No commentary before or after JSON.
 `;
 
@@ -44,6 +45,8 @@ Learning Gap: ${studentContext.conceptGap}
 Instructions:
 - Each answer must be ONE single UPPERCASE word (letters only, no symbols).
 - Clues must be based only on the section text (under 12 words).
+- Write clues in simple, clear language suitable for school students (age 10–18).
+- Do NOT mention section names, section numbers, or copy example sentences/worked examples from the section into clues.
 - Do NOT include row, col, direction, or grid data.
 
 Return ONLY this JSON (no other text):

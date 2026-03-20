@@ -27,7 +27,8 @@ Rules:
 - Do NOT add outside knowledge or examples.
 - Only connect to the learning gap if it appears in the section.
 - If the learning gap is not present, ignore it.
-- Keep language simple for Grade 6-8.
+- Keep language simple and clear suitable for school students aged 10 to 18.
+- Do NOT reference any section name, section number, or examples from the section text in questions — test the concept only.
 - Keep answers concise.
 - Output valid JSON only. No markdown. No extra commentary.
 `;
@@ -49,7 +50,8 @@ Instructions:
 - Create 3 different activity types from: matching, fill-blank, true-false.
 - All questions must come directly from the section content.
 - Only focus on the learning gap if it appears in the section.
-- Do NOT add outside examples.
+- Write all questions in simple, clear language suitable for school students (age 10–18).
+- Do NOT mention section names, section numbers, or copy example sentences/worked examples from the section into questions.
 - Keep wording simple and clear.
 
 Return JSON:

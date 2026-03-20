@@ -25,10 +25,6 @@ function calculateCost(model, inputTokens, outputTokens) {
     totalCost:  parseFloat(totalCost.toFixed(8)),
   };
 }
-
-/* ================================
-   🔒 SYSTEM PROMPT (Guardrails)
-================================ */
 const SYSTEM_PROMPT = `
 You are a student-friendly educational assistant.
 
@@ -38,36 +34,56 @@ Rules:
 - Do NOT classify the chapter (e.g., "this is literature").
 - Do NOT mention textbooks or external advice.
 - Always explain the section in a direct student-facing way using "you" and "your".
-- If the learning gap is not directly present in the section,
-  explain the section clearly without forcing that concept.
+- Keep language simple and clear suitable for school students aged 10 to 18.
+- Do NOT reference any section name, section number, or worked examples from the section — explain concepts only.
+- If the learning gap is not directly present in the section, explain the section clearly without forcing that concept.
 - Never return empty fields unless the section truly lacks content.
+- For visualSuggestions, always set "type" to one of: pie, bar, timeline, cycle, compare, flowsteps, geometry.
+  Each type will render as a visual diagram for the student.
+  - pie: percentage/part data → "data": [{ "label": "", "value": 40 }]
+  - bar: comparison values → "data": [{ "label": "", "value": 80 }]
+  - timeline: sequence of events → "data": [{ "label": "", "value": "" }]
+  - cycle: repeating process → "data": [{ "label": "" }]
+  - compare: two groups side by side → "data": [{ "label": "", "group": "Group A" }]
+  - flowsteps: step-by-step process → "data": [{ "label": "" }]
+  - geometry: geometric shape with labeled points, lines, angles → use "points", "lines", "angles", "markings", "shape"
 - Output valid JSON only. No markdown. No extra commentary.
 `;
 
-/* ================================
-   🧠 USER PROMPT (Optimized)
-================================ */
+
 function buildExplanationPrompt(studentContext, sectionNumber, sectionText) {
   return `
 Explain Section ${sectionNumber} using ONLY the text below.
 
+
 SECTION:
 ${sectionText}
+
 
 STUDENT:
 Name: ${studentContext.studentName}
 Learning Gap: ${studentContext.conceptGap}
 Grade: ${studentContext.standardId || '6-8'}
 
+
 Instructions:
 - Speak directly to the student using "you".
-- Use simple language for Grade ${studentContext.standardId || '6-8'}.
+- Use simple language suitable for school students (age 10–18).
 - Explain what happens in the section clearly.
 - Only connect to the learning gap if the concept is explicitly mentioned in the section text.
 - If it is not mentioned, ignore the learning gap and focus only on explaining the section.
+- Do NOT mention section names, section numbers, or copy worked examples/sample problems from the section — explain the concept only.
 - Do not mention missing concepts.
+- For visualSuggestions, choose the most suitable "type" from: pie, bar, timeline, cycle, compare, flowsteps, geometry.
+  - For math/geometry content: prefer "geometry" type.
+  - For processes or sequences: prefer "timeline" or "flowsteps".
+  - For proportions or parts: prefer "pie".
+  - For comparisons: prefer "bar" or "compare".
+  - For geometry type, use x/y as percentages (0–100) within a 200×200 canvas.
 
-Return JSON:
+
+Return JSON in this exact format (choose the correct structure based on type):
+
 
 {
   "mainExplanation": "",
@@ -75,14 +91,57 @@ Return JSON:
     "title": "Think of it this way...",
     "description": ""
   },
-  "keyPoints": [ "Key point 1 from the content, explained in student-friendly language.", "Key point 2 from the content..." ],
-  "highlightedTerms": [ { "term": "Term from the content", "definition": "Definition as explained in the content, in simple words." } ],
-  "visualSuggestions": [ { "type": "diagram", "icon": "pie_chart", "label": "Visual 1/3", "description": "A visual idea based on the content to help you understand." } ],
+  "keyPoints": [
+    "Key point 1 from the content, explained in student-friendly language."
+  ],
+  "highlightedTerms": [
+    { "term": "Term from the content", "definition": "Simple definition from the content." }
+  ],
+  "visualSuggestions": [
+    {
+      "type": "pie | bar | timeline | cycle | compare | flowsteps | geometry",
+      "icon": "pie_chart | bar_chart | timeline | autorenew | compare | account_tree | pentagon",
+      "label": "Visual title",
+      "description": "What this diagram shows",
+
+      "data": [{ "label": "Part A", "value": 40 }],
+
+      "shape": "triangle | quadrilateral | circle | parallel | angles",
+      "points": [
+        { "id": "A", "x": 20, "y": 15 },
+        { "id": "B", "x": 10, "y": 85 },
+        { "id": "C", "x": 80, "y": 85 }
+      ],
+      "lines": [
+        { "from": "A", "to": "B" },
+        { "from": "B", "to": "C" },
+        { "from": "A", "to": "C" },
+        { "from": "A", "to": "D", "dashed": true }
+      ],
+      "angles": [
+        { "at": "B", "label": "90°" },
+        { "at": "A", "label": "60°" }
+      ],
+      "markings": [
+        { "from": "A", "to": "B", "ticks": 1 },
+        { "from": "B", "to": "C", "ticks": 2 }
+      ]
+    }
+  ],
   "practiceHint": "A practice tip or reflection question based only on what was covered in the section."
 }
+
+
+IMPORTANT for geometry type:
+- "points": each point has "id" (letter label like A, B, C, P) and "x","y" as percentage (0–100).
+- "lines": connect points using their "id". Add "dashed": true for auxiliary/construction lines.
+- "angles": mark an angle "at" a vertex with a label like "90°" or "∠A".
+- "markings": add tick marks on sides to show equal lengths. "ticks": 1, 2, or 3.
+- "shape": describe the overall shape — triangle, quadrilateral, circle, parallel, angles.
+- For non-geometry content, use "data" array and omit points/lines/angles/markings.
+- For geometry content, omit "data" and use points/lines/angles/markings instead.
 `;
 }
-
 /* ================================
    🔍 Safe JSON Extraction
 ================================ */
@@ -145,7 +204,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1500,          // Reduced from 4096 (cost control)
+        max_tokens: 3000,          // Reduced from 4096 (cost control)
         temperature: 0.3,          // Lower hallucination risk
         system: SYSTEM_PROMPT,     // 🔒 Guardrails here
         messages: [
