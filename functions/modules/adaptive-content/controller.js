@@ -130,7 +130,7 @@ async function generateAdaptiveContent(req, res) {
         .join("\n\n");
 
     const basePrompt = getPrompt(contentTypeId, {
-      sectionNumber: sectionNumber || '',
+      sectionNumber: sectionsToProcess[0] || sectionTitle || sectionNumber || '',
       topicName: finalTopicName,
       contentDepth: depth,
       visualStyle: style,
