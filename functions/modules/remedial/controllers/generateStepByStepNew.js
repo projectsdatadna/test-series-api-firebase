@@ -33,7 +33,8 @@ Rules:
 - Do NOT create cross-subject analogies.
 - Only connect to the learning gap if it is explicitly mentioned in the section text.
 - If the learning gap is not present, ignore it.
-- Keep language simple for Grade 6-8.
+- Keep language simple and clear suitable for school students aged 10 to 18.
+- Do NOT reference any section name, section number, or worked examples from the section — explain concepts only.
 - Do NOT invent practice questions unrelated to the section.
 - Output valid JSON only. No markdown. No extra text.
 `;
@@ -53,8 +54,10 @@ Grade: ${studentContext.standardId || '6-8'}
 
 Instructions:
 - Explain in simple language using "you".
+- Use clear language suitable for school students (age 10–18).
 - Break the section into 4-6 logical learning steps.
 - Each step must come directly from the section text.
+- Do NOT mention section names, section numbers, or copy worked examples/sample problems from the section — explain the concept only.
 - Do NOT add outside examples.
 - Do NOT invent extra information.
 - Only relate to the learning gap if it appears in the section.

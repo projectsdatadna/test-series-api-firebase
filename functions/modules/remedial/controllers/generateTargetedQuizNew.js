@@ -27,9 +27,9 @@ Rules:
 - Do NOT add outside knowledge or examples.
 - Do NOT create cross-subject questions.
 - Only focus on the learning gap if it appears in the section.
-- Keep language simple for Grade 6-8.
+- Keep language simple and clear suitable for school students aged 10 to 18.
+- Do NOT reference any section name, section number, or worked examples from the section in questions or options — test the concept only.
 - Keep explanations short (1-2 sentences).
-- Do NOT mention "Section", "Section number", or any section reference inside question text or options.
 - Output valid JSON only. No markdown. No commentary.
 `;
 
@@ -48,11 +48,14 @@ Learning Gap: ${studentContext.conceptGap}
 
 Instructions:
 - Each question must have 4 options (A, B, C, D).
+- Write all questions and options in simple, clear language suitable for school students (age 10–18).
 - Questions must be based directly on events, details, or descriptions in the section.
 - Only relate to the learning gap if it appears in the section.
 - Keep explanations short (1-2 sentences).
 - Do NOT add outside knowledge.
-- Do NOT mention "Section", "Section 1", "Section 1.6", or any section reference in the question text or options. Ask directly about the concept or fact.
+- Do NOT mention "Section", "Section 1", "Section 1.6", or any section reference in the question text or options — ask directly about the concept or fact.
+- Do NOT copy worked examples or sample problems from the section into questions.
+
 
 Return JSON:
 
