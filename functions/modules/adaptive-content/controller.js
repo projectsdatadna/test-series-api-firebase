@@ -1019,8 +1019,176 @@ async function chatboxQuery(req, res) {
   }
 }
 
+/**
+ * Generate PDF from adaptive content images (base64 PNGs)
+ * Uses sharp to slice and pdf-lib to assemble A4 pages
+ */
+async function generateAdaptiveContentPDF(req, res) {
+  try {
+    const { images, filename = 'adaptive-content' } = req.body;
+
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ success: false, message: 'images array is required' });
+    }
+
+    console.log(`[AdaptiveContentPDF] Generating PDF from ${images.length} image(s)`);
+
+    const sharp = require('sharp');
+    const { PDFDocument } = require('pdf-lib');
+
+    // A4 in points at 72dpi
+    const A4_WIDTH_PT  = 595;
+    const A4_HEIGHT_PT = 842;
+
+    // 2rem padding — 1rem ≈ 12pt at standard PDF resolution
+    const PADDING_PT = 2 * 12; // 24pt per side
+    const DRAW_WIDTH  = A4_WIDTH_PT  - PADDING_PT * 2;
+    const DRAW_HEIGHT = A4_HEIGHT_PT - PADDING_PT * 2;
+
+    const pdfDoc = await PDFDocument.create();
+
+    for (let i = 0; i < images.length; i++) {
+      const imgData = images[i];
+
+      // Resolve image to a Buffer — supports S3/HTTP URLs and base64 data URIs
+      let imgBuffer;
+      if (imgData.startsWith('http://') || imgData.startsWith('https://')) {
+        console.log(`[AdaptiveContentPDF] Image ${i + 1}: fetching from URL`);
+        const imgResponse = await fetch(imgData);
+        if (!imgResponse.ok) {
+          throw new Error(`Image ${i + 1}: failed to fetch URL (${imgResponse.status})`);
+        }
+        const arrayBuffer = await imgResponse.arrayBuffer();
+        imgBuffer = Buffer.from(arrayBuffer);
+      } else {
+        // Strip data URI prefix if present
+        const base64 = imgData.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,\s*/, '').trim();
+        if (!base64) {
+          console.warn(`[AdaptiveContentPDF] Image ${i + 1}: empty base64, skipping`);
+          continue;
+        }
+        imgBuffer = Buffer.from(base64, 'base64');
+      }
+
+      console.log(`[AdaptiveContentPDF] Image ${i + 1} buffer size: ${imgBuffer.length} bytes`);
+
+      // Normalise to PNG via sharp (handles JPEG, WebP, PNG, etc.)
+      let pngBuffer;
+      try {
+        pngBuffer = await sharp(imgBuffer).png().toBuffer();
+      } catch (sharpErr) {
+        console.error(`[AdaptiveContentPDF] Image ${i + 1} could not be decoded by sharp: ${sharpErr.message}`);
+        throw new Error(`Image ${i + 1} has an unsupported or corrupt format: ${sharpErr.message}`);
+      }
+
+      const image = sharp(pngBuffer);
+      const meta  = await image.metadata();
+
+      console.log(`[AdaptiveContentPDF] Image ${i + 1}: ${meta.width}x${meta.height}px`);
+
+      // Slice the image into strips sized to fit the padded draw area.
+      // To avoid cutting through text, we scan near each candidate cut point
+      // for a blank (white/near-white) row and snap the cut to that row instead.
+      const stripHeightPx = Math.round(meta.width * (DRAW_HEIGHT / DRAW_WIDTH));
+
+      // How many pixels above/below the ideal cut point to search for a blank row.
+      // ~5% of strip height gives enough room without jumping too far.
+      const SEARCH_WINDOW_PX = Math.round(stripHeightPx * 0.05);
+
+      // Returns true if every pixel in the given row is near-white (R,G,B >= 240)
+      async function isBlankRow(rawBuffer, rowY, imgWidth) {
+        const offset = rowY * imgWidth * 4; // RGBA
+        for (let x = 0; x < imgWidth; x++) {
+          const base = offset + x * 4;
+          if (rawBuffer[base] < 240 || rawBuffer[base + 1] < 240 || rawBuffer[base + 2] < 240) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // Get raw RGBA pixel data once for the whole image
+      const rawPixels = await sharp(pngBuffer)
+        .raw()
+        .toBuffer({ resolveWithObject: false });
+
+      let y = 0;
+
+      while (y < meta.height) {
+        // Ideal cut point
+        let cutY = y + stripHeightPx;
+
+        if (cutY >= meta.height) {
+          // Last strip — take whatever remains
+          cutY = meta.height;
+        } else {
+          // Search for a blank row within [cutY - window, cutY + window]
+          const searchStart = Math.max(y + 1, cutY - SEARCH_WINDOW_PX);
+          const searchEnd   = Math.min(meta.height - 1, cutY + SEARCH_WINDOW_PX);
+
+          let bestRow = cutY; // fallback to ideal cut if no blank row found
+          let found = false;
+
+          // Search outward from the ideal cut point (prefer closest blank row)
+          for (let delta = 0; delta <= SEARCH_WINDOW_PX && !found; delta++) {
+            // Check above first, then below
+            for (const candidate of [cutY - delta, cutY + delta]) {
+              if (candidate < searchStart || candidate > searchEnd) continue;
+              if (await isBlankRow(rawPixels, candidate, meta.width)) {
+                bestRow = candidate;
+                found = true;
+                break;
+              }
+            }
+          }
+
+          cutY = bestRow;
+          if (found) {
+            console.log(`[AdaptiveContentPDF] Image ${i + 1}: snapped cut from ${y + stripHeightPx} → ${cutY} (blank row)`);
+          }
+        }
+
+        const sliceH = cutY - y;
+
+        const sliceBuffer = await sharp(pngBuffer)
+          .extract({ left: 0, top: y, width: meta.width, height: sliceH })
+          .png()
+          .toBuffer();
+
+        const page = pdfDoc.addPage([A4_WIDTH_PT, A4_HEIGHT_PT]);
+        const embedded = await pdfDoc.embedPng(sliceBuffer);
+
+        // Scale the slice to fill the draw width; height proportional to actual slice
+        const drawHeight = DRAW_WIDTH * (sliceH / meta.width);
+
+        page.drawImage(embedded, {
+          x: PADDING_PT,
+          y: A4_HEIGHT_PT - PADDING_PT - drawHeight,
+          width: DRAW_WIDTH,
+          height: drawHeight,
+        });
+
+        y = cutY;
+      }
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    console.log(`[AdaptiveContentPDF] PDF generated — ${pdfBytes.length} bytes`);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}.pdf"`);
+    res.setHeader('Content-Length', pdfBytes.length);
+    return res.send(Buffer.from(pdfBytes));
+
+  } catch (error) {
+    console.error('[AdaptiveContentPDF] Error:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to generate PDF', error: error.message });
+  }
+}
+
 module.exports = {
   generateAdaptiveContent,
   extractDocumentStructure,
   chatboxQuery,
+  generateAdaptiveContentPDF,
 };
