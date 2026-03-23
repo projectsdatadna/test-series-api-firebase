@@ -30,6 +30,7 @@ Rules:
 - Use exact or simplified wording directly from the section.
 - Keep flowcharts concise with simple, clear labels suitable for school students aged 10 to 18.
 - Do NOT reference any section name, section number, or worked examples from the section in node labels — show concepts only.
+- ⚠️ LANGUAGE RULE: Detect the language of the SECTION text. Write all clues, title, and description in the SAME language as the section text. If the section is in Tamil, write clues in Tamil. If Hindi, write in Hindi. If English, write in English. NEVER switch languages. JSON keys must stay in English, but all values (clues, title, description) must match the section language.
 - Output ONLY valid Mermaid flowchart code blocks.
 - No explanations. No markdown labels. No extra commentary.
 `;
@@ -122,7 +123,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 3000,
+        max_tokens: 5000,
         temperature: 0.3,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
