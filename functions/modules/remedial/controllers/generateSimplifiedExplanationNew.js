@@ -36,6 +36,7 @@ Rules:
 - Always explain the section in a direct student-facing way using "you" and "your".
 - Keep language simple and clear suitable for school students aged 10 to 18.
 - Do NOT reference any section name, section number, or worked examples from the section — explain concepts only.
+- ⚠️ LANGUAGE RULE: Detect the language of the SECTION text. Write all clues, title, and description in the SAME language as the section text. If the section is in Tamil, write clues in Tamil. If Hindi, write in Hindi. If English, write in English. NEVER switch languages. JSON keys must stay in English, but all values (clues, title, description) must match the section language.
 - If the learning gap is not directly present in the section, explain the section clearly without forcing that concept.
 - Never return empty fields unless the section truly lacks content.
 - For visualSuggestions, always set "type" to one of: pie, bar, timeline, cycle, compare, flowsteps, geometry.
@@ -204,7 +205,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 3000,          // Reduced from 4096 (cost control)
+        max_tokens: 6000,          // Reduced from 4096 (cost control)
         temperature: 0.3,          // Lower hallucination risk
         system: SYSTEM_PROMPT,     // 🔒 Guardrails here
         messages: [

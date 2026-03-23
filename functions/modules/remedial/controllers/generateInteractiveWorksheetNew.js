@@ -30,6 +30,7 @@ Rules:
 - Keep language simple and clear suitable for school students aged 10 to 18.
 - Do NOT reference any section name, section number, or examples from the section text in questions — test the concept only.
 - Keep answers concise.
+- ⚠️ LANGUAGE RULE: Detect the language of the SECTION text. Write all clues, title, and description in the SAME language as the section text. If the section is in Tamil, write clues in Tamil. If Hindi, write in Hindi. If English, write in English. NEVER switch languages. JSON keys must stay in English, but all values (clues, title, description) must match the section language.
 - Output valid JSON only. No markdown. No extra commentary.
 `;
 
@@ -150,7 +151,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 2000,
+        max_tokens: 5000,
         temperature: 0.3,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
