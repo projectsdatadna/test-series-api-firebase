@@ -242,29 +242,34 @@ ICONS AND IMAGES — MANDATORY:
 
 CARD RULES — VISUAL IS THE HERO:
 - .card-title: emoji + title (13px bold, subject accent color)
-- .visual-zone: min-height:90px, contains inline SVG icon (36x36) ABOVE ASCII diagram:
-  * GRID (■ ■ ■ rows) → maths, patterns
-  * FLOW (A → B → C) → science, processes
-  * CHAIN (X → Y ↓ Z) → cause-effect
-  * TREE (Root ├─ A └─ B) → classification
-  * STACK (L3 / L2 / L1) → layers, geography
-  * TIMELINE (E1 ──► E2 ──► E3) → history
+- .visual-zone: min-height:90px, contains ONLY topic-relevant visuals:
+  * If the card concept has a clear visual representation → include inline SVG icon (36x36) AND ASCII diagram
+  * If no meaningful visual exists for the concept → show ONLY a styled text summary, NO SVG, NO ASCII art
+  * NEVER show a generic/unrelated SVG just to fill space — omit it entirely if not relevant
+  * ASCII diagram types (use only when directly relevant):
+    - GRID (■ ■ ■ rows) → maths, patterns, tables
+    - FLOW (A → B → C) → science, processes
+    - CHAIN (X → Y ↓ Z) → cause-effect
+    - TREE (Root ├─ A └─ B) → classification
+    - STACK (L3 / L2 / L1) → layers, geography
+    - TIMELINE (E1 ──► E2 ──► E3) → history
 - .explanation: max 1 sentence, 11px
 - .insight: 💡 bold key insight, 11px, accent color
 
-SVG ICONS (inline, use stroke=VAR_ACCENT):
+SVG ICONS (inline, use stroke=VAR_ACCENT) — use ONLY when the icon directly represents the card concept:
 - Maths/grid: <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="VAR_ACCENT" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
 - Flow/process: <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="VAR_ACCENT" stroke-width="2"><circle cx="5" cy="12" r="3"/><circle cx="19" cy="12" r="3"/><line x1="8" y1="12" x2="16" y2="12"/><polyline points="13,9 16,12 13,15"/></svg>
 - Tree/classify: <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="VAR_ACCENT" stroke-width="2"><line x1="12" y1="3" x2="12" y2="9"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="15" x2="6" y2="20"/><line x1="12" y1="15" x2="18" y2="20"/></svg>
 - Stack/layers: <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="VAR_ACCENT" stroke-width="2"><polygon points="12,2 22,8.5 12,15 2,8.5"/><polyline points="2,15 12,21.5 22,15"/><polyline points="2,11.5 12,18 22,11.5"/></svg>
 - Timeline/clock: <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="VAR_ACCENT" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
 - Biology/leaf: <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="VAR_ACCENT" stroke-width="2"><path d="M12 22V12M12 12C12 7 17 3 22 3c0 5-3 9-10 9M12 12C12 7 7 3 2 3c0 5 3 9 10 9"/></svg>
+- If NONE of the above icons match the card concept — DO NOT include any SVG at all
 
 SUBJECT COLOR (auto-detect, replace VAR_ACCENT everywhere in CSS and SVGs):
 - Biology/Nature → #16a34a | Physics/Chemistry → #2563eb | Maths → #7c3aed | History/Social → #ea580c | Default → #6366f1
 
 OUTPUT STRUCTURE — USE THIS EXACT HTML SKELETON:
-<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script><script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script><style>@page{size:A4 portrait;margin:0}body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#f8fafc}img.emoji{height:1.2em;width:1.2em;margin:0 0.05em 0 0.1em;vertical-align:-0.15em;display:inline-block}.katex{font-size:1em}.page{width:210mm;height:297mm;padding:14mm;box-sizing:border-box;overflow:hidden;background:#fff;display:flex;flex-direction:column}header{background:linear-gradient(135deg,#6366F1 0%,#14B8A6 100%);border-radius:12px;padding:11px 20px;text-align:center;margin-bottom:10px}.header-icon{font-size:32px;display:block;margin-bottom:4px}.header-title{color:#fff;font-size:18px;font-weight:700;margin:3px 0}.header-subtitle{color:rgba(255,255,255,0.88);font-size:10px}.core-concept{border-left:4px solid VAR_ACCENT;background:#f5f3ff;border-radius:0 8px 8px 0;padding:9px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}.core-concept p{font-size:12px;color:#1f2937;margin:0;line-height:1.55;font-weight:500}.topic-strip{background:#f0fdf4;border-radius:8px;padding:7px 14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;border-left:3px solid VAR_ACCENT}.topic-strip h2{font-size:12px;color:VAR_ACCENT;margin:0;font-weight:700}.topic-strip p{font-size:11px;color:#6b7280;margin:0}.card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:10px}.card{background:#fff;border-radius:12px;padding:12px;box-shadow:0 3px 10px rgba(0,0,0,0.09);border-top:3px solid VAR_ACCENT;transition:transform 0.2s,box-shadow 0.2s}.card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.13)}.card-title{font-size:13px;font-weight:700;color:VAR_ACCENT;margin:0 0 7px;display:flex;align-items:center;gap:5px}.visual-zone{min-height:90px;text-align:center;background:#f8fafc;border-radius:8px;padding:8px 6px;margin:0 0 8px;line-height:1.8;font-family:monospace;font-size:12px;color:#1f2937;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:background 0.2s}.visual-zone:hover{background:#eef2ff}.explanation{font-size:11px;color:#4b5563;margin:0 0 6px;line-height:1.5}.insight{font-size:11px;font-weight:700;color:VAR_ACCENT}.comparison{background:linear-gradient(135deg,#f0fdf4,#eff6ff);border-radius:10px;padding:10px 14px;margin-bottom:10px}.comparison h3{font-size:12px;font-weight:700;color:#1f2937;margin:0 0 8px}.comp-table{width:100%;border-collapse:collapse;font-size:11px}.comp-table th{background:VAR_ACCENT;color:#fff;padding:5px 10px;text-align:left;font-weight:600}.comp-table td{padding:5px 10px;color:#374151;border-bottom:1px solid #e5e7eb}.comp-table tr:nth-child(even) td{background:#f9fafb}.comp-table td:first-child{font-weight:600;color:#1f2937}footer{margin-top:auto;text-align:center;font-size:9px;color:#6b7280;padding:8px 0 4px;border-top:1px solid #e5e7eb;background:#fff;flex-shrink:0}</style></head><body><div class="page"><header><div class="header-icon">SUBJECT EMOJI HERE</div><div class="header-title">Visual Explainers: ${sectionNumber}</div><div class="header-subtitle">Curated Summary | Powered by DATADNA AI Study Platform</div></header><div class="core-concept"><span style="font-size:20px">CONCEPT EMOJI</span><p>CORE CONCEPT TEXT HERE - MAX 200 CHARS</p></div><div class="topic-strip"><span style="font-size:16px">TAG EMOJI</span><h2>TOPIC NAME</h2><p>KEY IDEA HERE</p></div><div class="card-grid"><div class="card"><div class="card-title">EMOJI CARD 1 TITLE</div><div class="visual-zone">SVG ICON HERE ASCII DIAGRAM HERE</div><p class="explanation">EXPLANATION 1</p><p class="insight">💡 KEY INSIGHT 1</p></div><div class="card"><div class="card-title">EMOJI CARD 2 TITLE</div><div class="visual-zone">SVG ICON HERE ASCII DIAGRAM HERE</div><p class="explanation">EXPLANATION 2</p><p class="insight">💡 KEY INSIGHT 2</p></div><div class="card"><div class="card-title">EMOJI CARD 3 TITLE</div><div class="visual-zone">SVG ICON HERE ASCII DIAGRAM HERE</div><p class="explanation">EXPLANATION 3</p><p class="insight">💡 KEY INSIGHT 3</p></div><div class="card"><div class="card-title">EMOJI CARD 4 TITLE</div><div class="visual-zone">SVG ICON HERE ASCII DIAGRAM HERE</div><p class="explanation">EXPLANATION 4</p><p class="insight">💡 KEY INSIGHT 4</p></div></div><div class="comparison"><h3>EMOJI COMPARISON TITLE</h3><table class="comp-table"><thead><tr><th>Attribute</th><th>EMOJI CONCEPT A</th><th>EMOJI CONCEPT B</th></tr></thead><tbody><tr><td>ATTR 1</td><td>VALUE</td><td>VALUE</td></tr><tr><td>ATTR 2</td><td>VALUE</td><td>VALUE</td></tr><tr><td>ATTR 3</td><td>VALUE</td><td>VALUE</td></tr></tbody></table></div><footer style="margin-top:auto;text-align:center;font-size:9px;color:#6b7280;padding:8px 0 4px;border-top:1px solid #e5e7eb;background:#fff;flex-shrink:0">© 2025 DATADNA AI Study Platform — Visual Explainers Generated by AI</footer></div><script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script></body></html>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script><script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script><style>@page{size:A4 portrait;margin:0}body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#f8fafc}img.emoji{height:1.2em;width:1.2em;margin:0 0.05em 0 0.1em;vertical-align:-0.15em;display:inline-block}.katex{font-size:1em}.page{width:210mm;height:297mm;padding:14mm;box-sizing:border-box;overflow:hidden;background:#fff;display:flex;flex-direction:column}header{background:linear-gradient(135deg,#6366F1 0%,#14B8A6 100%);border-radius:12px;padding:11px 20px;text-align:center;margin-bottom:10px}.header-icon{font-size:32px;display:block;margin-bottom:4px}.header-title{color:#fff;font-size:18px;font-weight:700;margin:3px 0}.header-subtitle{color:rgba(255,255,255,0.88);font-size:10px}.core-concept{border-left:4px solid VAR_ACCENT;background:#f5f3ff;border-radius:0 8px 8px 0;padding:9px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}.core-concept p{font-size:12px;color:#1f2937;margin:0;line-height:1.55;font-weight:500}.topic-strip{background:#f0fdf4;border-radius:8px;padding:7px 14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;border-left:3px solid VAR_ACCENT}.topic-strip h2{font-size:12px;color:VAR_ACCENT;margin:0;font-weight:700}.topic-strip p{font-size:11px;color:#6b7280;margin:0}.card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:10px}.card{background:#fff;border-radius:12px;padding:12px;box-shadow:0 3px 10px rgba(0,0,0,0.09);border-top:3px solid VAR_ACCENT;transition:transform 0.2s,box-shadow 0.2s}.card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.13)}.card-title{font-size:13px;font-weight:700;color:VAR_ACCENT;margin:0 0 7px;display:flex;align-items:center;gap:5px}.visual-zone{min-height:90px;text-align:center;background:#f8fafc;border-radius:8px;padding:8px 6px;margin:0 0 8px;line-height:1.8;font-family:monospace;font-size:12px;color:#1f2937;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:background 0.2s}.visual-zone:hover{background:#eef2ff}.explanation{font-size:11px;color:#4b5563;margin:0 0 6px;line-height:1.5}.insight{font-size:11px;font-weight:700;color:VAR_ACCENT}.comparison{background:linear-gradient(135deg,#f0fdf4,#eff6ff);border-radius:10px;padding:10px 14px;margin-bottom:10px}.comparison h3{font-size:12px;font-weight:700;color:#1f2937;margin:0 0 8px}.comp-table{width:100%;border-collapse:collapse;font-size:11px}.comp-table th{background:VAR_ACCENT;color:#fff;padding:5px 10px;text-align:left;font-weight:600}.comp-table td{padding:5px 10px;color:#374151;border-bottom:1px solid #e5e7eb}.comp-table tr:nth-child(even) td{background:#f9fafb}.comp-table td:first-child{font-weight:600;color:#1f2937}footer{margin-top:auto;text-align:center;font-size:9px;color:#6b7280;padding:8px 0 4px;border-top:1px solid #e5e7eb;background:#fff;flex-shrink:0}</style></head><body><div class="page"><header><div class="header-icon">SUBJECT EMOJI HERE</div><div class="header-title">Visual Explainers: ${sectionNumber}</div><div class="header-subtitle">Curated Summary | Powered by DATADNA AI Study Platform</div></header><div class="core-concept"><span style="font-size:20px">CONCEPT EMOJI</span><p>CORE CONCEPT TEXT HERE - MAX 200 CHARS</p></div><div class="topic-strip"><span style="font-size:16px">TAG EMOJI</span><h2>TOPIC NAME</h2><p>KEY IDEA HERE</p></div><div class="card-grid"><div class="card"><div class="card-title">EMOJI CARD 1 TITLE</div><div class="visual-zone">SVG ICON ONLY IF RELEVANT, ASCII DIAGRAM ONLY IF RELEVANT, OTHERWISE STYLED TEXT SUMMARY</div><p class="explanation">EXPLANATION 1</p><p class="insight">💡 KEY INSIGHT 1</p></div><div class="card"><div class="card-title">EMOJI CARD 2 TITLE</div><div class="visual-zone">SVG ICON ONLY IF RELEVANT, ASCII DIAGRAM ONLY IF RELEVANT, OTHERWISE STYLED TEXT SUMMARY</div><p class="explanation">EXPLANATION 2</p><p class="insight">💡 KEY INSIGHT 2</p></div><div class="card"><div class="card-title">EMOJI CARD 3 TITLE</div><div class="visual-zone">SVG ICON ONLY IF RELEVANT, ASCII DIAGRAM ONLY IF RELEVANT, OTHERWISE STYLED TEXT SUMMARY</div><p class="explanation">EXPLANATION 3</p><p class="insight">💡 KEY INSIGHT 3</p></div><div class="card"><div class="card-title">EMOJI CARD 4 TITLE</div><div class="visual-zone">SVG ICON ONLY IF RELEVANT, ASCII DIAGRAM ONLY IF RELEVANT, OTHERWISE STYLED TEXT SUMMARY</div><p class="explanation">EXPLANATION 4</p><p class="insight">💡 KEY INSIGHT 4</p></div></div><div class="comparison"><h3>EMOJI COMPARISON TITLE</h3><table class="comp-table"><thead><tr><th>Attribute</th><th>EMOJI CONCEPT A</th><th>EMOJI CONCEPT B</th></tr></thead><tbody><tr><td>ATTR 1</td><td>VALUE</td><td>VALUE</td></tr><tr><td>ATTR 2</td><td>VALUE</td><td>VALUE</td></tr><tr><td>ATTR 3</td><td>VALUE</td><td>VALUE</td></tr></tbody></table></div><footer style="margin-top:auto;text-align:center;font-size:9px;color:#6b7280;padding:8px 0 4px;border-top:1px solid #e5e7eb;background:#fff;flex-shrink:0">© 2025 DATADNA AI Study Platform — Visual Explainers Generated by AI</footer></div><script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script></body></html>
 
 CRITICAL REQUIREMENTS:
 - Replace VAR_ACCENT with the detected subject accent color hex in ALL CSS and SVG stroke attributes
@@ -387,6 +392,8 @@ function getProcessFlowChartsPrompt(params) {
   return `Generate a Process Flow Chart for: ${topicName} with ${contentDepth} depth in ${outputLanguage} language.
 Bloom's Taxonomy Level — Apply (Use Knowledge): Focus on application — show how concepts are used in sequences, procedures, and real contexts.
 
+CRITICAL: Generate EXACTLY ONE single flowchart covering the entire topic. Do NOT split into multiple charts or multiple sections. One <section> block, one <div class="mermaid"> block, one flowchart only. If the topic has sub-processes, combine them into a single unified flow with branching nodes — do not create separate charts.
+
 CRITICAL: Use Mermaid.js to render the flowchart. Mermaid draws properly connected arrows between nodes — do NOT use CSS flexbox or HTML divs for the flowchart itself.
 
 HEADER AND FOOTER — USE EXACTLY THIS STYLE:
@@ -400,34 +407,88 @@ HEADER AND FOOTER — USE EXACTLY THIS STYLE:
 
 MERMAID FLOWCHART RULES:
 - Load Mermaid from CDN: <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-- Initialize with: mermaid.initialize({startOnLoad:true,theme:'base',themeVariables:{primaryColor:'#3B82F6',primaryTextColor:'#fff',primaryBorderColor:'#2563EB',lineColor:'#6366F1',secondaryColor:'#10B981',tertiaryColor:'#F9FAFB',edgeLabelBackground:'#fff',fontSize:'16px'}});
-- Place the diagram inside: <div class="mermaid">flowchart TD ... </div>
+- Initialize BEFORE the diagram div with: mermaid.initialize({startOnLoad:true,theme:'base',themeVariables:{primaryColor:'#3B82F6',primaryTextColor:'#fff',primaryBorderColor:'#2563EB',lineColor:'#6366F1',secondaryColor:'#10B981',tertiaryColor:'#F9FAFB',edgeLabelBackground:'#fff',fontSize:'16px'}});
+- Place the diagram inside: <div class="mermaid">flowchart TD\n...\n</div>
 - Use flowchart TD (top-down) direction
-- Node syntax:
-  * Start/End: A([Start]) and Z([End]) — stadium shape
-  * Process steps: B[Step text] — rectangle
-  * Decisions: C{Decision?} — diamond
-  * Arrows: --> for normal flow, -->|Yes| and -->|No| for decision branches
-- Apply styles using classDef:
-  classDef startEnd fill:#10B981,stroke:#059669,color:#fff
-  classDef process fill:#3B82F6,stroke:#2563EB,color:#fff
-  classDef decision fill:#FBBF24,stroke:#D97706,color:#1F2937
-- Keep node labels concise (max 6 words per node)
-- Include 6-12 nodes total with proper branching for decisions
-- The .mermaid container: background white, border-radius 16px, padding 20px, box-shadow 0 4px 16px rgba(0,0,0,0.08), margin-bottom 20px, width 100%
+
+EXACT NODE SYNTAX — copy these patterns exactly:
+  A(["Start"])
+  B["Process step label"]
+  C{"Decision label"}
+  Z(["End"])
+  A --> B
+  B --> C
+  C -->|Yes| D
+  C -->|No| E
+
+FORBIDDEN — these WILL cause Syntax error in text:
+  B[Label without quotes]        — missing quotes
+  C{Has nucleus?}                — ? inside label
+  B["Step: do this"]             — : inside label
+  B["Cell (Plasma) Membrane"]    — () inside label
+  B["value > 5"]                 — > inside label
+  B["A & B"]                     — & inside label
+
+ALLOWED replacements inside labels:
+  ? → remove it entirely
+  : → use hyphen -
+  () → remove them
+  > → write "greater than"
+  & → write "and"
+  / → write "or"
+
+- Declare ALL nodes first (A, B, C...), then ALL edges (A-->B, B-->C...), then classDef
+- classDef startEnd fill:#10B981,stroke:#059669,color:#fff
+- classDef process fill:#3B82F6,stroke:#2563EB,color:#fff
+- classDef decision fill:#FBBF24,stroke:#D97706,color:#1F2937
+- class A,Z startEnd
+- Keep labels under 4 words maximum — short enough to fit on one line without wrapping. Examples: "Cell Divides", "Forms Tissue", "Organ System Forms". NEVER write long labels like "System Performs Major Function" or "Tissues Combine into Organ" — split meaning across nodes instead.
 
 KATEX FOR MATH: Use $...$ for display equations and \\(...\\) for inline math. NEVER use raw Unicode math symbols.
 
-OUTPUT STRUCTURE — USE THIS EXACT HTML SKELETON:
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$',right:'$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script><script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter','Manrope','Lexend',sans-serif;background:linear-gradient(135deg,#F9FAFB 0%,#EEF2FF 100%);min-height:100vh;padding:20px;color:#1F2937}header{background:linear-gradient(135deg,#6366F1 0%,#14B8A6 100%);border-radius:20px;padding:40px;text-align:center;margin-bottom:30px;box-shadow:0 8px 32px rgba(99,102,241,0.15)}.header-icon{font-size:48px;margin-bottom:10px}.header-title{color:white;font-size:2.5em;font-weight:700;margin-bottom:8px}.header-subtitle{color:rgba(255,255,255,0.9);font-size:0.95em;font-weight:300}.container{max-width:900px;margin:0 auto}.section{margin-bottom:40px}.section-title{font-size:1.8em;font-weight:600;color:#1F2937;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #6366F1}img.emoji{height:1em;width:1em;margin:0 0.05em 0 0.1em;vertical-align:-0.1em;display:inline-block}.katex{font-size:1em}.mermaid-wrap{background:white;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:20px;width:100%;overflow:auto}.mermaid{width:100%}.mermaid svg{width:100%;height:auto;display:block}.legend{background:white;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,0.08)}.legend-title{font-size:1.1em;font-weight:600;color:#1F2937;margin-bottom:12px}.legend-items{display:flex;flex-wrap:wrap;gap:12px}.legend-item{display:flex;align-items:center;gap:8px;font-size:0.85em;color:#374151}.legend-dot{width:14px;height:14px;border-radius:3px;flex-shrink:0}footer{background:white;border-radius:16px;padding:25px;text-align:center;color:#6B7280;font-size:0.9em;box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-top:40px}@media(max-width:768px){.header-title{font-size:1.8em}}</style></head><body><script>mermaid.initialize({startOnLoad:true,theme:'base',themeVariables:{primaryColor:'#3B82F6',primaryTextColor:'#fff',primaryBorderColor:'#2563EB',lineColor:'#6366F1',secondaryColor:'#10B981',tertiaryColor:'#F9FAFB',edgeLabelBackground:'#fff',fontSize:'16px'}});</script><header><div class="header-icon">SUBJECT EMOJI HERE</div><div class="header-title">Process Flow Chart: ${sectionNumber}</div><div class="header-subtitle">Curated Summary | Powered by DATADNA AI Study Platform</div></header><div class="container"><section class="section"><h2 class="section-title">Process Flow</h2><div class="mermaid-wrap"><div class="mermaid">MERMAID FLOWCHART DEFINITION HERE</div></div></section><div class="legend"><div class="legend-title">Legend</div><div class="legend-items"><div class="legend-item"><div class="legend-dot" style="background:#10B981;border-radius:50%"></div><span>Start / End</span></div><div class="legend-item"><div class="legend-dot" style="background:#3B82F6"></div><span>Process Step</span></div><div class="legend-item"><div class="legend-dot" style="background:#FBBF24;transform:rotate(45deg)"></div><span>Decision</span></div></div></div></div><footer>© 2025 DATADNA AI Study Platform — Process Flow Chart Generated by AI</footer><script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script></body></html>
+OUTPUT STRUCTURE — USE THIS EXACT HTML SKELETON (replace only node labels and edges, keep all other HTML identical):
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter','Manrope','Lexend',sans-serif;background:linear-gradient(135deg,#F9FAFB 0%,#EEF2FF 100%);min-height:100vh;padding:20px;color:#1F2937}header{background:linear-gradient(135deg,#6366F1 0%,#14B8A6 100%);border-radius:20px;padding:40px;text-align:center;margin-bottom:30px;box-shadow:0 8px 32px rgba(99,102,241,0.15)}.header-icon{font-size:48px;margin-bottom:10px}.header-title{color:white;font-size:2.5em;font-weight:700;margin-bottom:8px}.header-subtitle{color:rgba(255,255,255,0.9);font-size:0.95em;font-weight:300}.container{max-width:960px;margin:0 auto}.section{margin-bottom:60px;padding-top:10px}.section+.section{border-top:2px solid #E5E7EB;padding-top:30px}.section-title{font-size:1.8em;font-weight:600;color:#1F2937;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #6366F1}img.emoji{height:1em;width:1em;margin:0 0.05em 0 0.1em;vertical-align:-0.1em;display:inline-block}.mermaid-wrap{background:white;border-radius:16px;padding:30px;box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:40px;width:100%;overflow:auto;display:flex;justify-content:center;align-items:flex-start}.mermaid{width:100%;display:flex;justify-content:center}.mermaid svg{display:block;margin:0 auto;height:auto;max-width:100%}.mermaid svg .node rect{rx:12;ry:12;}.mermaid svg .node polygon{}.mermaid svg path.flowchart-link{stroke-width:2.5px}.legend{background:white;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,0.08)}.legend-title{font-size:1.1em;font-weight:600;color:#1F2937;margin-bottom:12px}.legend-items{display:flex;flex-wrap:wrap;gap:12px}.legend-item{display:flex;align-items:center;gap:8px;font-size:0.85em;color:#374151}.legend-dot{width:14px;height:14px;border-radius:3px;flex-shrink:0}footer{background:white;border-radius:16px;padding:25px;text-align:center;color:#6B7280;font-size:0.9em;box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-top:40px}@media(max-width:768px){.header-title{font-size:1.8em}}</style></head><body><script>mermaid.initialize({startOnLoad:true,theme:'base',useMaxWidth:false,themeVariables:{primaryColor:'#3B82F6',primaryTextColor:'#fff',primaryBorderColor:'#2563EB',lineColor:'#6366F1',secondaryColor:'#10B981',tertiaryColor:'#F9FAFB',edgeLabelBackground:'#fff',fontSize:'18px',nodeBorder:'2px',clusterBkg:'#EEF2FF'},flowchart:{curve:'basis',nodeSpacing:60,rankSpacing:80,padding:20,wrappingWidth:300,useMaxWidth:false}});</script><header><div class="header-icon">SUBJECT EMOJI HERE</div><div class="header-title">Process Flow Chart: ${sectionNumber}</div><div class="header-subtitle">Curated Summary | Powered by DATADNA AI Study Platform</div></header><div class="container"><section class="section"><h2 class="section-title">Process Flow</h2><div class="mermaid-wrap"><div class="mermaid">
+flowchart TD
+%%{init:{'flowchart':{'nodeSpacing':60,'rankSpacing':80,'curve':'basis','wrappingWidth':300}}}%%
+A(["Start"])
+B["First process step"]
+C{"Decision point"}
+D["Yes path step"]
+E["No path step"]
+F["Next step"]
+G["Another step"]
+H{"Second decision"}
+I["Result step one"]
+J["Result step two"]
+Z(["End"])
+A --> B
+B --> C
+C -->|Yes| D
+C -->|No| E
+D --> F
+E --> F
+F --> G
+G --> H
+H -->|Yes| I
+H -->|No| J
+I --> Z
+J --> Z
+classDef startEnd fill:#10B981,stroke:#059669,color:#fff
+classDef process fill:#3B82F6,stroke:#2563EB,color:#fff
+classDef decision fill:#FBBF24,stroke:#D97706,color:#1F2937
+class A,Z startEnd
+class B,D,E,F,G,I,J process
+class C,H decision
+</div></div></section><div class="legend"><div class="legend-title">Legend</div><div class="legend-items"><div class="legend-item"><div class="legend-dot" style="background:#10B981;border-radius:50%"></div><span>Start / End</span></div><div class="legend-item"><div class="legend-dot" style="background:#3B82F6"></div><span>Process Step</span></div><div class="legend-item"><div class="legend-dot" style="background:#FBBF24;transform:rotate(45deg)"></div><span>Decision</span></div></div></div></div><footer>© 2025 DATADNA AI Study Platform — Process Flow Chart Generated by AI</footer><script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script></body></html>
 
 CONSTRAINTS:
-- HEADER: gradient background, large emoji icon, title "Process Flow Chart: ${sectionNumber}", subtitle exactly as shown
-- FOOTER: white card style, text "© 2025 DATADNA AI Study Platform — Process Flow Chart Generated by AI"
-- MERMAID: replace "MERMAID FLOWCHART DEFINITION HERE" with the actual flowchart TD definition — nodes and edges only, no wrapping quotes
-- SECTION TITLE: use only "Process Flow"
+- ONE CHART ONLY: generate exactly one <section> with one <div class="mermaid"> — never multiple sections or multiple mermaid divs
 - Replace SUBJECT EMOJI HERE with a relevant subject emoji
-- Minified HTML (one continuous line)
+- Replace ALL node labels (A, B, C... Z) with actual content from the topic — keep the same node IDs and structure
+- ALL labels MUST stay in double quotes
+- NEVER use ? : ( ) > < & inside any label
+- Keep the flowchart TD block exactly as formatted above — one node or edge per line
+- Minified HTML (one continuous line) BUT the mermaid diagram block must stay on separate lines inside the div
 
 RETURN ONLY THE HTML. NOTHING ELSE.`;
 }
@@ -611,7 +672,12 @@ FORMULA CONTENT — inside a .container (max-width 1200px, margin 0 auto):
 - Formula name badge: Blue #3B82F6 background, white text, rounded-full, padding 0.5rem 1rem
 - Each card: formula name badge, formula display (KaTeX $...$), 'Where' section (variable definitions using inline KaTeX \(...\)), 'Usage' context, 'Example' worked calculation
 - Difficulty badge: Easy=Green #10B981, Medium=Orange #F59E0B, Hard=Red #EF4444
-- KATEX RULES: Write ALL mathematical expressions in LaTeX syntax wrapped in $...$ for display math or \(...\) for inline math. Examples: $E = mc^2$, $F = \frac{mv^2}{r}$, $\sum_{i=1}^{n} x_i$, $\sqrt{a^2 + b^2}$, $\int_0^\infty e^{-x} dx$. NEVER use raw Unicode math symbols (sqrt sum int pi Delta inf) — use LaTeX commands instead (\sqrt{}, \sum, \int, \pi, \Delta, \infty).
+- KATEX RULES — READ CAREFULLY:
+  1. ONLY use LaTeX/KaTeX for actual mathematical or chemical expressions (equations, formulas with symbols, fractions, exponents, Greek letters, etc.). Examples of VALID LaTeX use: $E = mc^2$, $F = \\frac{mv^2}{r}$, $\\sqrt{a^2+b^2}$, $H_2O$, $\\Delta G = \\Delta H - T\\Delta S$.
+  2. For biology, history, geography, or any non-math topic — write ALL content as plain HTML text. Do NOT use \\text{}, \\mathrm{}, or any LaTeX command for plain words.
+  3. FORBIDDEN PATTERN — never do this: \\text{Cell Membrane} or \\text{Microorganisms} or \\text{Any Plain Words}. These are plain words — write them directly in HTML: <span>Cell Membrane</span> or just Cell Membrane.
+  4. If a topic has NO mathematical formulas (e.g. biology definitions, history facts, geography terms), the .formula-display div must contain plain HTML text — NOT LaTeX. Example for biology: <div class="formula-display">Cell Membrane Function: Controls what enters and exits the cell</div>.
+  5. LaTeX is ONLY for symbols like: numbers, variables (x, y, n), operators (+, -, =, ×), fractions, roots, integrals, Greek letters, subscripts/superscripts in a mathematical context.
 - Section title style: font-size 1.8em, font-weight 600, color #1F2937, border-bottom 3px solid #6366F1, margin-bottom 20px
 
 OUTPUT STRUCTURE — USE THIS EXACT HTML SKELETON:
@@ -620,7 +686,7 @@ OUTPUT STRUCTURE — USE THIS EXACT HTML SKELETON:
 CONSTRAINTS:
 - HEADER: gradient background, large emoji icon, title "Key Formula Sheet: ${sectionNumber}", subtitle exactly as shown
 - FOOTER: white card style, text "© 2025 DATADNA AI Study Platform — Key Formula Sheet Generated by AI" — THE FOOTER ELEMENT MUST ALWAYS BE THE LAST ELEMENT BEFORE </body>. DO NOT OMIT THE FOOTER UNDER ANY CIRCUMSTANCES.
-- KATEX: every formula in .formula-display MUST use $...$ LaTeX syntax. Inline variable references use \(...\). Use proper LaTeX: \frac{}{}, \sqrt{}, \sum_{}, \int_{}, \pi, \Delta, \infty, ^{}, _{} etc. NEVER use raw Unicode symbols — always use LaTeX commands.
+- KATEX: Only use $...$ or \\(...\\) for actual math/science formulas with symbols. For non-math topics (biology, history, etc.), write plain HTML text in .formula-display — NEVER use \\text{}, \\mathrm{}, or any LaTeX command for plain words. A bare \\text{Word} outside $...$ will render as broken text.
 - Replace all placeholder text with actual content from the document
 - Minified HTML (one continuous line)
 

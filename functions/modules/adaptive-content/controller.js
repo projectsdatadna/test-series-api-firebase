@@ -43,6 +43,86 @@ try {
 }
 
 // Generate adaptive content from uploaded file OR chunks (RAG) and convert to images
+
+/**
+ * Sanitizes LLM-generated Mermaid diagrams:
+ * - Fixes special characters in node labels that cause syntax errors
+ * - Shortens labels that are too long (causes line breaks inside nodes)
+ * - Rebuilds the diagram line by line to catch all edge cases
+ */
+function sanitizeMermaid(html) {
+  return html.replace(/(<div[^>]*class="mermaid"[^>]*>)([\s\S]*?)(<\/div>)/gi, (match, open, diagram, close) => {
+
+    // Clean up escaped newlines that minification may have introduced
+    let fixed = diagram
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '  ');
+
+    // Process line by line
+    const lines = fixed.split('\n').map(line => {
+      const trimmed = line.trim();
+
+      // Keep blank lines, directives, flowchart declaration, classDef, class assignments, arrows
+      if (!trimmed) return line;
+      if (trimmed.startsWith('%%')) return line;
+      if (trimmed.startsWith('flowchart')) return line;
+      if (trimmed.startsWith('classDef')) return line;
+      if (trimmed.startsWith('class ')) return line;
+      if (trimmed.includes('-->')) return sanitizeEdge(trimmed);
+
+      // Node declaration lines — sanitize the label
+      return sanitizeNodeLine(trimmed);
+    });
+
+    return `${open}\n${lines.join('\n')}\n${close}`;
+  });
+}
+
+function sanitizeLabel(label) {
+  let clean = label
+    .replace(/\?/g, '')
+    .replace(/:/g, ' -')
+    .replace(/[()]/g, '')
+    .replace(/>/g, 'gt')
+    .replace(/</g, 'lt')
+    .replace(/&(?:amp;)?/g, 'and')
+    .replace(/\//g, ' or ')
+    .replace(/\\/g, '')
+    .replace(/"/g, '')          // remove any stray quotes inside
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  // Hard cap at 4 words to prevent line breaks inside nodes
+  const words = clean.split(' ').filter(Boolean);
+  if (words.length > 4) clean = words.slice(0, 4).join(' ');
+
+  return clean;
+}
+
+function sanitizeNodeLine(line) {
+  // Stadium/pill: A(["label"]) or A(["label"])
+  line = line.replace(/^(\w+)\(\["?([^"\]]*)"?\]\)/, (m, id, label) => {
+    return `${id}(["${sanitizeLabel(label)}"])`;
+  });
+  // Rectangle: B["label"] or B[label]
+  line = line.replace(/^(\w+)\["?([^"\]]*)"?\](?!\()/, (m, id, label) => {
+    return `${id}["${sanitizeLabel(label)}"]`;
+  });
+  // Diamond: C{"label"} or C{label}
+  line = line.replace(/^(\w+)\{"?([^"{}]*)"?\}/, (m, id, label) => {
+    return `${id}{"${sanitizeLabel(label)}"}`;
+  });
+  return line;
+}
+
+function sanitizeEdge(line) {
+  // Edge labels like -->|Yes| and -->|No| are safe — only sanitize node labels on same line
+  // e.g. A["bad:label"] --> B["another?"]
+  return line
+    .replace(/\["?([^"\]]*)"?\]/g, (m, label) => `["${sanitizeLabel(label)}"]`)
+    .replace(/\{"?([^"{}]*)"?\}/g, (m, label) => `{"${sanitizeLabel(label)}"}`);
+}
+
 async function generateAdaptiveContent(req, res) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 280000); // 280 second timeout for generation
@@ -255,6 +335,17 @@ async function generateAdaptiveContent(req, res) {
     htmlContent = htmlContent.replace(/\\"/g, '"');
     htmlContent = htmlContent.replace(/\\'/g, "'");
     htmlContent = htmlContent.replace(/^[^<]*(?=<!DOCTYPE)/i, '');
+
+    // Fix Mermaid diagram syntax — sanitize node labels to remove characters
+    // that cause "Syntax error in text" in Mermaid v10
+    if (contentTypeId === 'process-flow-charts') {
+      const before = htmlContent.match(/(<div[^>]*class="mermaid"[^>]*>)([\s\S]*?)(<\/div>)/i);
+      if (before) console.log("[Mermaid] Raw diagram from LLM:\n", before[2]);
+      htmlContent = sanitizeMermaid(htmlContent);
+      const after = htmlContent.match(/(<div[^>]*class="mermaid"[^>]*>)([\s\S]*?)(<\/div>)/i);
+      if (after) console.log("[Mermaid] Sanitized diagram:\n", after[2]);
+    }
+
     clearTimeout(timeoutId);    console.log("HTML extracted successfully");
 
     // Skip image conversion for flash-cards (returns JSON, not HTML)
