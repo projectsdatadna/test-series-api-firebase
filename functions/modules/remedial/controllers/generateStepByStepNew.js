@@ -37,6 +37,7 @@ Rules:
 - Do NOT reference any section name, section number, or worked examples from the section — explain concepts only.
 - Do NOT invent practice questions unrelated to the section.
 - ⚠️ LANGUAGE RULE: Detect the language of the SECTION text. Write all clues, title, and description in the SAME language as the section text. If the section is in Tamil, write clues in Tamil. If Hindi, write in Hindi. If English, write in English. NEVER switch languages. JSON keys must stay in English, but all values (clues, title, description) must match the section language.
+- ⚠️ SPELLING RULE: Every "answer" must be COPIED EXACTLY as it appears in the section text — character by character. Do NOT retype, paraphrase, or reconstruct Tamil words from memory.
 - Output valid JSON only. No markdown. No extra text.
 `;
 
