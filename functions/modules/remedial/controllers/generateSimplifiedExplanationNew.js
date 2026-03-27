@@ -36,17 +36,18 @@ Rules:
 - Always explain the section in a direct student-facing way using "you" and "your".
 - Keep language simple and clear suitable for school students aged 10 to 18.
 - Do NOT reference any section name, section number, or worked examples from the section — explain concepts only.
+- ⚠️ SPELLING RULE: Every "answer" must be COPIED EXACTLY as it appears in the section text — character by character. Do NOT retype, paraphrase, or reconstruct Tamil words from memory.
 - ⚠️ LANGUAGE RULE: Detect the language of the SECTION text. Write all clues, title, and description in the SAME language as the section text. If the section is in Tamil, write clues in Tamil. If Hindi, write in Hindi. If English, write in English. NEVER switch languages. JSON keys must stay in English, but all values (clues, title, description) must match the section language.
 - If the learning gap is not directly present in the section, explain the section clearly without forcing that concept.
 - Never return empty fields unless the section truly lacks content.
-- For visualSuggestions, always set "type" to one of: pie, bar, timeline, cycle, compare, flowsteps, geometry.
+- For visualSuggestions, always set "type" to one of: pie, bar, timeline, cycle, compare, geometry.
+  ❌ NEVER use "flowsteps" type — it is handled by a separate tab and must NOT appear here.
   Each type will render as a visual diagram for the student.
   - pie: percentage/part data → "data": [{ "label": "", "value": 40 }]
   - bar: comparison values → "data": [{ "label": "", "value": 80 }]
   - timeline: sequence of events → "data": [{ "label": "", "value": "" }]
   - cycle: repeating process → "data": [{ "label": "" }]
   - compare: two groups side by side → "data": [{ "label": "", "group": "Group A" }]
-  - flowsteps: step-by-step process → "data": [{ "label": "" }]
   - geometry: geometric shape with labeled points, lines, angles → use "points", "lines", "angles", "markings", "shape"
 - Output valid JSON only. No markdown. No extra commentary.
 `;
@@ -56,16 +57,13 @@ function buildExplanationPrompt(studentContext, sectionNumber, sectionText) {
   return `
 Explain Section ${sectionNumber} using ONLY the text below.
 
-
 SECTION:
 ${sectionText}
-
 
 STUDENT:
 Name: ${studentContext.studentName}
 Learning Gap: ${studentContext.conceptGap}
 Grade: ${studentContext.standardId || '6-8'}
-
 
 Instructions:
 - Speak directly to the student using "you".
@@ -75,16 +73,17 @@ Instructions:
 - If it is not mentioned, ignore the learning gap and focus only on explaining the section.
 - Do NOT mention section names, section numbers, or copy worked examples/sample problems from the section — explain the concept only.
 - Do not mention missing concepts.
-- For visualSuggestions, choose the most suitable "type" from: pie, bar, timeline, cycle, compare, flowsteps, geometry.
+- For visualSuggestions, choose the most suitable "type" from: pie, bar, timeline, cycle, compare, geometry.
+  ❌ DO NOT use "flowsteps" — it belongs to another tab and is FORBIDDEN here.
   - For math/geometry content: prefer "geometry" type.
-  - For processes or sequences: prefer "timeline" or "flowsteps".
-  - For proportions or parts: prefer "pie".
-  - For comparisons: prefer "bar" or "compare".
+  - For repeating or cyclical processes: prefer "cycle".
+  - For sequential events with dates/periods: prefer "timeline".
+  - For proportions or parts of a whole: prefer "pie".
+  - For comparing two things: prefer "bar" or "compare".
   - For geometry type, use x/y as percentages (0–100) within a 200×200 canvas.
-
+  - If a process is step-by-step, use "timeline" instead of "flowsteps".
 
 Return JSON in this exact format (choose the correct structure based on type):
-
 
 {
   "mainExplanation": "",
@@ -100,8 +99,8 @@ Return JSON in this exact format (choose the correct structure based on type):
   ],
   "visualSuggestions": [
     {
-      "type": "pie | bar | timeline | cycle | compare | flowsteps | geometry",
-      "icon": "pie_chart | bar_chart | timeline | autorenew | compare | account_tree | pentagon",
+      "type": "pie | bar | timeline | cycle | compare | geometry",
+      "icon": "pie_chart | bar_chart | timeline | autorenew | compare | pentagon",
       "label": "Visual title",
       "description": "What this diagram shows",
 
@@ -116,31 +115,23 @@ Return JSON in this exact format (choose the correct structure based on type):
       "lines": [
         { "from": "A", "to": "B" },
         { "from": "B", "to": "C" },
-        { "from": "A", "to": "C" },
-        { "from": "A", "to": "D", "dashed": true }
+        { "from": "A", "to": "C" }
       ],
       "angles": [
-        { "at": "B", "label": "90°" },
-        { "at": "A", "label": "60°" }
+        { "at": "B", "label": "90°" }
       ],
       "markings": [
-        { "from": "A", "to": "B", "ticks": 1 },
-        { "from": "B", "to": "C", "ticks": 2 }
+        { "from": "A", "to": "B", "ticks": 1 }
       ]
     }
   ],
   "practiceHint": "A practice tip or reflection question based only on what was covered in the section."
 }
 
-
-IMPORTANT for geometry type:
-- "points": each point has "id" (letter label like A, B, C, P) and "x","y" as percentage (0–100).
-- "lines": connect points using their "id". Add "dashed": true for auxiliary/construction lines.
-- "angles": mark an angle "at" a vertex with a label like "90°" or "∠A".
-- "markings": add tick marks on sides to show equal lengths. "ticks": 1, 2, or 3.
-- "shape": describe the overall shape — triangle, quadrilateral, circle, parallel, angles.
-- For non-geometry content, use "data" array and omit points/lines/angles/markings.
+IMPORTANT:
+- "flowsteps" is STRICTLY FORBIDDEN in visualSuggestions. Never output it.
 - For geometry content, omit "data" and use points/lines/angles/markings instead.
+- For non-geometry content, use "data" array and omit points/lines/angles/markings.
 `;
 }
 /* ================================
@@ -246,6 +237,12 @@ module.exports = async (req, res) => {
 
     const explanationData = extractExplanationJSON(responseText);
 
+    if (Array.isArray(explanationData.visualSuggestions)) {
+      explanationData.visualSuggestions = explanationData.visualSuggestions.filter(
+        v => v.type !== 'flowsteps'
+      );
+    }
+    
     return res.status(200).json({
       success: true,
       message: `Simplified explanation generated successfully from Section ${sectionNumber}`,
