@@ -30,6 +30,7 @@ Rules:
 - Keep language simple and clear suitable for school students aged 10 to 18.
 - Do NOT reference any section name, section number, or worked examples from the section in questions or options — test the concept only.
 - Keep explanations short (1-2 sentences).
+- ⚠️ SPELLING RULE: Every "answer" must be COPIED EXACTLY as it appears in the section text — character by character. Do NOT retype, paraphrase, or reconstruct Tamil words from memory.
 - ⚠️ LANGUAGE RULE: Always write questions, options, and explanations in the SAME language as the section text. If the section is Tamil, respond in Tamil script. Never transliterate — write actual script characters.
 - Output valid JSON only. No markdown. No commentary.
 `;
