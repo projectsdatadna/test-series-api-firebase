@@ -370,6 +370,104 @@ const deleteBook = async (req, res) => {
   }
 };
 
+const splitBookSections = async (req, res) => {
+  try {
+    const { text, chapterName } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ success: false, error: 'text is required' });
+    }
+
+    console.log(`[splitBookSections] Input text length: ${text.length} chars`);
+    console.log(`[splitBookSections] Chapter: ${chapterName}`);
+
+    const azureEndpoint = (process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/$/, '');
+    const azureApiKey = process.env.AZURE_OPENAI_API_KEY;
+    const deploymentName = 'gpt-4o-mini-testseries-pv';
+
+    if (!azureApiKey || !azureEndpoint) {
+      return res.status(500).json({ success: false, error: 'Azure OpenAI credentials not configured' });
+    }
+
+    const url = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-08-01-preview`;
+    console.log('[splitBookSections] Azure URL:', url);
+
+    // Send entire text without any filtering or truncation
+    const prompt = `Extract section headings from this text and return as JSON.
+
+${text}
+
+Return JSON: {"sections":[{"sectionTitle":"heading"}]}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'api-key': azureApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'system',
+            content: 'Extract headings. Return JSON only. No filtering.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 16384,
+        temperature: 0,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('[splitBookSections] Azure API error:', response.status, err.error?.message);
+      throw new Error(`Azure API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const rawContent = data.choices[0].message?.content;
+
+    if (!rawContent) {
+      console.error('[splitBookSections] No content in response');
+      return res.json({ success: true, sections: [] });
+    }
+
+    console.log('[splitBookSections] Response length:', rawContent.length, 'chars');
+
+    let parsed;
+    try {
+      // Clean up response - remove markdown code blocks
+      const cleaned = rawContent
+        .replace(/```json\n?|\n?```/g, '')
+        .replace(/```\n?|\n?```/g, '')
+        .trim();
+      
+      parsed = JSON.parse(cleaned);
+    } catch (e) {
+      console.error('[splitBookSections] Parse error:', e.message);
+      throw new Error(`JSON parse failed: ${e.message}`);
+    }
+
+    if (!parsed.sections || !Array.isArray(parsed.sections)) {
+      throw new Error('Invalid response format: missing sections array');
+    }
+
+    console.log(`[splitBookSections] Extracted ${parsed.sections.length} sections`);
+
+    const sections = parsed.sections.map((s, i) => ({
+      sectionNumber: `${i + 1}`,
+      sectionTitle: s.sectionTitle || '',
+      sectionType: 'content',
+    }));
+
+    return res.json({ success: true, sections });
+
+  } catch (error) {
+    console.error('[splitBookSections] Error:', error.message);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 module.exports = {
   uploadBookFile,
   getChaptersForSubject,
@@ -377,4 +475,5 @@ module.exports = {
   getAllBooks,
   getBookDetails,
   deleteBook,
+  splitBookSections,
 };

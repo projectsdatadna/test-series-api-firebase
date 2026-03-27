@@ -53,4 +53,11 @@ router.get('/files/:chapterId', controller.getBookFilesForChapter);
  */
 router.delete('/books/:bookId/:fileId', controller.deleteBook);
 
+/**
+ * POST /book-upload/split-sections
+ * Split book chapter text into sections using Claude
+ * Body: { text, chapterName, metadata: { subjectId, standardId, syllabusId, bookType } }
+ */
+router.post('/split-sections', controller.splitBookSections);
+
 module.exports = router;
