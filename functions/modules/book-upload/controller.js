@@ -609,7 +609,7 @@ Return JSON in this exact format:
   "sections": [
     {
       "sectionNumber": "1.0",
-      "sectionTitle": "Advent of the Europeans",
+      "sectionTitle": "1 - Advent of the Europeans",
       "division": null,
       "content": "Complete unit introduction/overview content here...",
       "sectionType": "chapter"
@@ -625,7 +625,7 @@ Return JSON in this exact format:
 }
 
 CRITICAL EXTRACTION GUIDELINES:
-- For CHAPTER sections (X.0): Extract ONLY the descriptive name WITHOUT "Unit" prefix (e.g., "Advent of the Europeans" NOT "Unit 1: Advent of the Europeans")
+- For CHAPTER sections (X.0): Include chapter number with title in format "X - Title" (e.g., "1 - Advent of the Europeans" NOT "Unit 1: Advent of the Europeans")
 - For SUBSECTIONS (X.1, X.2, etc.): Extract exact names WITHOUT section numbers (e.g., "Sources of Modern India" NOT "1.1 Sources of Modern India")
 - Extract EVERY unit and section - do not skip any
 - Unit numbers: Use actual unit numbers from book (1, 2, 3, etc.)
@@ -747,19 +747,12 @@ CRITICAL EXTRACTION GUIDELINES:
           // Clean section title: remove section number prefix if present
           let cleanTitle = section.sectionTitle || '';
           
-          // Remove patterns like "1.1 ", "1.2 ", "2.1 " from the beginning
-          cleanTitle = cleanTitle.replace(/^\d+\.\d+\s+/, '').trim();
-          
-          // For chapter sections (X.0), remove "Unit X:" prefix if present
-          if (section.sectionType === 'chapter') {
-            // Remove "Unit X: " prefix if it exists
-            cleanTitle = cleanTitle.replace(/^Unit\s+\d+:\s*/, '').trim();
-            
-            // If title is empty after cleanup, log warning
-            if (!cleanTitle) {
-              console.warn(`[splitTNSections] Chunk ${chunkIdx + 1} - WARNING: Empty chapter title for section ${section.sectionNumber}`);
-            }
+          // Remove patterns like "1.1 ", "1.2 ", "2.1 " from the beginning (for subsections only)
+          if (section.sectionType === 'section') {
+            cleanTitle = cleanTitle.replace(/^\d+\.\d+\s+/, '').trim();
           }
+          // For chapter sections (X.0), keep the "X - Title" format as is
+          // No cleanup needed - the AI should already provide it in correct format
           
           const key = `${section.sectionNumber}-${cleanTitle}`;
           const contentHash = `${section.sectionNumber}-${(section.content || '').substring(0, 100)}`;
@@ -948,12 +941,10 @@ CRITICAL: Extract EVERY subsection for Unit ${incompleteUnitNum}. Do not skip an
       
       // Additional cleanup for section titles
       if (s.sectionType === 'section') {
-        // Remove any remaining section number prefix
+        // Remove any remaining section number prefix for subsections
         title = title.replace(/^\d+\.\d+\s+/, '').trim();
-      } else if (s.sectionType === 'chapter') {
-        // For chapters, remove "Unit X:" prefix if present
-        title = title.replace(/^Unit\s+\d+:\s*/, '').trim();
       }
+      // For chapters, keep the "X - Title" format as is - no cleanup needed
       
       const normalized = {
         sectionNumber: s.sectionNumber || '',
