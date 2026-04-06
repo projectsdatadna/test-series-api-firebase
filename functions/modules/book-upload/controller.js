@@ -9,7 +9,7 @@ const { processPDFToVectors } = require('../rag/pdfProcessor');
 const { updateDocumentVectors } = require('../rag/dynamodbStore');
 
 const s3 = new AWS.S3({ region: process.env.AWS_REGION || 'ap-south-1' });
-const S3_BUCKET = process.env.S3_BUCKET_NAME || 'test-series-books';
+const S3_BUCKET = process.env.S3_BUCKET_NAME || 'edufit-books';
 
 /**
  * Upload book file and create chapter with vector data
@@ -184,24 +184,42 @@ async function fetchPDFFromAnthropic(fileId) {
  */
 const getChaptersForSubject = async (req, res) => {
   try {
+    console.log('[getChaptersForSubject] ===== START REQUEST =====');
+    console.log('[getChaptersForSubject] Request received at:', new Date().toISOString());
+    
     const { subjectId } = req.params;
+    console.log('[getChaptersForSubject] subjectId:', subjectId);
 
     if (!subjectId) {
+      console.error('[getChaptersForSubject] ❌ Validation failed - subjectId is required');
       return res.status(400).json({
         success: false,
         message: 'subjectId is required',
       });
     }
 
+    console.log('[getChaptersForSubject] ✅ Validation passed');
+    console.log('[getChaptersForSubject] Fetching chapters from database...');
+    
     const chapters = await hierarchyService.getChaptersBySubject(subjectId);
+    
+    console.log('[getChaptersForSubject] ✅ Chapters fetched:', chapters.length);
+    console.log('[getChaptersForSubject] Chapters:', JSON.stringify(chapters, null, 2));
 
+    console.log('[getChaptersForSubject] Sending response...');
     res.status(200).json({
       success: true,
       data: chapters,
       count: chapters.length,
       message: 'Chapters fetched successfully',
     });
+    
+    console.log('[getChaptersForSubject] ===== END REQUEST (SUCCESS) =====');
   } catch (error) {
+    console.error('[getChaptersForSubject] ❌ Error:', error.message);
+    console.error('[getChaptersForSubject] Error stack:', error.stack);
+    console.log('[getChaptersForSubject] ===== END REQUEST (ERROR) =====');
+    
     res.status(500).json({
       success: false,
       message: error.message,
@@ -215,24 +233,42 @@ const getChaptersForSubject = async (req, res) => {
  */
 const getBookFilesForChapter = async (req, res) => {
   try {
+    console.log('[getBookFilesForChapter] ===== START REQUEST =====');
+    console.log('[getBookFilesForChapter] Request received at:', new Date().toISOString());
+    
     const { chapterId } = req.params;
+    console.log('[getBookFilesForChapter] chapterId:', chapterId);
 
     if (!chapterId) {
+      console.error('[getBookFilesForChapter] ❌ Validation failed - chapterId is required');
       return res.status(400).json({
         success: false,
         message: 'chapterId is required',
       });
     }
 
+    console.log('[getBookFilesForChapter] ✅ Validation passed');
+    console.log('[getBookFilesForChapter] Fetching book files from database...');
+    
     const bookFiles = await hierarchyService.getBookFilesByChapter(chapterId);
+    
+    console.log('[getBookFilesForChapter] ✅ Book files fetched:', bookFiles.length);
+    console.log('[getBookFilesForChapter] Book files:', JSON.stringify(bookFiles, null, 2));
 
+    console.log('[getBookFilesForChapter] Sending response...');
     res.status(200).json({
       success: true,
       data: bookFiles,
       count: bookFiles.length,
       message: 'Book files fetched successfully',
     });
+    
+    console.log('[getBookFilesForChapter] ===== END REQUEST (SUCCESS) =====');
   } catch (error) {
+    console.error('[getBookFilesForChapter] ❌ Error:', error.message);
+    console.error('[getBookFilesForChapter] Error stack:', error.stack);
+    console.log('[getBookFilesForChapter] ===== END REQUEST (ERROR) =====');
+    
     res.status(500).json({
       success: false,
       message: error.message,
@@ -246,15 +282,29 @@ const getBookFilesForChapter = async (req, res) => {
  */
 const getAllBooks = async (req, res) => {
   try {
+    console.log('[getAllBooks] ===== START REQUEST =====');
+    console.log('[getAllBooks] Request received at:', new Date().toISOString());
+    
+    console.log('[getAllBooks] Fetching all books from database...');
     const books = await hierarchyService.getAllBooks();
+    
+    console.log('[getAllBooks] ✅ Books fetched:', books.length);
+    console.log('[getAllBooks] Books:', JSON.stringify(books, null, 2));
 
+    console.log('[getAllBooks] Sending response...');
     res.status(200).json({
       success: true,
       data: books,
       count: books.length,
       message: 'All books fetched successfully',
     });
+    
+    console.log('[getAllBooks] ===== END REQUEST (SUCCESS) =====');
   } catch (error) {
+    console.error('[getAllBooks] ❌ Error:', error.message);
+    console.error('[getAllBooks] Error stack:', error.stack);
+    console.log('[getAllBooks] ===== END REQUEST (ERROR) =====');
+    
     res.status(500).json({
       success: false,
       message: error.message,
@@ -268,32 +318,49 @@ const getAllBooks = async (req, res) => {
  */
 const getBookDetails = async (req, res) => {
   try {
+    console.log('[getBookDetails] ===== START REQUEST =====');
+    console.log('[getBookDetails] Request received at:', new Date().toISOString());
+    
     const { bookId, fileId } = req.params;
+    console.log('[getBookDetails] bookId:', bookId);
+    console.log('[getBookDetails] fileId:', fileId);
 
     if (!bookId || !fileId) {
+      console.error('[getBookDetails] ❌ Validation failed - bookId and fileId are required');
       return res.status(400).json({
         success: false,
         message: 'bookId and fileId are required',
       });
     }
 
+    console.log('[getBookDetails] ✅ Validation passed');
+    console.log('[getBookDetails] Fetching book file from database...');
+    
     const bookFile = await hierarchyService.getBookFileById(bookId, fileId);
+    
+    console.log('[getBookDetails] Book file result:', bookFile ? 'Found' : 'Not found');
 
     if (!bookFile) {
+      console.error('[getBookDetails] ❌ Book file not found');
       return res.status(404).json({
         success: false,
         message: 'Book file not found',
       });
     }
 
+    console.log('[getBookDetails] ✅ Book file fetched:', JSON.stringify(bookFile, null, 2));
+    console.log('[getBookDetails] Fetching chapter details...');
+    
     // Get chapter details to include hierarchy info
     let chapterDetails = null;
     try {
       chapterDetails = await hierarchyService.getChapterById(bookFile.chapterId);
+      console.log('[getBookDetails] ✅ Chapter details fetched:', JSON.stringify(chapterDetails, null, 2));
     } catch (error) {
-      console.error('Error fetching chapter details:', error);
+      console.error('[getBookDetails] ⚠️  Error fetching chapter details:', error.message);
     }
 
+    console.log('[getBookDetails] Sending response...');
     res.status(200).json({
       success: true,
       data: {
@@ -302,8 +369,13 @@ const getBookDetails = async (req, res) => {
       },
       message: 'Book details fetched successfully',
     });
+    
+    console.log('[getBookDetails] ===== END REQUEST (SUCCESS) =====');
   } catch (error) {
-    console.error('Error fetching book details:', error);
+    console.error('[getBookDetails] ❌ Error:', error.message);
+    console.error('[getBookDetails] Error stack:', error.stack);
+    console.log('[getBookDetails] ===== END REQUEST (ERROR) =====');
+    
     res.status(500).json({
       success: false,
       message: error.message,
@@ -317,23 +389,38 @@ const getBookDetails = async (req, res) => {
  */
 const deleteBook = async (req, res) => {
   try {
+    console.log('[deleteBook] ===== START REQUEST =====');
+    console.log('[deleteBook] Request received at:', new Date().toISOString());
+    
     const { bookId, fileId } = req.params;
+    console.log('[deleteBook] bookId:', bookId);
+    console.log('[deleteBook] fileId:', fileId);
 
     if (!bookId || !fileId) {
+      console.error('[deleteBook] ❌ Validation failed - bookId and fileId are required');
       return res.status(400).json({
         success: false,
         message: 'bookId and fileId are required',
       });
     }
 
+    console.log('[deleteBook] ✅ Validation passed');
+    console.log('[deleteBook] Fetching book file from database...');
+    
     const bookFile = await hierarchyService.getBookFileById(bookId, fileId);
+    
+    console.log('[deleteBook] Book file result:', bookFile ? 'Found' : 'Not found');
 
     if (!bookFile) {
+      console.error('[deleteBook] ❌ Book file not found');
       return res.status(404).json({
         success: false,
         message: 'Book file not found',
       });
     }
+
+    console.log('[deleteBook] ✅ Book file found:', JSON.stringify(bookFile, null, 2));
+    console.log('[deleteBook] Deleting from DynamoDB...');
 
     // Delete from DynamoDB
     const dynamoDB = new AWS.DynamoDB.DocumentClient({
@@ -350,7 +437,8 @@ const deleteBook = async (req, res) => {
       })
       .promise();
 
-    console.log(`✅ Deleted book record from DynamoDB: bookId=${bookId}, fileId=${fileId}`);
+    console.log('[deleteBook] ✅ Deleted book record from DynamoDB: bookId=' + bookId + ', fileId=' + fileId);
+    console.log('[deleteBook] Sending response...');
 
     res.status(200).json({
       success: true,
@@ -361,8 +449,13 @@ const deleteBook = async (req, res) => {
         fileName: bookFile.fileName,
       },
     });
+    
+    console.log('[deleteBook] ===== END REQUEST (SUCCESS) =====');
   } catch (error) {
-    console.error('Error deleting book:', error);
+    console.error('[deleteBook] ❌ Error:', error.message);
+    console.error('[deleteBook] Error stack:', error.stack);
+    console.log('[deleteBook] ===== END REQUEST (ERROR) =====');
+    
     res.status(500).json({
       success: false,
       message: error.message,
@@ -370,100 +463,234 @@ const deleteBook = async (req, res) => {
   }
 };
 
-const splitBookSections = async (req, res) => {
+// Helper function to extract section numbers from text
+const extractSectionNumbers = (text) => {
+  const sectionRegex = /\n\s*(\d+\.\d+)\s+([^\n]+)/g;
+  const sections = [];
+  let match;
+  while ((match = sectionRegex.exec(text)) !== null) {
+    sections.push({ 
+      number: match[1], 
+      position: match.index,
+      title: match[2].trim()
+    });
+  }
+  return sections;
+};
+
+// Helper function to get actual section title from text
+const getActualSectionTitle = (text, sectionNumber) => {
+  const regex = new RegExp(`\\n\\s*${sectionNumber.replace(/\./g, '\\.')}\\s+([^\\n]+)`, 'i');
+  const match = text.match(regex);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return null;
+};
+
+// Helper function to split text by main sections
+const splitTextBySections = (text) => {
+  const sections = extractSectionNumbers(text);
+  const chunks = [];
+  
+  for (let i = 0; i < sections.length; i++) {
+    const startPos = sections[i].position;
+    const endPos = i < sections.length - 1 ? sections[i + 1].position : text.length;
+    const sectionNumber = sections[i].number;
+    const sectionTitle = sections[i].title;
+    const sectionText = text.substring(startPos, endPos);
+    
+    chunks.push({
+      sectionNumber,
+      sectionTitle,
+      text: sectionText,
+      length: sectionText.length
+    });
+  }
+  
+  return chunks;
+};
+
+// Helper function to call Azure API for a single section
+const callAzureAPIForSection = async (sectionText, sectionNumber, chapterName, azureEndpoint, azureApiKey, deploymentName) => {
+  const { getSplitSectionsPrompt } = require('./split-sections-prompt');
+  const prompt = getSplitSectionsPrompt(sectionText, `${chapterName} - Section ${sectionNumber}`);
+  
+  const url = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-08-01-preview`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'api-key': azureApiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert at extracting educational content from textbooks. Extract all sections and merge subsections into their parent sections. Include EVERY WORD of content. Return ONLY valid JSON.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: 16384,
+      temperature: 0,
+    }),
+  });
+  
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(`Azure API error: ${response.status} - ${JSON.stringify(err)}`);
+  }
+  
+  const data = await response.json();
+  const rawContent = data.choices[0].message?.content;
+  
+  if (!rawContent) {
+    return null;
+  }
+  
+  const cleaned = rawContent
+    .replace(/```json\n?|\n?```/g, '')
+    .replace(/```\n?|\n?```/g, '')
+    .trim();
+  
+  return JSON.parse(cleaned);
+};
+
+splitBookSections = async (req, res) => {
   try {
+    console.log('[splitBookSections] ===== START REQUEST =====');
+    console.log('[splitBookSections] Request received at:', new Date().toISOString());
+    
     const { text, chapterName } = req.body;
+    console.log('[splitBookSections] Chapter name:', chapterName);
+    console.log('[splitBookSections] Text length:', text ? text.length : 0, 'chars');
 
     if (!text) {
+      console.error('[splitBookSections] ❌ Validation failed - text is required');
       return res.status(400).json({ success: false, error: 'text is required' });
     }
 
-    console.log(`[splitBookSections] Input text length: ${text.length} chars`);
-    console.log(`[splitBookSections] Chapter: ${chapterName}`);
+    console.log('[splitBookSections] ✅ Validation passed');
 
     const azureEndpoint = (process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/$/, '');
     const azureApiKey = process.env.AZURE_OPENAI_API_KEY;
     const deploymentName = 'gpt-4o-mini-testseries-pv';
 
     if (!azureApiKey || !azureEndpoint) {
+      console.error('[splitBookSections] ❌ Azure credentials not configured');
       return res.status(500).json({ success: false, error: 'Azure OpenAI credentials not configured' });
     }
 
-    const url = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-08-01-preview`;
-    console.log('[splitBookSections] Azure URL:', url);
-
-    // Send entire text without any filtering or truncation
-    const prompt = `Extract section headings from this text and return as JSON.
-
-${text}
-
-Return JSON: {"sections":[{"sectionTitle":"heading"}]}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'api-key': azureApiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: 'Extract headings. Return JSON only. No filtering.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 16384,
-        temperature: 0,
-      }),
+    console.log('[splitBookSections] ===== SPLITTING TEXT BY SECTIONS =====');
+    
+    // Split text into chunks by main section numbers
+    const textChunks = splitTextBySections(text);
+    console.log('[splitBookSections] Text split into', textChunks.length, 'chunks');
+    textChunks.forEach((chunk, idx) => {
+      console.log(`[splitBookSections] Chunk ${idx + 1}: Section ${chunk.sectionNumber} (${chunk.length} chars)`);
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      console.error('[splitBookSections] Azure API error:', response.status, err.error?.message);
-      throw new Error(`Azure API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const rawContent = data.choices[0].message?.content;
-
-    if (!rawContent) {
-      console.error('[splitBookSections] No content in response');
-      return res.json({ success: true, sections: [] });
-    }
-
-    console.log('[splitBookSections] Response length:', rawContent.length, 'chars');
-
-    let parsed;
-    try {
-      // Clean up response - remove markdown code blocks
-      const cleaned = rawContent
-        .replace(/```json\n?|\n?```/g, '')
-        .replace(/```\n?|\n?```/g, '')
-        .trim();
+    console.log('[splitBookSections] ===== PROCESSING CHUNKS WITH MULTIPLE API CALLS =====');
+    
+    const allSections = [];
+    const inputContentLength = text.length;
+    
+    // Process each chunk with a separate API call
+    for (let i = 0; i < textChunks.length; i++) {
+      const chunk = textChunks[i];
+      console.log(`[splitBookSections] Processing chunk ${i + 1}/${textChunks.length}: Section ${chunk.sectionNumber}`);
       
-      parsed = JSON.parse(cleaned);
-    } catch (e) {
-      console.error('[splitBookSections] Parse error:', e.message);
-      throw new Error(`JSON parse failed: ${e.message}`);
+      try {
+        const result = await callAzureAPIForSection(
+          chunk.text,
+          chunk.sectionNumber,
+          chapterName,
+          azureEndpoint,
+          azureApiKey,
+          deploymentName
+        );
+        
+        if (result && result.sections && Array.isArray(result.sections)) {
+          console.log(`[splitBookSections] ✓ Chunk ${i + 1} returned ${result.sections.length} section(s)`);
+          allSections.push(...result.sections);
+        } else {
+          console.log(`[splitBookSections] ⚠️  Chunk ${i + 1} returned no valid sections`);
+        }
+      } catch (error) {
+        console.error(`[splitBookSections] ❌ Error processing chunk ${i + 1}:`, error.message);
+        throw error;
+      }
     }
 
-    if (!parsed.sections || !Array.isArray(parsed.sections)) {
-      throw new Error('Invalid response format: missing sections array');
+    console.log('[splitBookSections] ===== VALIDATING ALL SECTIONS =====');
+    
+    // Create a map of section numbers to actual titles from the original text
+    const actualTitles = {};
+    const textChunksMap = {};
+    textChunks.forEach(chunk => {
+      actualTitles[chunk.sectionNumber] = chunk.sectionTitle;
+      textChunksMap[chunk.sectionNumber] = chunk.text;
+    });
+    
+    const sections = allSections.filter((s, idx) => {
+      const hasNumber = s.sectionNumber && s.sectionNumber.trim();
+      const hasTitle = s.sectionTitle && s.sectionTitle.trim();
+      const hasContent = s.content && s.content.trim();
+      
+      if (!hasNumber || !hasTitle || !hasContent) {
+        console.log(`[splitBookSections] ⚠️  Skipping invalid section at index ${idx}`);
+        return false;
+      }
+      
+      // Fix truncated or incorrect titles by using the actual title from the text
+      if (actualTitles[s.sectionNumber]) {
+        const originalTitle = s.sectionTitle;
+        s.sectionTitle = actualTitles[s.sectionNumber];
+        if (originalTitle !== s.sectionTitle) {
+          console.log(`[splitBookSections] ✓ Fixed title for ${s.sectionNumber}: "${originalTitle}" → "${s.sectionTitle}"`);
+        }
+      }
+      
+      console.log(`[splitBookSections] ✓ Valid section: ${s.sectionNumber} - "${s.sectionTitle}" (${s.content.length} chars)`);
+      return true;
+    });
+
+    console.log('[splitBookSections] ===== PROCESSING COMPLETE =====');
+    console.log('[splitBookSections] Total valid sections:', sections.length);
+
+    // Calculate total output content
+    const totalOutputContent = sections.reduce((sum, s) => sum + (s.content ? s.content.length : 0), 0);
+    console.log('[splitBookSections] Input text total length:', inputContentLength, 'chars');
+    console.log('[splitBookSections] Total output content length:', totalOutputContent, 'chars');
+    
+    // Content loss detection
+    const contentLossPercentage = ((inputContentLength - totalOutputContent) / inputContentLength * 100).toFixed(2);
+    console.log('[splitBookSections] Content loss:', contentLossPercentage, '%');
+    
+    if (contentLossPercentage > 30) {
+      console.warn('[splitBookSections] ⚠️  WARNING: Content loss detected (' + contentLossPercentage + '%)');
     }
 
-    console.log(`[splitBookSections] Extracted ${parsed.sections.length} sections`);
+    // Detailed logging of structure
+    console.log('[splitBookSections] ===== FINAL STRUCTURE =====');
+    sections.forEach((s, idx) => {
+      console.log(`[splitBookSections] [${idx + 1}] ${s.sectionNumber}: "${s.sectionTitle}" (${s.content.length} chars)`);
+    });
+    
+    const responseData = { success: true, chapterName, sections };
+    console.log('[splitBookSections] Response object created with', responseData.sections.length, 'sections');
+    console.log('[splitBookSections] Sending response...');
 
-    const sections = parsed.sections.map((s, i) => ({
-      sectionNumber: `${i + 1}`,
-      sectionTitle: s.sectionTitle || '',
-      sectionType: 'content',
-    }));
-
-    return res.json({ success: true, sections });
+    res.json(responseData);
+    
+    console.log('[splitBookSections] ===== END REQUEST (SUCCESS) =====');
 
   } catch (error) {
-    console.error('[splitBookSections] Error:', error.message);
+    console.error('[splitBookSections] ❌ Error:', error.message);
+    console.error('[splitBookSections] Error stack:', error.stack);
+    console.log('[splitBookSections] ===== END REQUEST (ERROR) =====');
+    
     return res.status(500).json({ success: false, error: error.message });
   }
 };
