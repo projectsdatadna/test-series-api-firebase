@@ -10,6 +10,8 @@ const generateInteractiveWorksheetNew = require("./controllers/generateInteracti
 const generateEducationalPuzzleNew = require("./controllers/generateEducationalPuzzleNew");
 const generateImageRouter = require('./generateImage');
 
+const generateImageTest = require("./testGenerateImage");
+
 // Define routes
 router.post('/generate-remedial-flowchart', generateRemedialFlowchartNew);
 router.post('/generate-targeted-quiz', generateTargetedQuizNew);
@@ -19,5 +21,7 @@ router.post('/generate-step-by-step', generateStepByStepNew);
 router.post('/generate-simplified-explanation', generateSimplifiedExplanationNew);
 
 router.use('/generateimage', generateImageRouter);
+
+router.post('/generateimage/test', generateImageTest);
 
 module.exports = router;

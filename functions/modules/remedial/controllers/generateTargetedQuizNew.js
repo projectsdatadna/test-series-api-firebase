@@ -28,36 +28,66 @@ Rules:
 - Do NOT create cross-subject questions.
 - Only focus on the learning gap if it appears in the section.
 - Keep language simple and clear suitable for school students aged 10 to 18.
-- Do NOT reference any section name, section number, or worked examples from the section in questions or options — test the concept only.
+- Do NOT reference any section name, section number, or worked examples from the section in questions or options.
 - Keep explanations short (1-2 sentences).
-- ⚠️ SPELLING RULE: Every "answer" must be COPIED EXACTLY as it appears in the section text — character by character. Do NOT retype, paraphrase, or reconstruct Tamil words from memory.
-- ⚠️ LANGUAGE RULE: Always write questions, options, and explanations in the SAME language as the section text. If the section is Tamil, respond in Tamil script. Never transliterate — write actual script characters.
+- ⚠️ SPELLING RULE: Every answer must be COPIED EXACTLY as it appears in the section text — character by character.
+- ⚠️ LANGUAGE RULE: The user prompt will explicitly tell you what language to use. Follow it exactly.
+  NEVER decide the output language based on the topic or subject matter.
+  If the prompt says "English", write in English even if the topic is about Indian history, Tipu Sultan, Gandhi, etc.
+  If the prompt says "Tamil", write in Tamil script.
+  The SECTION TEXT language = your OUTPUT language. This is non-negotiable.
 - Output valid JSON only. No markdown. No commentary.
 `;
 
+function detectLanguage(text = '') {
+  if (/[\u0B80-\u0BFF]/.test(text)) return 'Tamil';
+  if (/[\u0900-\u097F]/.test(text)) return 'Hindi';
+  if (/[\u0C00-\u0C7F]/.test(text)) return 'Telugu';
+  if (/[\u0C80-\u0CFF]/.test(text)) return 'Kannada';
+  if (/[\u0D00-\u0D7F]/.test(text)) return 'Malayalam';
+  if (/[\u0980-\u09FF]/.test(text)) return 'Bengali';
+  if (/[\u0600-\u06FF]/.test(text)) return 'Arabic';
+  return 'English';
+}
+
 function buildQuizPrompt(studentContext, sectionNumber, sectionText, numberOfQuestions) {
+  // ── Detect language from the actual section text ──────────────
+  const detectedLang = detectLanguage(sectionText);
+
   return `
 Generate EXACTLY ${numberOfQuestions} multiple-choice questions
 based ONLY on Section ${sectionNumber}.
 
+
 SECTION:
 ${sectionText}
+
 
 Student:
 Name: ${studentContext.studentName}
 Grade: ${studentContext.standardId || '6-8'}
 Learning Gap: ${studentContext.conceptGap}
 
+
+⚠️ MANDATORY LANGUAGE RULE — READ THIS FIRST:
+The section text above is written in: ${detectedLang}.
+You MUST write ALL questions, ALL options (A/B/C/D), and ALL explanations in ${detectedLang} ONLY.
+Do NOT translate into any other language.
+Do NOT use Hindi if the section is in English.
+Do NOT use English if the section is in Tamil/Hindi/Telugu.
+The language of your output must EXACTLY match the language of the section text: ${detectedLang}.
+
+
 Instructions:
 - Each question must have 4 options (A, B, C, D).
-- Write all questions, options, and explanations in the SAME language as the section text above. Do NOT translate to English.
 - Questions must be based directly on events, details, or descriptions in the section.
 - Only relate to the learning gap if it appears in the section.
 - Keep explanations short (1-2 sentences).
 - Do NOT add outside knowledge.
-- Do NOT mention "Section", "Section 1", "Section 1.6", or any section reference in the question text or options.
+- Do NOT mention "Section", "Section 1", "Section 1.6", or any section reference in question text or options.
 - Do NOT copy worked examples or sample problems from the section into questions.
 - "correctAnswer" must be the option LABEL only: "A", "B", "C", or "D".
+
 
 Return JSON:
 
