@@ -5,6 +5,7 @@
 
 const express = require('express');
 const controller = require('./controller');
+const tnStateBoardController = require('./tn-state-board-controller');
 
 const router = express.Router();
 
@@ -52,5 +53,54 @@ router.get('/files/:chapterId', controller.getBookFilesForChapter);
  * Delete book file
  */
 router.delete('/books/:bookId/:fileId', controller.deleteBook);
+
+/**
+ * POST /book-upload/split-sections
+ * Split book chapter text into sections using Claude
+ * Body: { text, chapterName, metadata: { subjectId, standardId, syllabusId, bookType } }
+ */
+router.post('/split-sections', controller.splitBookSections);
+
+/**
+ * POST /book-upload/split-tn-sections
+ * Split TN State Board book chapter text into units and sections
+ * Body: { text, chapterName, metadata: { subjectId, standardId, syllabusId, bookType } }
+ */
+router.post('/split-tn-sections', controller.splitTNSections);
+
+/**
+ * POST /book-upload/tn-state-board/extract-chapters
+ * Extract chapter and section names from TN State Board textbooks
+ * Division is passed from UI (optional, attached to all chapters if provided)
+ * Extracts ONLY chapter names and section names (no content)
+ * 
+ * Body: { 
+ *   text: string (textbook content),
+ *   bookTitle: string,
+ *   syllabusId: string,
+ *   standardId: string,
+ *   subjectId: string,
+ *   division?: string (optional: HISTORY, GEOGRAPHY, CIVICS, ECONOMICS)
+ * }
+ * 
+ * Response: {
+ *   success: true,
+ *   bookTitle: string,
+ *   division: string | null,
+ *   totalChapters: number,
+ *   totalSections: number,
+ *   chapters: [
+ *     {
+ *       chapterNumber: string,
+ *       chapterTitle: string,
+ *       division?: string (if provided in request),
+ *       sections: [
+ *         { sectionNumber: string, sectionTitle: string }
+ *       ]
+ *     }
+ *   ]
+ * }
+ */
+router.post('/tn-state-board/extract-chapters', tnStateBoardController.extractTNStateBoardChapters);
 
 module.exports = router;

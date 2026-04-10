@@ -2,7 +2,7 @@ const cors = require("cors");
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "http://test-series-ui.s3-website-us-east-1.amazonaws.com/"
+  "http://edufit-ui.s3-website-us-east-1.amazonaws.com/"
 ];
 
 const corsOptions = {

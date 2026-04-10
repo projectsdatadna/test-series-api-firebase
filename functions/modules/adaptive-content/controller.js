@@ -43,13 +43,101 @@ try {
 }
 
 // Generate adaptive content from uploaded file OR chunks (RAG) and convert to images
+
+/**
+ * Sanitizes LLM-generated Mermaid diagrams:
+ * - Fixes special characters in node labels that cause syntax errors
+ * - Shortens labels that are too long (causes line breaks inside nodes)
+ * - Rebuilds the diagram line by line to catch all edge cases
+ */
+function sanitizeMermaid(html) {
+  return html.replace(/(<div[^>]*class="mermaid"[^>]*>)([\s\S]*?)(<\/div>)/gi, (match, open, diagram, close) => {
+
+    // Clean up escaped newlines that minification may have introduced
+    let fixed = diagram
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '  ');
+
+    // Process line by line
+    const lines = fixed.split('\n').map(line => {
+      const trimmed = line.trim();
+
+      // Keep blank lines, directives, flowchart declaration, classDef, class assignments, arrows
+      if (!trimmed) return line;
+      if (trimmed.startsWith('%%')) return line;
+      if (trimmed.startsWith('flowchart')) return line;
+      if (trimmed.startsWith('classDef')) return line;
+      if (trimmed.startsWith('class ')) return line;
+      if (trimmed.includes('-->')) return sanitizeEdge(trimmed);
+
+      // Node declaration lines — sanitize the label
+      return sanitizeNodeLine(trimmed);
+    });
+
+    return `${open}\n${lines.join('\n')}\n${close}`;
+  });
+}
+
+function sanitizeLabel(label) {
+  let clean = label
+    .replace(/\?/g, '')
+    .replace(/:/g, ' -')
+    .replace(/[()]/g, '')
+    .replace(/>/g, 'gt')
+    .replace(/</g, 'lt')
+    .replace(/&(?:amp;)?/g, 'and')
+    .replace(/\//g, ' or ')
+    .replace(/\\/g, '')
+    .replace(/"/g, '')          // remove any stray quotes inside
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  // Hard cap at 4 words to prevent line breaks inside nodes
+  const words = clean.split(' ').filter(Boolean);
+  if (words.length > 4) clean = words.slice(0, 4).join(' ');
+
+  return clean;
+}
+
+function sanitizeNodeLine(line) {
+  // Stadium/pill: A(["label"]) or A(["label"])
+  line = line.replace(/^(\w+)\(\["?([^"\]]*)"?\]\)/, (m, id, label) => {
+    return `${id}(["${sanitizeLabel(label)}"])`;
+  });
+  // Rectangle: B["label"] or B[label]
+  line = line.replace(/^(\w+)\["?([^"\]]*)"?\](?!\()/, (m, id, label) => {
+    return `${id}["${sanitizeLabel(label)}"]`;
+  });
+  // Diamond: C{"label"} or C{label}
+  line = line.replace(/^(\w+)\{"?([^"{}]*)"?\}/, (m, id, label) => {
+    return `${id}{"${sanitizeLabel(label)}"}`;
+  });
+  return line;
+}
+
+function sanitizeEdge(line) {
+  // Edge labels like -->|Yes| and -->|No| are safe — only sanitize node labels on same line
+  // e.g. A["bad:label"] --> B["another?"]
+  return line
+    .replace(/\["?([^"\]]*)"?\]/g, (m, label) => `["${sanitizeLabel(label)}"]`)
+    .replace(/\{"?([^"{}]*)"?\}/g, (m, label) => `{"${sanitizeLabel(label)}"}`);
+}
+
 async function generateAdaptiveContent(req, res) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 280000); // 280 second timeout for generation
 
   try {
+    console.log("=== [AdaptiveContent] REQUEST RECEIVED ===");
+    console.log("[AdaptiveContent] contentTypeId:", req.body?.contentTypeId);
+    console.log("[AdaptiveContent] topicName:", req.body?.topicName || req.body?.topic);
+    console.log("[AdaptiveContent] sectionTitle:", req.body?.sectionTitle);
+    console.log("[AdaptiveContent] chunks count:", req.body?.chunks?.length ?? 0);
+    console.log("[AdaptiveContent] maxTokens:", req.body?.maxTokens ?? 2000);
+
     const apiKey = process.env.CLAUDE_API_KEY;
     if (!apiKey) {
+      console.error("[AdaptiveContent] ERROR: CLAUDE_API_KEY not set");
       clearTimeout(timeoutId);
       return res.status(400).json({
         success: false,
@@ -84,6 +172,7 @@ async function generateAdaptiveContent(req, res) {
     const sectionsToProcess = sectionTitles.length > 0 ? sectionTitles : (sectionTitle ? [sectionTitle] : []);
 
     if (chunks.length == 0) {
+      console.error("[AdaptiveContent] ERROR: chunks array is empty");
       clearTimeout(timeoutId);
       return res.status(400).json({
         success: false,
@@ -92,6 +181,7 @@ async function generateAdaptiveContent(req, res) {
     }
 
       if (!userId || !documentId || sectionsToProcess.length === 0) {
+        console.error("[AdaptiveContent] ERROR: Missing required fields — userId:", userId, "| documentId:", documentId, "| sections:", sectionsToProcess.length);
         clearTimeout(timeoutId);
         return res.status(400).json({
           success: false,
@@ -103,6 +193,8 @@ async function generateAdaptiveContent(req, res) {
     const style = visualStyle || "academic";
     const language = outputLanguage || "english";
     const finalTopicName = topicName || topic || sectionsToProcess[0] || sectionTitle;
+
+    console.log("[AdaptiveContent] Resolved — depth:", depth, "| language:", language, "| topic:", finalTopicName);
 
     let prompt;
     let context = "";
@@ -129,8 +221,10 @@ async function generateAdaptiveContent(req, res) {
         .map((chunk, idx) => `[Context ${idx + 1}] ${chunk.text}`)
         .join("\n\n");
 
+    console.log("[AdaptiveContent] Context built — total chars:", context.length);
+
     const basePrompt = getPrompt(contentTypeId, {
-      sectionNumber: sectionNumber || '',
+      sectionNumber: sectionsToProcess[0] || sectionTitle || sectionNumber || '',
       topicName: finalTopicName,
       contentDepth: depth,
       visualStyle: style,
@@ -142,6 +236,10 @@ async function generateAdaptiveContent(req, res) {
     if (context) {
       prompt = `${basePrompt}\n\nUse the following context from the document to generate the content:\n\n${context}`;
     }
+
+    console.log("[AdaptiveContent] Prompt built — total chars:", prompt?.length);
+    console.log("[AdaptiveContent] Calling Claude API (model: claude-haiku-4-5, maxTokens:", maxTokens, ")...");
+    const claudeStart = Date.now();
 
     // Call Anthropic Messages API
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -165,8 +263,12 @@ async function generateAdaptiveContent(req, res) {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
+
+    console.log("[AdaptiveContent] Claude API responded in", Date.now() - claudeStart, "ms — status:", response.status);
+
     if (!response.ok) {
       const error = await response.json();
+      console.error("[AdaptiveContent] Claude API error:", error);
       return res.status(400).json({
         success: false,
         message: "Failed to generate adaptive content",
@@ -177,6 +279,8 @@ async function generateAdaptiveContent(req, res) {
     const data = await response.json();
     const content =
       data.content && data.content.length > 0 ? data.content[0].text : "";
+
+    console.log("[AdaptiveContent] Claude response — stop_reason:", data.stop_reason, "| content length:", content.length, "chars");
 
     if (data.stop_reason === "max_tokens") {
       console.warn("⚠️ WARNING: Claude response was truncated due to max_tokens limit!");
@@ -209,20 +313,44 @@ async function generateAdaptiveContent(req, res) {
     } catch (e) {
       // Not JSON, continue with normal extraction
     }
-    
-    const htmlMatch = htmlContent.match(/<!DOCTYPE[^>]*>[\s\S]*<\/html>/i);
-    if (htmlMatch) {
-      htmlContent = htmlMatch[0];
+
+    // If truncated due to max_tokens, use whatever HTML we have — don't require closing </html>
+    if (data.stop_reason === "max_tokens") {
+      const partialMatch = htmlContent.match(/<!DOCTYPE[^>]*>[\s\S]*/i);
+      if (partialMatch) {
+        htmlContent = partialMatch[0];
+        // Close any unclosed tags so the browser can still render it
+        if (!htmlContent.includes('</html>')) {
+          htmlContent += '</body></html>';
+        }
+      }
+    } else {
+      const htmlMatch = htmlContent.match(/<!DOCTYPE[^>]*>[\s\S]*<\/html>/i);
+      if (htmlMatch) {
+        htmlContent = htmlMatch[0];
+      }
     }
+
     htmlContent = htmlContent.replace(/\\n/g, '');
     htmlContent = htmlContent.replace(/\\"/g, '"');
     htmlContent = htmlContent.replace(/\\'/g, "'");
     htmlContent = htmlContent.replace(/^[^<]*(?=<!DOCTYPE)/i, '');
+
+    // Fix Mermaid diagram syntax — sanitize node labels to remove characters
+    // that cause "Syntax error in text" in Mermaid v10
+    if (contentTypeId === 'process-flow-charts') {
+      const before = htmlContent.match(/(<div[^>]*class="mermaid"[^>]*>)([\s\S]*?)(<\/div>)/i);
+      if (before) console.log("[Mermaid] Raw diagram from LLM:\n", before[2]);
+      htmlContent = sanitizeMermaid(htmlContent);
+      const after = htmlContent.match(/(<div[^>]*class="mermaid"[^>]*>)([\s\S]*?)(<\/div>)/i);
+      if (after) console.log("[Mermaid] Sanitized diagram:\n", after[2]);
+    }
+
     clearTimeout(timeoutId);    console.log("HTML extracted successfully");
 
     // Skip image conversion for flash-cards (returns JSON, not HTML)
     if (contentTypeId === 'flash-cards') {
-      console.log("Flash cards: skipping image conversion, returning JSON directly");
+      console.log("[AdaptiveContent] flash-cards: returning JSON directly");
       
       // Extract JSON from markdown code blocks if present
       let flashCardsJson = content;
@@ -254,7 +382,7 @@ async function generateAdaptiveContent(req, res) {
 
     // Skip image conversion for mind-maps (returns JSON, not HTML)
     if (contentTypeId === 'mind-maps') {
-      console.log("Mind maps: skipping image conversion, returning JSON directly");
+      console.log("[AdaptiveContent] mind-maps: returning JSON directly");
       
       // Extract JSON from markdown code blocks if present
       let mindMapsJson = content;
@@ -286,7 +414,7 @@ async function generateAdaptiveContent(req, res) {
 
     // Skip image conversion for diagrammatic-representation (returns JSON, not HTML)
     if (contentTypeId === 'diagrammatic-representation') {
-      console.log("Diagrammatic representation: skipping image conversion, returning JSON directly");
+      console.log("[AdaptiveContent] diagrammatic-representation: returning JSON directly");
 
       let diagramJson = content;
       diagramJson = diagramJson.replace(/```(?:json)?\s*/g, '');
@@ -317,6 +445,10 @@ async function generateAdaptiveContent(req, res) {
       pageCount = 1;
     }
 
+    console.log("[AdaptiveContent] HTML extracted — length:", htmlContent.length, "| pageCount:", pageCount);
+    console.log("[AdaptiveContent] Calling image conversion API...");
+    const conversionStart = Date.now();
+
     const conversionController = new AbortController();
     const conversionTimeoutId = setTimeout(
       () => conversionController.abort(),
@@ -341,6 +473,8 @@ async function generateAdaptiveContent(req, res) {
 
       clearTimeout(conversionTimeoutId);
 
+      console.log("[AdaptiveContent] Image conversion responded in", Date.now() - conversionStart, "ms — status:", conversionResponse.status);
+
       if (conversionResponse.ok) {
         const respContentType =
           conversionResponse.headers.get("content-type") || "";
@@ -348,11 +482,13 @@ async function generateAdaptiveContent(req, res) {
           const imageRes = await conversionResponse.json();
 
           if (imageRes && Array.isArray(imageRes.images)) {
+            console.log("[AdaptiveContent] SUCCESS — returning", imageRes.images.length, "image(s)");
             return res.status(200).json({
               success: true,
               images: imageRes.images,
               content: content,
               htmlContent: htmlContent,
+              truncated: data.stop_reason === "max_tokens",
             });
           }
           return res.status(200).json({
@@ -360,12 +496,28 @@ async function generateAdaptiveContent(req, res) {
             conversion: imageRes,
             content: content,
             htmlContent: htmlContent,
+            truncated: data.stop_reason === "max_tokens",
           });
         }
+      } else {
+        // Conversion API returned non-2xx — log the error body and fall back to returning htmlContent
+        let conversionErrorBody = "";
+        try {
+          conversionErrorBody = await conversionResponse.text();
+        } catch (_) {}
+        console.error("[AdaptiveContent] Image conversion API error — status:", conversionResponse.status, "| body:", conversionErrorBody);
+        return res.status(200).json({
+          success: true,
+          images: [],
+          content: content,
+          htmlContent: htmlContent,
+          truncated: data.stop_reason === "max_tokens",
+          conversionError: `Conversion service returned ${conversionResponse.status}: ${conversionErrorBody}`,
+        });
       }
     } catch (conversionError) {
       clearTimeout(conversionTimeoutId);
-      console.error("HTML conversion error:", conversionError);
+      console.error("[AdaptiveContent] Image conversion error:", conversionError.name, conversionError.message);
 
       if (conversionError.name === "AbortError") {
         return res.status(504).json({
@@ -385,7 +537,7 @@ async function generateAdaptiveContent(req, res) {
     clearTimeout(timeoutId);
 
     if (error.name === "AbortError") {
-      console.error("API request timeout (20s exceeded)");
+      console.error("[AdaptiveContent] TIMEOUT: Claude API exceeded 280s");
       return res.status(504).json({
         success: false,
         message: "Request timeout",
@@ -394,7 +546,7 @@ async function generateAdaptiveContent(req, res) {
       });
     }
 
-    console.error("Adaptive content generation error:", error);
+    console.error("[AdaptiveContent] Unhandled error:", error.name, error.message);
     res.status(500).json({
       success: false,
       message: "Failed to generate adaptive content",
@@ -958,8 +1110,176 @@ async function chatboxQuery(req, res) {
   }
 }
 
+/**
+ * Generate PDF from adaptive content images (base64 PNGs)
+ * Uses sharp to slice and pdf-lib to assemble A4 pages
+ */
+async function generateAdaptiveContentPDF(req, res) {
+  try {
+    const { images, filename = 'adaptive-content' } = req.body;
+
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ success: false, message: 'images array is required' });
+    }
+
+    console.log(`[AdaptiveContentPDF] Generating PDF from ${images.length} image(s)`);
+
+    const sharp = require('sharp');
+    const { PDFDocument } = require('pdf-lib');
+
+    // A4 in points at 72dpi
+    const A4_WIDTH_PT  = 595;
+    const A4_HEIGHT_PT = 842;
+
+    // 2rem padding — 1rem ≈ 12pt at standard PDF resolution
+    const PADDING_PT = 2 * 12; // 24pt per side
+    const DRAW_WIDTH  = A4_WIDTH_PT  - PADDING_PT * 2;
+    const DRAW_HEIGHT = A4_HEIGHT_PT - PADDING_PT * 2;
+
+    const pdfDoc = await PDFDocument.create();
+
+    for (let i = 0; i < images.length; i++) {
+      const imgData = images[i];
+
+      // Resolve image to a Buffer — supports S3/HTTP URLs and base64 data URIs
+      let imgBuffer;
+      if (imgData.startsWith('http://') || imgData.startsWith('https://')) {
+        console.log(`[AdaptiveContentPDF] Image ${i + 1}: fetching from URL`);
+        const imgResponse = await fetch(imgData);
+        if (!imgResponse.ok) {
+          throw new Error(`Image ${i + 1}: failed to fetch URL (${imgResponse.status})`);
+        }
+        const arrayBuffer = await imgResponse.arrayBuffer();
+        imgBuffer = Buffer.from(arrayBuffer);
+      } else {
+        // Strip data URI prefix if present
+        const base64 = imgData.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,\s*/, '').trim();
+        if (!base64) {
+          console.warn(`[AdaptiveContentPDF] Image ${i + 1}: empty base64, skipping`);
+          continue;
+        }
+        imgBuffer = Buffer.from(base64, 'base64');
+      }
+
+      console.log(`[AdaptiveContentPDF] Image ${i + 1} buffer size: ${imgBuffer.length} bytes`);
+
+      // Normalise to PNG via sharp (handles JPEG, WebP, PNG, etc.)
+      let pngBuffer;
+      try {
+        pngBuffer = await sharp(imgBuffer).png().toBuffer();
+      } catch (sharpErr) {
+        console.error(`[AdaptiveContentPDF] Image ${i + 1} could not be decoded by sharp: ${sharpErr.message}`);
+        throw new Error(`Image ${i + 1} has an unsupported or corrupt format: ${sharpErr.message}`);
+      }
+
+      const image = sharp(pngBuffer);
+      const meta  = await image.metadata();
+
+      console.log(`[AdaptiveContentPDF] Image ${i + 1}: ${meta.width}x${meta.height}px`);
+
+      // Slice the image into strips sized to fit the padded draw area.
+      // To avoid cutting through text, we scan near each candidate cut point
+      // for a blank (white/near-white) row and snap the cut to that row instead.
+      const stripHeightPx = Math.round(meta.width * (DRAW_HEIGHT / DRAW_WIDTH));
+
+      // How many pixels above/below the ideal cut point to search for a blank row.
+      // ~5% of strip height gives enough room without jumping too far.
+      const SEARCH_WINDOW_PX = Math.round(stripHeightPx * 0.05);
+
+      // Returns true if every pixel in the given row is near-white (R,G,B >= 240)
+      async function isBlankRow(rawBuffer, rowY, imgWidth) {
+        const offset = rowY * imgWidth * 4; // RGBA
+        for (let x = 0; x < imgWidth; x++) {
+          const base = offset + x * 4;
+          if (rawBuffer[base] < 240 || rawBuffer[base + 1] < 240 || rawBuffer[base + 2] < 240) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // Get raw RGBA pixel data once for the whole image
+      const rawPixels = await sharp(pngBuffer)
+        .raw()
+        .toBuffer({ resolveWithObject: false });
+
+      let y = 0;
+
+      while (y < meta.height) {
+        // Ideal cut point
+        let cutY = y + stripHeightPx;
+
+        if (cutY >= meta.height) {
+          // Last strip — take whatever remains
+          cutY = meta.height;
+        } else {
+          // Search for a blank row within [cutY - window, cutY + window]
+          const searchStart = Math.max(y + 1, cutY - SEARCH_WINDOW_PX);
+          const searchEnd   = Math.min(meta.height - 1, cutY + SEARCH_WINDOW_PX);
+
+          let bestRow = cutY; // fallback to ideal cut if no blank row found
+          let found = false;
+
+          // Search outward from the ideal cut point (prefer closest blank row)
+          for (let delta = 0; delta <= SEARCH_WINDOW_PX && !found; delta++) {
+            // Check above first, then below
+            for (const candidate of [cutY - delta, cutY + delta]) {
+              if (candidate < searchStart || candidate > searchEnd) continue;
+              if (await isBlankRow(rawPixels, candidate, meta.width)) {
+                bestRow = candidate;
+                found = true;
+                break;
+              }
+            }
+          }
+
+          cutY = bestRow;
+          if (found) {
+            console.log(`[AdaptiveContentPDF] Image ${i + 1}: snapped cut from ${y + stripHeightPx} → ${cutY} (blank row)`);
+          }
+        }
+
+        const sliceH = cutY - y;
+
+        const sliceBuffer = await sharp(pngBuffer)
+          .extract({ left: 0, top: y, width: meta.width, height: sliceH })
+          .png()
+          .toBuffer();
+
+        const page = pdfDoc.addPage([A4_WIDTH_PT, A4_HEIGHT_PT]);
+        const embedded = await pdfDoc.embedPng(sliceBuffer);
+
+        // Scale the slice to fill the draw width; height proportional to actual slice
+        const drawHeight = DRAW_WIDTH * (sliceH / meta.width);
+
+        page.drawImage(embedded, {
+          x: PADDING_PT,
+          y: A4_HEIGHT_PT - PADDING_PT - drawHeight,
+          width: DRAW_WIDTH,
+          height: drawHeight,
+        });
+
+        y = cutY;
+      }
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    console.log(`[AdaptiveContentPDF] PDF generated — ${pdfBytes.length} bytes`);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}.pdf"`);
+    res.setHeader('Content-Length', pdfBytes.length);
+    return res.send(Buffer.from(pdfBytes));
+
+  } catch (error) {
+    console.error('[AdaptiveContentPDF] Error:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to generate PDF', error: error.message });
+  }
+}
+
 module.exports = {
   generateAdaptiveContent,
   extractDocumentStructure,
   chatboxQuery,
+  generateAdaptiveContentPDF,
 };

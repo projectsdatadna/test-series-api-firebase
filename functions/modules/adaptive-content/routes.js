@@ -1,5 +1,5 @@
 const express = require('express');
-const { generateAdaptiveContent, extractDocumentStructure } = require('./controller');
+const { generateAdaptiveContent, extractDocumentStructure, generateAdaptiveContentPDF } = require('./controller');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
 const router = express.Router();
@@ -56,17 +56,12 @@ const verifyJWT = async (req, res, next) => {
   }
 };
 
-// Handle OPTIONS preflight requests
-router.options('/generate', (req, res) => {
-  res.sendStatus(200);
-});
-
-router.options('/extract-structure', (req, res) => {
-  res.sendStatus(200);
-});
+router.options('/generate', (req, res) => { res.sendStatus(200); });
+router.options('/extract-structure', (req, res) => { res.sendStatus(200); });
+router.options('/generate-pdf', (req, res) => { res.sendStatus(200); });
 
 router.post('/generate', verifyJWT, generateAdaptiveContent);
-
 router.post('/extract-structure', verifyJWT, extractDocumentStructure);
+router.post('/generate-pdf', verifyJWT, generateAdaptiveContentPDF);
 
 module.exports = router;
