@@ -26,6 +26,7 @@
     "formidable": "^3.5.4",
     "multer": "^2.0.2",
     "nodemailer": "^6.10.1",
+    "openai": "^6.33.0",
     "pdf-parse": "^2.4.5",
     "puppeteer": "^22.15.0",
     "puppeteer-core": "^22.15.0",
