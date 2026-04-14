@@ -11,6 +11,7 @@ const generateEducationalPuzzleNew = require("./controllers/generateEducationalP
 const generateImageRouter = require('./generateImage');
 
 const generateImageTest = require("./testGenerateImage");
+const quizImageRouter = require("./quiz-image-generate");
 
 // Define routes
 router.post('/generate-remedial-flowchart', generateRemedialFlowchartNew);
@@ -23,5 +24,7 @@ router.post('/generate-simplified-explanation', generateSimplifiedExplanationNew
 router.use('/generateimage', generateImageRouter);
 
 router.post('/generateimage/test', generateImageTest);
+
+router.use('/quiz-image-generate', quizImageRouter);
 
 module.exports = router;
