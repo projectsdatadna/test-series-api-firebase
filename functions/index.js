@@ -1,6 +1,5 @@
 const functions = require('firebase-functions');
 const express = require('express');
-const corsMiddleware = require('./config/cors');
 const errorHandler = require('./middleware/errorHandler');
 const adaptiveContentRoutes = require('./modules/adaptive-content/routes');
 const questionPaperRoutes = require('./modules/question-paper/routes');
@@ -163,6 +162,10 @@ app.use((req, res) => {
   });
 });
 
+// const PORT = 5000;
+// app.listen(PORT, () => {
+//   console.log(`Server is running at http://localhost:${PORT}`);
+// });
 
 exports.api = functions
   .runWith({
