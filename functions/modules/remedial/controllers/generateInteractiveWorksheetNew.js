@@ -1,14 +1,20 @@
 const logger = require('../utils/logger');
+const axios  = require('axios');
 
-const CLAUDE_PRICING = {
-  'claude-haiku-4-5-20251001': {
-    inputCostPerMillion:  1.00,
-    outputCostPerMillion: 5.00,
+const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_CONTENT_DEPLOYMENT3;
+const AZURE_OPENAI_API_KEY    = process.env.AZURE_OPENAI_API_KEY;
+const AZURE_OPENAI_ENDPOINT   = process.env.AZURE_OPENAI_ENDPOINT;
+const AZURE_API_VERSION       = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview';
+
+const GPT_PRICING = {
+  'gpt-4o-mini': {
+    inputCostPerMillion:  0.15,
+    outputCostPerMillion: 0.60,
   },
 };
 
-function calculateCost(model, inputTokens, outputTokens) {
-  const pricing = CLAUDE_PRICING[model] ?? { inputCostPerMillion: 0, outputCostPerMillion: 0 };
+function calculateCost(inputTokens, outputTokens) {
+  const pricing = GPT_PRICING['gpt-4o-mini'];
   const inputCost  = (inputTokens  / 1_000_000) * pricing.inputCostPerMillion;
   const outputCost = (outputTokens / 1_000_000) * pricing.outputCostPerMillion;
   const totalCost  = inputCost + outputCost;
@@ -35,8 +41,24 @@ Rules:
 - Output valid JSON only. No markdown. No extra commentary.
 `;
 
+// ✅ Same language detection fix as puzzle generator
+function detectSectionLanguage(text = '') {
+  const tamil   = (text.match(/[\u0B80-\u0BFF]/g) || []).length;
+  const english = (text.match(/[A-Za-z]/g)        || []).length;
+  if (tamil > 10 && tamil > english * 0.3) return 'TAMIL';
+  return 'ENGLISH';
+}
+
 function buildWorksheetPrompt(studentContext, sectionNumber, sectionText) {
+  // ✅ Same language directive injection as puzzle generator
+  const detectedLang = detectSectionLanguage(sectionText);
+  const langDirective = detectedLang === 'TAMIL'
+    ? `⚠️ LANGUAGE DETECTED: TAMIL. All questions, answers, titles, and descriptions MUST be in Tamil script (Unicode). Do NOT use English or Roman letters for content values.`
+    : `⚠️ LANGUAGE DETECTED: ENGLISH. All questions, answers, titles, and descriptions MUST be in English. Do NOT use Tamil script anywhere.`;
+
   return `
+${langDirective}
+
 Create an interactive worksheet for Section ${sectionNumber}
 using ONLY the section text below.
 
@@ -92,29 +114,30 @@ Return JSON:
 `;
 }
 
-function extractWorksheetJSON(claudeResponse) {
+function extractWorksheetJSON(responseText) {
   try {
-    const parsed = JSON.parse(claudeResponse);
+    const parsed = JSON.parse(responseText);
     if (parsed.activities && Array.isArray(parsed.activities)) return parsed;
   } catch (e) {}
-  const jsonMatch = claudeResponse.match(/```json\s*\n([\s\S]*?)```/);
+
+  const jsonMatch = responseText.match(/```json\s*\n([\s\S]*?)```/);
   if (jsonMatch) {
     try {
       const parsed = JSON.parse(jsonMatch[1]);
       if (parsed.activities && Array.isArray(parsed.activities)) return parsed;
     } catch (e) {}
   }
-  const objectMatch = claudeResponse.match(/\{[\s\S]*"activities"[\s\S]*\}/);
+
+  const objectMatch = responseText.match(/\{[\s\S]*"activities"[\s\S]*\}/);
   if (objectMatch) {
     try {
       const parsed = JSON.parse(objectMatch[0]);
       if (parsed.activities && Array.isArray(parsed.activities)) return parsed;
     } catch (e) {}
   }
+
   throw new Error('Could not extract valid worksheet JSON from response');
 }
-
-const MODEL = 'claude-haiku-4-5-20251001';
 
 module.exports = async (req, res) => {
   try {
@@ -122,7 +145,6 @@ module.exports = async (req, res) => {
 
     const { sectionNumber, sectionText, studentContext } = req.body;
 
-    // ✅ Validate — no fileId needed
     if (!sectionNumber || !sectionText || !studentContext) {
       return res.status(400).json({
         success: false,
@@ -130,8 +152,9 @@ module.exports = async (req, res) => {
       });
     }
 
-    if (!process.env.CLAUDE_API_KEY) {
-      return res.status(500).json({ success: false, message: 'Server configuration error' });
+    // ✅ Azure env check
+    if (!AZURE_OPENAI_API_KEY || !AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_DEPLOYMENT) {
+      return res.status(500).json({ success: false, message: 'Server configuration error: Azure OpenAI env vars missing' });
     }
 
     const trimmedText = sectionText.length > 80000
@@ -140,46 +163,44 @@ module.exports = async (req, res) => {
 
     const prompt = buildWorksheetPrompt(studentContext, sectionNumber, trimmedText);
 
-    logger.info('🤖 Calling Claude API for worksheet generation...');
+    // ✅ Log detected language
+    const detectedLang = detectSectionLanguage(trimmedText);
+    logger.info(`🌐 Detected section language: ${detectedLang}`);
+    logger.info('🤖 Calling Azure OpenAI API for worksheet generation...');
 
-    // ✅ Plain messages API — no Files API, no beta header
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 5000,
+    const azureUrl = `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${AZURE_API_VERSION}`;
+
+    const response = await axios.post(
+      azureUrl,
+      {
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user',   content: prompt },
+        ],
+        max_tokens:  5000,
         temperature: 0.3,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+      },
+      {
+        headers: {
+          'api-key':      AZURE_OPENAI_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000,
+      }
+    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      logger.error('❌ Claude API error:', errorData);
-      return res.status(response.status).json({
-        success: false,
-        message: errorData.error?.message || `API error: ${response.status}`,
-      });
-    }
-
-    const claudeResponse = await response.json();
-    const responseText = claudeResponse.content?.[0]?.text;
+    // ✅ Azure response shape
+    const responseText = response.data?.choices?.[0]?.message?.content;
 
     if (!responseText) {
-      return res.status(500).json({ success: false, message: 'Invalid response from Claude' });
+      return res.status(500).json({ success: false, message: 'Invalid response from Azure OpenAI' });
     }
 
-    // ✅ Token usage + cost — same pattern
-    const inputTokens  = claudeResponse.usage?.input_tokens  ?? 0;
-    const outputTokens = claudeResponse.usage?.output_tokens ?? 0;
+    // ✅ Azure token fields
+    const inputTokens  = response.data?.usage?.prompt_tokens     ?? 0;
+    const outputTokens = response.data?.usage?.completion_tokens ?? 0;
     const totalTokens  = inputTokens + outputTokens;
-    const cost = calculateCost(MODEL, inputTokens, outputTokens);
+    const cost = calculateCost(inputTokens, outputTokens);
 
     logger.info(`📊 Token Usage | Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens}`);
     logger.info(`💰 API Cost    | Input: $${cost.inputCost} | Output: $${cost.outputCost} | Total: $${cost.totalCost} USD`);
@@ -206,17 +227,19 @@ module.exports = async (req, res) => {
       success: true,
       message: `Worksheet generated successfully from Section ${sectionNumber}`,
       data: {
-        studentName: studentContext.studentName,
-        conceptGap: studentContext.conceptGap,
+        studentName:  studentContext.studentName,
+        conceptGap:   studentContext.conceptGap,
         sectionNumber,
-        title: worksheetData.title || 'Interactive Worksheet',
-        description: worksheetData.description || 'Practice exercises',
-        activities: worksheetData.activities,
-        generatedAt: new Date().toISOString(),
+        title:        worksheetData.title       || 'Interactive Worksheet',
+        description:  worksheetData.description || 'Practice exercises',
+        activities:   worksheetData.activities,
+        generatedAt:  new Date().toISOString(),
       },
     });
+
   } catch (error) {
     logger.error('❌ Unexpected error:', { message: error.message, stack: error.stack });
-    return res.status(500).json({ success: false, message: error.message || 'Internal server error' });
+    const azureMsg = error?.response?.data?.error?.message || error?.message;
+    return res.status(500).json({ success: false, message: azureMsg || 'Internal server error' });
   }
 };

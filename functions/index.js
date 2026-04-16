@@ -38,14 +38,12 @@ app.use(require("cors")());
 app.use((req, res, next) => {
   const contentType = req.headers['content-type'] || '';
   
-  // Skip JSON parsing for multipart/form-data
   if (contentType.includes('multipart/form-data')) {
     console.log('[Express] Skipping JSON parsing for multipart request');
     return next();
   }
   
-  // Parse JSON for other requests
-  express.json()(req, res, next);
+  express.json({ limit: '10mb' })(req, res, next);  // ← Added limit
 });
 
 app.use(express.urlencoded({ extended: true }));

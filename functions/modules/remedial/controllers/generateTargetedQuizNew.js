@@ -1,14 +1,20 @@
 const logger = require('../utils/logger');
+const axios  = require('axios');
 
-const CLAUDE_PRICING = {
-  'claude-haiku-4-5-20251001': {
-    inputCostPerMillion:  1.00,
-    outputCostPerMillion: 5.00,
+const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_CONTENT_DEPLOYMENT3;
+const AZURE_OPENAI_API_KEY    = process.env.AZURE_OPENAI_API_KEY;
+const AZURE_OPENAI_ENDPOINT   = process.env.AZURE_OPENAI_ENDPOINT;
+const AZURE_API_VERSION       = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview';
+
+const GPT_PRICING = {
+  'gpt-4o-mini': {
+    inputCostPerMillion:  0.15,
+    outputCostPerMillion: 0.60,
   },
 };
 
-function calculateCost(model, inputTokens, outputTokens) {
-  const pricing = CLAUDE_PRICING[model] ?? { inputCostPerMillion: 0, outputCostPerMillion: 0 };
+function calculateCost(inputTokens, outputTokens) {
+  const pricing = GPT_PRICING['gpt-4o-mini'];
   const inputCost  = (inputTokens  / 1_000_000) * pricing.inputCostPerMillion;
   const outputCost = (outputTokens / 1_000_000) * pricing.outputCostPerMillion;
   const totalCost  = inputCost + outputCost;
@@ -51,23 +57,19 @@ function detectLanguage(text = '') {
 }
 
 function buildQuizPrompt(studentContext, sectionNumber, sectionText, numberOfQuestions) {
-  // ── Detect language from the actual section text ──────────────
   const detectedLang = detectLanguage(sectionText);
 
   return `
 Generate EXACTLY ${numberOfQuestions} multiple-choice questions
 based ONLY on Section ${sectionNumber}.
 
-
 SECTION:
 ${sectionText}
-
 
 Student:
 Name: ${studentContext.studentName}
 Grade: ${studentContext.standardId || '6-8'}
 Learning Gap: ${studentContext.conceptGap}
-
 
 ⚠️ MANDATORY LANGUAGE RULE — READ THIS FIRST:
 The section text above is written in: ${detectedLang}.
@@ -76,7 +78,6 @@ Do NOT translate into any other language.
 Do NOT use Hindi if the section is in English.
 Do NOT use English if the section is in Tamil/Hindi/Telugu.
 The language of your output must EXACTLY match the language of the section text: ${detectedLang}.
-
 
 Instructions:
 - Each question must have 4 options (A, B, C, D).
@@ -87,7 +88,6 @@ Instructions:
 - Do NOT mention "Section", "Section 1", "Section 1.6", or any section reference in question text or options.
 - Do NOT copy worked examples or sample problems from the section into questions.
 - "correctAnswer" must be the option LABEL only: "A", "B", "C", or "D".
-
 
 Return JSON:
 
@@ -110,29 +110,30 @@ Return JSON:
 `;
 }
 
-function extractQuizJSON(claudeResponse) {
+function extractQuizJSON(responseText) {
   try {
-    const parsed = JSON.parse(claudeResponse);
+    const parsed = JSON.parse(responseText);
     if (parsed.questions && Array.isArray(parsed.questions)) return parsed.questions;
   } catch (e) {}
-  const jsonMatch = claudeResponse.match(/```json\s*\n([\s\S]*?)```/);
+
+  const jsonMatch = responseText.match(/```json\s*\n([\s\S]*?)```/);
   if (jsonMatch) {
     try {
       const parsed = JSON.parse(jsonMatch[1]);
       if (parsed.questions && Array.isArray(parsed.questions)) return parsed.questions;
     } catch (e) {}
   }
-  const objectMatch = claudeResponse.match(/\{[\s\S]*"questions"[\s\S]*\}/);
+
+  const objectMatch = responseText.match(/\{[\s\S]*"questions"[\s\S]*\}/);
   if (objectMatch) {
     try {
       const parsed = JSON.parse(objectMatch[0]);
       if (parsed.questions && Array.isArray(parsed.questions)) return parsed.questions;
     } catch (e) {}
   }
+
   throw new Error('Could not extract valid quiz JSON from response');
 }
-
-const MODEL = 'claude-haiku-4-5-20251001';
 
 module.exports = async (req, res) => {
   try {
@@ -140,7 +141,6 @@ module.exports = async (req, res) => {
 
     const { sectionNumber, sectionText, studentContext, numberOfQuestions = 5 } = req.body;
 
-    // ✅ Validate — no fileId needed
     if (!sectionNumber || !sectionText || !studentContext) {
       return res.status(400).json({
         success: false,
@@ -148,58 +148,57 @@ module.exports = async (req, res) => {
       });
     }
 
-    if (!process.env.CLAUDE_API_KEY) {
-      return res.status(500).json({ success: false, message: 'Server configuration error' });
+    // ✅ Azure env check
+    if (!AZURE_OPENAI_API_KEY || !AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_DEPLOYMENT) {
+      return res.status(500).json({ success: false, message: 'Server configuration error: Azure OpenAI env vars missing' });
     }
 
-    // Trim text to avoid token overflow
     const trimmedText = sectionText.length > 80000
       ? sectionText.substring(0, 80000) + '\n...[content truncated]'
       : sectionText;
 
     const prompt = buildQuizPrompt(studentContext, sectionNumber, trimmedText, numberOfQuestions);
 
-    logger.info('🤖 Calling Claude API for quiz generation...');
+    // ✅ Log detected language
+    const detectedLang = detectLanguage(trimmedText);
+    logger.info(`🌐 Detected section language: ${detectedLang}`);
+    logger.info('🤖 Calling Azure OpenAI API for quiz generation...');
 
     const maxTokens = Math.min(4096, Math.max(2000, numberOfQuestions * 300));
-    // ✅ Plain messages API — no Files API, no beta header
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: maxTokens,
+
+    const azureUrl = `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${AZURE_API_VERSION}`;
+
+    const response = await axios.post(
+      azureUrl,
+      {
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user',   content: prompt },
+        ],
+        max_tokens:  maxTokens,
         temperature: 0.3,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+      },
+      {
+        headers: {
+          'api-key':      AZURE_OPENAI_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000,
+      }
+    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      logger.error('❌ Claude API error:', errorData);
-      return res.status(response.status).json({
-        success: false,
-        message: errorData.error?.message || `API error: ${response.status}`,
-      });
-    }
-
-    const claudeResponse = await response.json();
-    const responseText = claudeResponse.content?.[0]?.text;
+    // ✅ Azure response shape
+    const responseText = response.data?.choices?.[0]?.message?.content;
 
     if (!responseText) {
-      return res.status(500).json({ success: false, message: 'Invalid response from Claude' });
+      return res.status(500).json({ success: false, message: 'Invalid response from Azure OpenAI' });
     }
 
-    // ✅ Token usage + cost — same pattern
-    const inputTokens  = claudeResponse.usage?.input_tokens  ?? 0;
-    const outputTokens = claudeResponse.usage?.output_tokens ?? 0;
+    // ✅ Azure token fields
+    const inputTokens  = response.data?.usage?.prompt_tokens     ?? 0;
+    const outputTokens = response.data?.usage?.completion_tokens ?? 0;
     const totalTokens  = inputTokens + outputTokens;
-    const cost = calculateCost(MODEL, inputTokens, outputTokens);
+    const cost = calculateCost(inputTokens, outputTokens);
 
     logger.info(`📊 Token Usage | Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens}`);
     logger.info(`💰 API Cost    | Input: $${cost.inputCost} | Output: $${cost.outputCost} | Total: $${cost.totalCost} USD`);
@@ -226,15 +225,17 @@ module.exports = async (req, res) => {
       success: true,
       message: `Quiz generated successfully from Section ${sectionNumber}`,
       data: {
-        studentName: studentContext.studentName,
-        conceptGap: studentContext.conceptGap,
+        studentName:  studentContext.studentName,
+        conceptGap:   studentContext.conceptGap,
         sectionNumber,
         questions,
-        generatedAt: new Date().toISOString(),
+        generatedAt:  new Date().toISOString(),
       },
     });
+
   } catch (error) {
     logger.error('❌ Unexpected error:', { message: error.message, stack: error.stack });
-    return res.status(500).json({ success: false, message: error.message || 'Internal server error' });
+    const azureMsg = error?.response?.data?.error?.message || error?.message;
+    return res.status(500).json({ success: false, message: azureMsg || 'Internal server error' });
   }
 };

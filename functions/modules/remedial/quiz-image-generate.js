@@ -1,7 +1,6 @@
 const express  = require('express');
 const AWS      = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
-const Anthropic = require('@anthropic-ai/sdk');
 const axios    = require('axios');
 const logger   = require('./utils/logger');
 
@@ -13,8 +12,17 @@ const dynamo = new AWS.DynamoDB.DocumentClient({ region: process.env.AWS_REGION 
 const S3_BUCKET        = process.env.AWS_S3_BUCKET;
 const QUIZ_IMAGE_TABLE = process.env.AWS_DYNAMO_TABLE_QUIZ_IMAGES || process.env.AWS_DYNAMO_TABLE;
 const IMAGE_DEPLOYMENT = process.env.AZURE_OPENAI_IMAGE_DEPLOYMENT || 'gpt-image-1.5-tskar';
-const CLAUDE_MODEL     = 'claude-haiku-4-5-20251001';
-const anthropic        = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
+
+// ── Azure OpenAI — Text (prompt enrichment) ───────────────────────
+const TEXT_DEPLOYMENT  = process.env.AZURE_OPENAI_CONTENT_DEPLOYMENT3;
+const TEXT_API_KEY     = process.env.AZURE_OPENAI_API_KEY;
+const TEXT_ENDPOINT    = process.env.AZURE_OPENAI_ENDPOINT;
+const TEXT_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview';
+
+// ── Azure OpenAI — Image (gpt-image) ─────────────────────────────
+const IMAGE_API_KEY     = process.env.AZURE_OPENAI_API_KEY1;
+const IMAGE_ENDPOINT    = process.env.AZURE_OPENAI_ENDPOINT1;
+const IMAGE_API_VERSION = '2025-04-01-preview';
 
 // ── Language detector ─────────────────────────────────────────────
 function detectLanguage(text = '') {
@@ -41,7 +49,7 @@ function detectSubject(text = '') {
   return 'general';
 }
 
-// ── Build image prompt via Claude ─────────────────────────────────
+// ── Build image prompt via Azure OpenAI (replaces Claude) ─────────
 async function buildImagePrompt(question, subject, lang, imageStyle = 'color') {
   const isNonEnglish = lang.code !== 'en';
 
@@ -93,7 +101,7 @@ Return:
   } else {
     // ── English: describe ONLY the visual concept, never include numbers or question text ──
     userContent = `You are an expert educational illustration prompt writer.
-Write a visual-only image generation prompt based on the CONCEPT of this question. 
+Write a visual-only image generation prompt based on the CONCEPT of this question.
 
 Question concept: "${question}"
 Subject: ${subject}
@@ -110,14 +118,28 @@ Instructions:
 - Return ONLY the prompt text, nothing else.`;
   }
 
-  const msg = await anthropic.messages.create({
-    model:       CLAUDE_MODEL,
-    max_tokens:  400,
-    temperature: 0.1,   // lower temp = more rule-following
-    messages: [{ role: 'user', content: userContent }],
-  });
+  // ✅ Same axios pattern as all other generators
+  const azureUrl = `${TEXT_ENDPOINT}/openai/deployments/${TEXT_DEPLOYMENT}/chat/completions?api-version=${TEXT_API_VERSION}`;
 
-  const raw = msg.content?.[0]?.text?.trim() || '';
+  const response = await axios.post(
+    azureUrl,
+    {
+      messages: [
+        { role: 'user', content: userContent },
+      ],
+      max_tokens:  400,
+      temperature: 0.1,
+    },
+    {
+      headers: {
+        'api-key':      TEXT_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      timeout: 60000,
+    }
+  );
+
+  const raw = response.data?.choices?.[0]?.message?.content?.trim() || '';
 
   if (isNonEnglish) {
     let parsed = {};
@@ -145,10 +167,7 @@ Instructions:
 
 // ── Generate image via Azure ──────────────────────────────────────
 async function generateImageWithAzure(prompt, isNonEnglish = false, imageStyle = 'color') {
-  const endpoint   = process.env.AZURE_OPENAI_ENDPOINT1;
-  const apiKey     = process.env.AZURE_OPENAI_API_KEY1;
-  const apiVersion = '2025-04-01-preview';
-  const url = `${endpoint}/openai/deployments/${IMAGE_DEPLOYMENT}/images/generations?api-version=${apiVersion}`;
+  const url = `${IMAGE_ENDPOINT}/openai/deployments/${IMAGE_DEPLOYMENT}/images/generations?api-version=${IMAGE_API_VERSION}`;
 
   // ── Style rule based on imageStyle ────────────────────────────
   const styleRule = imageStyle === 'line'
@@ -178,7 +197,7 @@ async function generateImageWithAzure(prompt, isNonEnglish = false, imageStyle =
         quality:       'high',
         output_format: 'png',
       }, {
-        headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+        headers: { 'api-key': IMAGE_API_KEY, 'Content-Type': 'application/json' },
         timeout: 90000,
       });
 
@@ -215,7 +234,7 @@ function buildDiagramHTML(imageUrl, title, labels, langCode) {
     <div style="position:absolute;left:${l.x}%;top:${l.y}%;
       transform:translate(-50%,-50%);
       font-family:'${fontName}',sans-serif;
-      font-size:clamp(9px,1.4vw,13px);   /* ✅ scales with container */
+      font-size:clamp(9px,1.4vw,13px);
       font-weight:600;color:#0d47a1;
       background:rgba(255,255,255,0.92);
       padding:2px 7px;border-radius:4px;
@@ -230,15 +249,13 @@ ${googleFont ? `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="${googleFont}" rel="stylesheet">` : ''}
 <style>
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-  /* ✅ Fill iframe — no scroll, no overflow */
   html,body{width:100%;height:100%;overflow:hidden;background:#fff}
   .wrap{position:relative;width:100%;height:100%}
-  /* ✅ Image scales to fill without cropping */
   .wrap img{width:100%;height:100%;display:block;object-fit:contain}
   .title{
     position:absolute;top:2%;left:50%;transform:translateX(-50%);
     font-family:'${fontName}',sans-serif;
-    font-size:clamp(10px,1.6vw,15px);   /* ✅ scales with iframe width */
+    font-size:clamp(10px,1.6vw,15px);
     font-weight:700;color:#1a1a2e;
     background:rgba(255,255,255,0.93);
     padding:3px 10px;border-radius:5px;
@@ -268,8 +285,13 @@ router.post('/', async (req, res) => {
     if (!S3_BUCKET) {
       return res.status(500).json({ success: false, message: 'S3_BUCKET env var missing' });
     }
-    if (!process.env.AZURE_OPENAI_API_KEY1 || !process.env.AZURE_OPENAI_ENDPOINT1) {
-      return res.status(500).json({ success: false, message: 'Missing Azure credentials' });
+
+    // ✅ Check both text and image Azure credentials
+    if (!TEXT_API_KEY || !TEXT_ENDPOINT || !TEXT_DEPLOYMENT) {
+      return res.status(500).json({ success: false, message: 'Missing Azure text (prompt enrichment) credentials' });
+    }
+    if (!IMAGE_API_KEY || !IMAGE_ENDPOINT) {
+      return res.status(500).json({ success: false, message: 'Missing Azure image generation credentials' });
     }
 
     const lang    = detectLanguage(question);
@@ -277,7 +299,7 @@ router.post('/', async (req, res) => {
 
     logger.info(`🎯 Quiz image | Q: "${question.substring(0, 60)}..." | subject: ${subject} | lang: ${lang.name}`);
 
-    // ── Step 1: Claude → enriched prompt ─────────────────────────
+    // ── Step 1: Azure OpenAI → enriched prompt ────────────────────
     const { enrichedPrompt, title, labels, isNonEnglish } =
       await buildImagePrompt(question, subject, lang, imageStyle);
 
@@ -317,7 +339,7 @@ router.post('/', async (req, res) => {
         langCode:      lang.code,
         isNonEnglish,
         title,
-        labels: labels,
+        labels:        labels,
         diagramHTML:   diagramHTML || null,
         s3Key,
         imageUrl,

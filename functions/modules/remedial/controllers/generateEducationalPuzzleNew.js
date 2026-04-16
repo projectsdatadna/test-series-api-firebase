@@ -1,14 +1,20 @@
 const logger = require('../utils/logger');
+const axios  = require('axios');
 
-const CLAUDE_PRICING = {
-  'claude-haiku-4-5-20251001': {
-    inputCostPerMillion: 1.00,
-    outputCostPerMillion: 5.00,
+const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_CONTENT_DEPLOYMENT3;
+const AZURE_OPENAI_API_KEY    = process.env.AZURE_OPENAI_API_KEY;
+const AZURE_OPENAI_ENDPOINT   = process.env.AZURE_OPENAI_ENDPOINT;
+const AZURE_API_VERSION       = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview';
+
+const GPT_PRICING = {
+  'gpt-4o-mini': {
+    inputCostPerMillion:  0.15,
+    outputCostPerMillion: 0.60,
   },
 };
 
-function calculateCost(model, inputTokens, outputTokens) {
-  const pricing = CLAUDE_PRICING[model] ?? { inputCostPerMillion: 0, outputCostPerMillion: 0 };
+function calculateCost(inputTokens, outputTokens) {
+  const pricing = GPT_PRICING['gpt-4o-mini'];
   const inputCost  = (inputTokens  / 1_000_000) * pricing.inputCostPerMillion;
   const outputCost = (outputTokens / 1_000_000) * pricing.outputCostPerMillion;
   return {
@@ -35,8 +41,24 @@ Rules:
 - Output valid JSON only. No markdown fences. No commentary before or after JSON.
 `;
 
+// ✅ ONLY CHANGE: detect language from sectionText before building prompt
+function detectSectionLanguage(text = '') {
+  const tamil   = (text.match(/[\u0B80-\u0BFF]/g) || []).length;
+  const english = (text.match(/[A-Za-z]/g)        || []).length;
+  if (tamil > 10 && tamil > english * 0.3) return 'TAMIL';
+  return 'ENGLISH';
+}
+
 function buildPuzzlePrompt(studentContext, sectionNumber, sectionText, numberOfClues) {
+  // ✅ ONLY CHANGE: inject detected language as a hard directive at the top
+  const detectedLang = detectSectionLanguage(sectionText);
+  const langDirective = detectedLang === 'TAMIL'
+    ? `⚠️ LANGUAGE DETECTED: TAMIL. All answers and clues MUST be in Tamil script (Unicode). Do NOT use English or Roman letters for answers or clues.`
+    : `⚠️ LANGUAGE DETECTED: ENGLISH. All answers MUST be single UPPERCASE English words. All clues MUST be in English. Do NOT use Tamil script anywhere.`;
+
   return `
+${langDirective}
+
 Extract exactly ${numberOfClues} key single-word terms from Section ${sectionNumber} and write a short clue for each.
 
 SECTION:
@@ -71,8 +93,8 @@ Return ONLY this JSON (no other text):
 `;
 }
 
-function extractWordsJSON(claudeResponse) {
-  let text = claudeResponse.replace(/^\uFEFF/, '').trim();
+function extractWordsJSON(responseText) {
+  let text = responseText.replace(/^\uFEFF/, '').trim();
   text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
 
   try {
@@ -89,7 +111,7 @@ function extractWordsJSON(claudeResponse) {
   }
 
   if (!text.includes('"words"')) {
-    throw new Error('Claude did not return the expected words JSON structure');
+    throw new Error('Azure OpenAI did not return the expected words JSON structure');
   }
   throw new Error('Could not extract valid puzzle JSON from response');
 }
@@ -99,13 +121,11 @@ function toChars(word) {
   if (typeof Intl !== 'undefined' && Intl.Segmenter) {
     return [...new Intl.Segmenter().segment(word)].map(s => s.segment);
   }
-  return [...word]; // fallback spread for older Node
+  return [...word];
 }
 
 // ── Auto grid placement — Tamil + English safe ──
 function buildCrosswordGrid(words, gridSize = 15) {
-
-  // ✅ Detect Tamil answers
   const isTamil = words.some(w => /[\u0B80-\u0BFF]/.test(w.answer || ''));
   logger.info(`🔤 Language mode: ${isTamil ? 'Tamil' : 'English'}`);
 
@@ -113,9 +133,9 @@ function buildCrosswordGrid(words, gridSize = 15) {
     .map(w => {
       let answer = (w.answer || '').trim();
       if (isTamil) {
-        answer = answer.replace(/[\s\-_\.,"']/g, ''); // ✅ keep Tamil chars, strip symbols
+        answer = answer.replace(/[\s\-_\.,"']/g, '');
       } else {
-        answer = answer.replace(/[^A-Z]/g, '').toUpperCase(); // English: A-Z only
+        answer = answer.replace(/[^A-Z]/g, '').toUpperCase();
       }
       return { ...w, answer };
     })
@@ -130,7 +150,6 @@ function buildCrosswordGrid(words, gridSize = 15) {
   const grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
   const placed = [];
 
-  // Place first word horizontally in center
   const firstWord  = cleanWords[0].answer;
   const firstChars = toChars(firstWord);
   const startCol   = Math.floor((gridSize - firstChars.length) / 2);
@@ -172,14 +191,12 @@ function buildCrosswordGrid(words, gridSize = 15) {
             col = (p.col - 1) - wi;
           }
 
-          // Bounds check
           if (direction === 'across') {
             if (col < 0 || col + wordChars.length > gridSize || row < 0 || row >= gridSize) continue;
           } else {
             if (row < 0 || row + wordChars.length > gridSize || col < 0 || col >= gridSize) continue;
           }
 
-          // Bleeding check
           const beforeR = direction === 'across' ? row     : row - 1;
           const beforeC = direction === 'across' ? col - 1 : col;
           const afterR  = direction === 'across' ? row     : row + wordChars.length;
@@ -187,7 +204,6 @@ function buildCrosswordGrid(words, gridSize = 15) {
           if (beforeR >= 0 && beforeC >= 0 && grid[beforeR]?.[beforeC] !== null) continue;
           if (afterR < gridSize && afterC < gridSize && grid[afterR]?.[afterC] !== null) continue;
 
-          // Collision check
           let canPlace = true;
           for (let i = 0; i < wordChars.length; i++) {
             const r = direction === 'across' ? row     : row + i;
@@ -197,7 +213,6 @@ function buildCrosswordGrid(words, gridSize = 15) {
           }
           if (!canPlace) continue;
 
-          // Place it
           for (let i = 0; i < wordChars.length; i++) {
             const r = direction === 'across' ? row     : row + i;
             const c = direction === 'across' ? col + i : col;
@@ -217,7 +232,6 @@ function buildCrosswordGrid(words, gridSize = 15) {
       }
     }
 
-    // Fallback: standalone down column
     if (!wordPlaced) {
       for (let tryCol = 1; tryCol < gridSize - 1 && !wordPlaced; tryCol++) {
         const tryRow = 1;
@@ -245,8 +259,6 @@ function buildCrosswordGrid(words, gridSize = 15) {
   return placed;
 }
 
-const MODEL = 'claude-haiku-4-5-20251001';
-
 module.exports = async (req, res) => {
   try {
     logger.info('🧩 Starting educational puzzle generation');
@@ -260,8 +272,8 @@ module.exports = async (req, res) => {
       });
     }
 
-    if (!process.env.CLAUDE_API_KEY) {
-      return res.status(500).json({ success: false, message: 'Server configuration error' });
+    if (!AZURE_OPENAI_API_KEY || !AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_DEPLOYMENT) {
+      return res.status(500).json({ success: false, message: 'Server configuration error: Azure OpenAI env vars missing' });
     }
 
     const trimmedText = sectionText.length > 80000
@@ -271,46 +283,44 @@ module.exports = async (req, res) => {
     const prompt    = buildPuzzlePrompt(studentContext, sectionNumber, trimmedText, numberOfClues);
     const maxTokens = Math.min(4096, Math.max(1500, numberOfClues * 200));
 
-    logger.info('🤖 Calling Claude API for puzzle generation...');
+    // ✅ Log detected language for debugging
+    const detectedLang = detectSectionLanguage(trimmedText);
+    logger.info(`🌐 Detected section language: ${detectedLang}`);
+    logger.info('🤖 Calling Azure OpenAI API for puzzle generation...');
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key':          process.env.CLAUDE_API_KEY,
-        'anthropic-version':  '2023-06-01',
-        'content-type':       'application/json',
-      },
-      body: JSON.stringify({
-        model:       MODEL,
+    const azureUrl = `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${AZURE_API_VERSION}`;
+
+    const response = await axios.post(
+      azureUrl,
+      {
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user',   content: prompt },
+        ],
         max_tokens:  maxTokens,
         temperature: 0.3,
-        system:      SYSTEM_PROMPT,
-        messages:    [{ role: 'user', content: prompt }],
-      }),
-    });
+      },
+      {
+        headers: {
+          'api-key':      AZURE_OPENAI_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000,
+      }
+    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      logger.error('❌ Claude API error:', errorData);
-      return res.status(response.status).json({
-        success: false,
-        message: errorData.error?.message || `API error: ${response.status}`,
-      });
-    }
-
-    const claudeResponse = await response.json();
-    const responseText   = claudeResponse.content?.[0]?.text;
+    const responseText = response.data?.choices?.[0]?.message?.content;
 
     if (!responseText) {
-      return res.status(500).json({ success: false, message: 'Invalid response from Claude' });
+      return res.status(500).json({ success: false, message: 'Invalid response from Azure OpenAI' });
     }
 
-    const inputTokens  = claudeResponse.usage?.input_tokens  ?? 0;
-    const outputTokens = claudeResponse.usage?.output_tokens ?? 0;
-    const cost = calculateCost(MODEL, inputTokens, outputTokens);
+    const inputTokens  = response.data?.usage?.prompt_tokens     ?? 0;
+    const outputTokens = response.data?.usage?.completion_tokens ?? 0;
+    const cost = calculateCost(inputTokens, outputTokens);
     logger.info(`📊 Token Usage | Input: ${inputTokens} | Output: ${outputTokens} | Total: ${inputTokens + outputTokens}`);
     logger.info(`💰 API Cost    | $${cost.totalCost} USD`);
-    logger.info(`🔍 Raw Claude response: ${responseText.substring(0, 300)}`);
+    logger.info(`🔍 Raw Azure response: ${responseText.substring(0, 300)}`);
 
     let rawData;
     try {
@@ -325,10 +335,10 @@ module.exports = async (req, res) => {
     }
 
     if (!rawData.words || rawData.words.length === 0) {
-      return res.status(500).json({ success: false, message: 'Claude returned no words' });
+      return res.status(500).json({ success: false, message: 'Azure OpenAI returned no words' });
     }
 
-    logger.info(`📝 Claude returned ${rawData.words.length} words before grid placement`);
+    logger.info(`📝 Azure OpenAI returned ${rawData.words.length} words before grid placement`);
 
     const clues = buildCrosswordGrid(rawData.words, 15);
 
@@ -338,7 +348,6 @@ module.exports = async (req, res) => {
 
     logger.info(`✅ Placed ${clues.length} clues (across + down)`);
 
-    // ✅ Detect Tamil to inform frontend
     const isTamil = rawData.words.some(w => /[\u0B80-\u0BFF]/.test(w.answer || ''));
 
     return res.status(200).json({
@@ -351,7 +360,7 @@ module.exports = async (req, res) => {
         title:            rawData.title       || 'Educational Crossword Puzzle',
         description:      rawData.description || 'Test your knowledge',
         gridSize:         15,
-        isTamil,          // ✅ frontend uses this for cell sizing
+        isTamil,
         clues,
         generatedAt:      new Date().toISOString(),
       },
@@ -359,6 +368,7 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     logger.error('❌ Unexpected error:', { message: error.message, stack: error.stack });
-    return res.status(500).json({ success: false, message: error.message || 'Internal server error' });
+    const azureMsg = error?.response?.data?.error?.message || error?.message;
+    return res.status(500).json({ success: false, message: azureMsg || 'Internal server error' });
   }
 };

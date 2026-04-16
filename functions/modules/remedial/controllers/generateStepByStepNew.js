@@ -1,22 +1,23 @@
 const logger = require('../utils/logger');
+const axios  = require('axios');
 
-const CLAUDE_PRICING = {
-  'claude-haiku-4-5-20251001': {
-    inputCostPerMillion:  1.00,
-    outputCostPerMillion: 5.00,
+const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_CONTENT_DEPLOYMENT3;
+const AZURE_OPENAI_API_KEY    = process.env.AZURE_OPENAI_API_KEY;
+const AZURE_OPENAI_ENDPOINT   = process.env.AZURE_OPENAI_ENDPOINT;
+const AZURE_API_VERSION       = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview';
+
+const GPT_PRICING = {
+  'gpt-4o-mini': {
+    inputCostPerMillion:  0.15,
+    outputCostPerMillion: 0.60,
   },
 };
 
-function calculateCost(model, inputTokens, outputTokens) {
-  const pricing = CLAUDE_PRICING[model] ?? {
-    inputCostPerMillion: 0,
-    outputCostPerMillion: 0,
-  };
-
+function calculateCost(inputTokens, outputTokens) {
+  const pricing = GPT_PRICING['gpt-4o-mini'];
   const inputCost  = (inputTokens  / 1_000_000) * pricing.inputCostPerMillion;
   const outputCost = (outputTokens / 1_000_000) * pricing.outputCostPerMillion;
   const totalCost  = inputCost + outputCost;
-
   return {
     inputCost:  parseFloat(inputCost.toFixed(8)),
     outputCost: parseFloat(outputCost.toFixed(8)),
@@ -41,8 +42,24 @@ Rules:
 - Output valid JSON only. No markdown. No extra text.
 `;
 
+// ✅ Same language detection as all other generators
+function detectSectionLanguage(text = '') {
+  const tamil   = (text.match(/[\u0B80-\u0BFF]/g) || []).length;
+  const english = (text.match(/[A-Za-z]/g)        || []).length;
+  if (tamil > 10 && tamil > english * 0.3) return 'TAMIL';
+  return 'ENGLISH';
+}
+
 function buildStepsPrompt(studentContext, sectionNumber, sectionText) {
+  // ✅ Same language directive injection as all other generators
+  const detectedLang = detectSectionLanguage(sectionText);
+  const langDirective = detectedLang === 'TAMIL'
+    ? `⚠️ LANGUAGE DETECTED: TAMIL. All titles, descriptions, steps, examples, tips, questions, and answers MUST be in Tamil script (Unicode). Do NOT use English or Roman letters for content values.`
+    : `⚠️ LANGUAGE DETECTED: ENGLISH. All titles, descriptions, steps, examples, tips, questions, and answers MUST be in English. Do NOT use Tamil script anywhere.`;
+
   return `
+${langDirective}
+
 Create a clear step-by-step walkthrough for Section ${sectionNumber}
 using ONLY the section text below.
 
@@ -90,22 +107,19 @@ Return JSON in this format:
 `;
 }
 
-function extractStepsJSON(claudeResponse) {
-  try { return JSON.parse(claudeResponse); } catch (e) {}
-  const jsonMatch = claudeResponse.match(/```json\s*\n([\s\S]*?)```/);
+function extractStepsJSON(responseText) {
+  try { return JSON.parse(responseText); } catch (e) {}
+  const jsonMatch = responseText.match(/```json\s*\n([\s\S]*?)```/);
   if (jsonMatch) { try { return JSON.parse(jsonMatch[1]); } catch (e) {} }
-  const objectMatch = claudeResponse.match(/\{[\s\S]*\}/);
+  const objectMatch = responseText.match(/\{[\s\S]*\}/);
   if (objectMatch) { try { return JSON.parse(objectMatch[0]); } catch (e) {} }
   throw new Error('Could not extract valid steps JSON from response');
 }
-
-const MODEL = 'claude-haiku-4-5-20251001';
 
 module.exports = async (req, res) => {
   try {
     const { sectionNumber, sectionText, studentContext } = req.body;
 
-    // Validate — no fileId needed
     if (!sectionNumber || !sectionText || !studentContext) {
       return res.status(400).json({
         success: false,
@@ -113,59 +127,56 @@ module.exports = async (req, res) => {
       });
     }
 
-    if (!process.env.CLAUDE_API_KEY) {
-      return res.status(500).json({ success: false, message: 'Server configuration error' });
+    // ✅ Azure env check
+    if (!AZURE_OPENAI_API_KEY || !AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_DEPLOYMENT) {
+      return res.status(500).json({ success: false, message: 'Server configuration error: Azure OpenAI env vars missing' });
     }
 
-    // Trim text to avoid token overflow
     const trimmedText = sectionText.length > 80000
       ? sectionText.substring(0, 80000) + '\n...[content truncated]'
       : sectionText;
 
     const prompt = buildStepsPrompt(studentContext, sectionNumber, trimmedText);
 
-    logger.info('🤖 Calling Claude API for step-by-step...');
+    // ✅ Log detected language
+    const detectedLang = detectSectionLanguage(trimmedText);
+    logger.info(`🌐 Detected section language: ${detectedLang}`);
+    logger.info('🤖 Calling Azure OpenAI API for step-by-step...');
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 6000,
+    const azureUrl = `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${AZURE_API_VERSION}`;
+
+    const response = await axios.post(
+      azureUrl,
+      {
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user',   content: prompt },
+        ],
+        max_tokens:  6000,
         temperature: 0.3,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+      },
+      {
+        headers: {
+          'api-key':      AZURE_OPENAI_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000,
+      }
+    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return res.status(response.status).json({
-        success: false,
-        message: errorData.error?.message || `API error: ${response.status}`,
-      });
-    }
-
-    const claudeResponse = await response.json();
-    const responseText = claudeResponse.content?.[0]?.text;
+    // ✅ Azure response shape
+    const responseText = response.data?.choices?.[0]?.message?.content;
 
     if (!responseText) {
-      return res.status(500).json({ success: false, message: 'Invalid response from Claude' });
+      return res.status(500).json({ success: false, message: 'Invalid response from Azure OpenAI' });
     }
 
-    // ✅ Token usage — same as explanation controller
-    const inputTokens  = claudeResponse.usage?.input_tokens  ?? 0;
-    const outputTokens = claudeResponse.usage?.output_tokens ?? 0;
+    // ✅ Azure token fields
+    const inputTokens  = response.data?.usage?.prompt_tokens     ?? 0;
+    const outputTokens = response.data?.usage?.completion_tokens ?? 0;
     const totalTokens  = inputTokens + outputTokens;
+    const cost = calculateCost(inputTokens, outputTokens);
 
-    // ✅ Cost calculation
-    const cost = calculateCost(MODEL, inputTokens, outputTokens);
-
-    // ✅ Structured log per API hit
     logger.info(`📊 Token Usage | Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens}`);
     logger.info(`💰 API Cost    | Input: $${cost.inputCost} | Output: $${cost.outputCost} | Total: $${cost.totalCost} USD`);
 
@@ -175,17 +186,19 @@ module.exports = async (req, res) => {
       success: true,
       message: `Step-by-step guide generated successfully for Section ${sectionNumber}`,
       data: {
-        studentName: studentContext.studentName,
-        conceptGap: studentContext.conceptGap,
+        studentName:  studentContext.studentName,
+        conceptGap:   studentContext.conceptGap,
         sectionNumber,
-        title: stepsData.title,
-        description: stepsData.description,
-        steps: stepsData.steps,
-        generatedAt: new Date().toISOString(),
+        title:        stepsData.title,
+        description:  stepsData.description,
+        steps:        stepsData.steps,
+        generatedAt:  new Date().toISOString(),
       },
     });
+
   } catch (error) {
     logger.error('❌ Unexpected error:', error.message);
-    return res.status(500).json({ success: false, message: error.message || 'Internal server error' });
+    const azureMsg = error?.response?.data?.error?.message || error?.message;
+    return res.status(500).json({ success: false, message: azureMsg || 'Internal server error' });
   }
 };

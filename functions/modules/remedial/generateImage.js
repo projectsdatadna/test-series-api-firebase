@@ -291,8 +291,6 @@ const express    = require('express');
 const AWS        = require('aws-sdk');
 const { DynamoDB } = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
-const Anthropic  = require('@anthropic-ai/sdk');
-const { AzureOpenAI } = require('openai');
 const axios      = require('axios');
 
 const router = express.Router();
@@ -304,19 +302,17 @@ const dynamo = new DynamoDB.DocumentClient({ region: process.env.AWS_REGION });
 const S3_BUCKET    = process.env.AWS_S3_BUCKET;
 const DYNAMO_TABLE = process.env.AWS_DYNAMO_TABLE;
 
-// ── Claude setup ──────────────────────────────────────────────────
-const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
-const anthropic    = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
+// ── Azure OpenAI — Text (prompt enrichment) ───────────────────────
+const TEXT_DEPLOYMENT = process.env.AZURE_OPENAI_CONTENT_DEPLOYMENT3;
+const TEXT_API_KEY    = process.env.AZURE_OPENAI_API_KEY;
+const TEXT_ENDPOINT   = process.env.AZURE_OPENAI_ENDPOINT;
+const TEXT_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview';
 
-// ── Azure OpenAI setup ────────────────────────────────────────────
-const azureOpenAI = new AzureOpenAI({
-  apiKey:     process.env.AZURE_OPENAI_API_KEY1,
-  endpoint:   process.env.AZURE_OPENAI_ENDPOINT1,
-  apiVersion: '2025-04-01-preview',
-});
-
-// DALL-E 3 deployment name — set in your Azure OpenAI resource
+// ── Azure OpenAI — Image (DALL-E / gpt-image) ─────────────────────
 const IMAGE_DEPLOYMENT = process.env.AZURE_OPENAI_IMAGE_DEPLOYMENT || 'gpt-image-1.5-tskar';
+const IMAGE_API_KEY    = process.env.AZURE_OPENAI_API_KEY1;
+const IMAGE_ENDPOINT   = process.env.AZURE_OPENAI_ENDPOINT1;
+const IMAGE_API_VERSION = '2025-04-01-preview';
 
 /* ─────────────────────────────────────────────────────────────────
    Subject detector
@@ -430,10 +426,11 @@ function detectLanguage(text = '') {
   if (/[\u0600-\u06FF]/.test(text)) return { code: 'ar', name: 'Arabic' };
   return { code: 'en', name: 'English' };
 }
+
 /* ─────────────────────────────────────────────────────────────────
-   Helper: Enrich prompt via Claude
+   Helper: Enrich prompt via Azure OpenAI (replaces Claude)
 ───────────────────────────────────────────────────────────────── */
-async function enrichPromptWithClaude(rawPrompt, imageType) {
+async function enrichPromptWithAzure(rawPrompt, imageType) {
   if (imageType === 'SKIP') return null;
 
   let visualContext = null;
@@ -443,7 +440,7 @@ async function enrichPromptWithClaude(rawPrompt, imageType) {
   const description = visualContext?.description || rawPrompt;
   const subject     = detectSubject(label, description);
   const lang        = detectLanguage(`${label} ${description}`);
-  const imageStyle  = visualContext?.imageStyle  || 'color'; 
+  const imageStyle  = visualContext?.imageStyle  || 'color';
 
   console.log('─'.repeat(60));
   console.log(`🔍 SUBJECT   : ${subject}`);
@@ -453,7 +450,7 @@ async function enrichPromptWithClaude(rawPrompt, imageType) {
   console.log('─'.repeat(60));
   console.log(`🎨 IMAGE STYLE: ${imageStyle}`);
 
-  const stylePrompt = getSubjectPromptStyle(subject, label, description, visualContext);
+  const stylePrompt  = getSubjectPromptStyle(subject, label, description, visualContext);
   const isNonEnglish = lang.code !== 'en';
 
   let userContent;
@@ -507,20 +504,34 @@ Write the final image generation prompt in under 150 words.
 Return ONLY the prompt text. No explanation. No markdown.`;
   }
 
-  console.log('📤 PROMPT TO CLAUDE:');
+  console.log('📤 PROMPT TO AZURE OPENAI:');
   console.log(userContent);
   console.log('─'.repeat(60));
 
-  const msg = await anthropic.messages.create({
-    model:       CLAUDE_MODEL,
-    max_tokens:  600,
-    temperature: 0.2,
-    messages: [{ role: 'user', content: userContent }],
-  });
+  // ✅ Same axios pattern as all other generators
+  const azureUrl = `${TEXT_ENDPOINT}/openai/deployments/${TEXT_DEPLOYMENT}/chat/completions?api-version=${TEXT_API_VERSION}`;
 
-  const raw = msg.content?.[0]?.text?.trim() || '';
+  const response = await axios.post(
+    azureUrl,
+    {
+      messages: [
+        { role: 'user', content: userContent },
+      ],
+      max_tokens:  600,
+      temperature: 0.2,
+    },
+    {
+      headers: {
+        'api-key':      TEXT_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      timeout: 60000,
+    }
+  );
 
-  console.log('📥 CLAUDE RESPONSE:');
+  const raw = response.data?.choices?.[0]?.message?.content?.trim() || '';
+
+  console.log('📥 AZURE OPENAI RESPONSE:');
   console.log(raw);
   console.log('─'.repeat(60));
 
@@ -556,16 +567,13 @@ Return ONLY the prompt text. No explanation. No markdown.`;
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   Helper: Generate image via Azure OpenAI DALL-E 3
+   Helper: Generate image via Azure OpenAI gpt-image
    Returns: Buffer (PNG image bytes)
 ───────────────────────────────────────────────────────────────── */
 async function generateImageWithAzure(prompt, isNonEnglish = false, imageStyle = 'color') {
   console.log(`🎨 Azure gpt-image | deployment: ${IMAGE_DEPLOYMENT} | noText: ${isNonEnglish} | style: ${imageStyle}`);
 
-  const endpoint   = process.env.AZURE_OPENAI_ENDPOINT1;
-  const apiKey     = process.env.AZURE_OPENAI_API_KEY1;
-  const apiVersion = '2025-04-01-preview';
-  const url = `${endpoint}/openai/deployments/${IMAGE_DEPLOYMENT}/images/generations?api-version=${apiVersion}`;
+  const url = `${IMAGE_ENDPOINT}/openai/deployments/${IMAGE_DEPLOYMENT}/images/generations?api-version=${IMAGE_API_VERSION}`;
 
   const styleRule = imageStyle === 'line'
     ? `STYLE RULE: Black and white LINE ART only.
@@ -589,7 +597,6 @@ Do NOT draw any empty boxes, blank rectangles, unfilled label frames, empty call
 Every shape drawn must be a filled part of the actual illustration — NOT an annotation container.
 No empty outlined rectangles. No blank text boxes. No unfilled callout frames. No empty speech bubbles.`;
 
-  // ── NEW: Canvas boundary rule — prevents clipping ─────────────
   const canvasRule = `CANVAS RULE (critical — no exceptions):
 The entire illustration MUST be fully contained within the image boundaries.
 Leave at least 5% padding on ALL sides (left, right, top, bottom).
@@ -605,7 +612,7 @@ Every part of the diagram must be 100% visible — nothing cropped, nothing clip
     prompt:        finalPrompt,
     n:             1,
     size:          '1024x1024',
-    quality:       'high',          // ← 'medium' → 'high' (prevents edge clipping)
+    quality:       'high',
     output_format: 'png',
   };
 
@@ -616,8 +623,8 @@ Every part of the diagram must be 100% visible — nothing cropped, nothing clip
       console.log(`🎨 Azure attempt ${attempt}`);
 
       const response = await axios.post(url, body, {
-        headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
-        timeout: 90000,   // 90s — high quality takes longer
+        headers: { 'api-key': IMAGE_API_KEY, 'Content-Type': 'application/json' },
+        timeout: 90000,
       });
 
       const base64 = response.data?.data?.[0]?.b64_json;
@@ -625,7 +632,6 @@ Every part of the diagram must be 100% visible — nothing cropped, nothing clip
 
       const buffer = Buffer.from(base64, 'base64');
 
-      // Reject suspiciously small images (corrupt / incomplete render)
       if (buffer.length < 50_000) {
         throw new Error(`Image too small: ${buffer.length} bytes — likely incomplete`);
       }
@@ -644,7 +650,6 @@ Every part of the diagram must be 100% visible — nothing cropped, nothing clip
 }
 
 function buildDiagramHTML(imageUrl, title, labels, langCode) {
-  // Google font map by language code
   const fontMap = {
     ta: 'Noto Sans Tamil',
     hi: 'Noto Sans Devanagari',
@@ -728,10 +733,9 @@ function buildDiagramHTML(imageUrl, title, labels, langCode) {
 </body>
 </html>`;
 }
+
 /* ─────────────────────────────────────────────────────────────────
    POST /api/generate-image
-   Body: { prompt, imageType, contentId?, visualIndex? }
-   Note: `model` param is ignored — Azure DALL-E 3 is always used
 ───────────────────────────────────────────────────────────────── */
 router.post('/', async (req, res) => {
   try {
@@ -744,21 +748,25 @@ router.post('/', async (req, res) => {
     if (!S3_BUCKET || !DYNAMO_TABLE)
       return res.status(500).json({ success: false, message: 'Missing env vars' });
 
-    if (!process.env.AZURE_OPENAI_API_KEY1 || !process.env.AZURE_OPENAI_ENDPOINT1)
-      return res.status(500).json({ success: false, message: 'Missing Azure credentials' });
+    // ✅ Check both text and image Azure credentials
+    if (!TEXT_API_KEY || !TEXT_ENDPOINT || !TEXT_DEPLOYMENT)
+      return res.status(500).json({ success: false, message: 'Missing Azure text (prompt enrichment) credentials' });
+
+    if (!IMAGE_API_KEY || !IMAGE_ENDPOINT)
+      return res.status(500).json({ success: false, message: 'Missing Azure image generation credentials' });
 
     if (imageType === 'SKIP')
       return res.status(400).json({ success: false, message: 'Flowchart visuals do not need AI image generation.' });
 
-    // ── Step 1: Claude → enriched prompt + labels (for Tamil/Hindi) ──
+    // ── Step 1: Azure OpenAI → enriched prompt + labels ──────────
     const { enrichedPrompt, title, labels, lang, isNonEnglish, imageStyle } =
-      await enrichPromptWithClaude(rawPrompt, imageType);
+      await enrichPromptWithAzure(rawPrompt, imageType);
 
-    console.log(`📝 TO AZURE | lang: ${lang.name} | noText: ${isNonEnglish}`);
+    console.log(`📝 TO AZURE IMAGE | lang: ${lang.name} | noText: ${isNonEnglish}`);
     console.log(enrichedPrompt);
     console.log('─'.repeat(60));
 
-    // ── Step 2: Generate image (no text if Tamil/Hindi) ───────────
+    // ── Step 2: Generate image ────────────────────────────────────
     const buffer = await generateImageWithAzure(enrichedPrompt, isNonEnglish, imageStyle);
 
     // ── Step 3: Upload to S3 ──────────────────────────────────────
@@ -779,7 +787,7 @@ router.post('/', async (req, res) => {
 
     // ── Step 5: DynamoDB ──────────────────────────────────────────
     const subject = (() => {
-      try { const v = JSON.parse(rawPrompt); return detectSubject(v.label||'', v.description||''); }
+      try { const v = JSON.parse(rawPrompt); return detectSubject(v.label || '', v.description || ''); }
       catch { return 'general'; }
     })();
 
@@ -793,11 +801,11 @@ router.post('/', async (req, res) => {
         model:         `azure-gpt-image-1.5/${IMAGE_DEPLOYMENT}`,
         subject,
         language:      lang.name,
-        langCode:      lang.code,          // ← add langCode
-        isNonEnglish,                      // ← add isNonEnglish flag
+        langCode:      lang.code,
+        isNonEnglish,
         title,
         labels:        JSON.stringify(labels),
-        diagramHTML:   diagramHTML || null, // ← store HTML script
+        diagramHTML:   diagramHTML || null,
         s3Key,
         imageUrl,
         contentId:     contentId   || null,
@@ -817,9 +825,9 @@ router.post('/', async (req, res) => {
       language:     lang.name,
       langCode:     lang.code,
       isNonEnglish,
-      title,        // Tamil/Hindi title from Claude
-      labels,       // [{ text, x, y }] from Claude
-      diagramHTML,  // ready-to-render HTML string (null for English)
+      title,
+      labels,
+      diagramHTML,
     });
 
   } catch (error) {

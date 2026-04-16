@@ -1,30 +1,30 @@
 const logger = require('../utils/logger');
+const axios  = require('axios');
 
-const MODEL = 'claude-haiku-4-5-20251001';
+const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_CONTENT_DEPLOYMENT3;
+const AZURE_OPENAI_API_KEY    = process.env.AZURE_OPENAI_API_KEY;
+const AZURE_OPENAI_ENDPOINT   = process.env.AZURE_OPENAI_ENDPOINT;
+const AZURE_API_VERSION       = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview';
 
-const CLAUDE_PRICING = {
-  [MODEL]: {
-    inputCostPerMillion: 1.00,
-    outputCostPerMillion: 5.00,
+const GPT_PRICING = {
+  'gpt-4o-mini': {
+    inputCostPerMillion:  0.15,
+    outputCostPerMillion: 0.60,
   },
 };
 
-function calculateCost(model, inputTokens, outputTokens) {
-  const pricing = CLAUDE_PRICING[model] ?? {
-    inputCostPerMillion: 0,
-    outputCostPerMillion: 0,
-  };
-
+function calculateCost(inputTokens, outputTokens) {
+  const pricing = GPT_PRICING['gpt-4o-mini'];
   const inputCost  = (inputTokens  / 1_000_000) * pricing.inputCostPerMillion;
   const outputCost = (outputTokens / 1_000_000) * pricing.outputCostPerMillion;
   const totalCost  = inputCost + outputCost;
-
   return {
     inputCost:  parseFloat(inputCost.toFixed(8)),
     outputCost: parseFloat(outputCost.toFixed(8)),
     totalCost:  parseFloat(totalCost.toFixed(8)),
   };
 }
+
 const SYSTEM_PROMPT = `
 You are a student-friendly educational assistant.
 
@@ -52,9 +52,24 @@ Rules:
 - Output valid JSON only. No markdown. No extra commentary.
 `;
 
+// ✅ Same language detection as other generators
+function detectSectionLanguage(text = '') {
+  const tamil   = (text.match(/[\u0B80-\u0BFF]/g) || []).length;
+  const english = (text.match(/[A-Za-z]/g)        || []).length;
+  if (tamil > 10 && tamil > english * 0.3) return 'TAMIL';
+  return 'ENGLISH';
+}
 
 function buildExplanationPrompt(studentContext, sectionNumber, sectionText) {
+  // ✅ Same language directive injection as other generators
+  const detectedLang = detectSectionLanguage(sectionText);
+  const langDirective = detectedLang === 'TAMIL'
+    ? `⚠️ LANGUAGE DETECTED: TAMIL. All explanations, key points, terms, analogies, and descriptions MUST be in Tamil script (Unicode). Do NOT use English or Roman letters for content values.`
+    : `⚠️ LANGUAGE DETECTED: ENGLISH. All explanations, key points, terms, analogies, and descriptions MUST be in English. Do NOT use Tamil script anywhere.`;
+
   return `
+${langDirective}
+
 Explain Section ${sectionNumber} using ONLY the text below.
 
 SECTION:
@@ -134,6 +149,7 @@ IMPORTANT:
 - For non-geometry content, use "data" array and omit points/lines/angles/markings.
 `;
 }
+
 /* ================================
    🔍 Safe JSON Extraction
 ================================ */
@@ -149,7 +165,7 @@ function extractExplanationJSON(responseText) {
     } catch {}
   }
 
-  throw new Error('Could not extract valid JSON from Claude response');
+  throw new Error('Could not extract valid JSON from Azure OpenAI response');
 }
 
 /* ================================
@@ -166,71 +182,61 @@ module.exports = async (req, res) => {
       });
     }
 
-    if (!process.env.CLAUDE_API_KEY) {
+    // ✅ Azure env check
+    if (!AZURE_OPENAI_API_KEY || !AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_DEPLOYMENT) {
       return res.status(500).json({
         success: false,
-        message: 'Server configuration error',
+        message: 'Server configuration error: Azure OpenAI env vars missing',
       });
     }
 
-    // 🔹 Trim long text to prevent token explosion
-    const trimmedText =
-      sectionText.length > 60000
-        ? sectionText.substring(0, 60000) + '\n...[content truncated]'
-        : sectionText;
+    const trimmedText = sectionText.length > 60000
+      ? sectionText.substring(0, 60000) + '\n...[content truncated]'
+      : sectionText;
 
-    const prompt = buildExplanationPrompt(
-      studentContext,
-      sectionNumber,
-      trimmedText
+    const prompt = buildExplanationPrompt(studentContext, sectionNumber, trimmedText);
+
+    // ✅ Log detected language
+    const detectedLang = detectSectionLanguage(trimmedText);
+    logger.info(`🌐 Detected section language: ${detectedLang}`);
+    logger.info('🤖 Calling Azure OpenAI API for explanation generation...');
+
+    const azureUrl = `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${AZURE_API_VERSION}`;
+
+    const response = await axios.post(
+      azureUrl,
+      {
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user',   content: prompt },
+        ],
+        max_tokens:  6000,
+        temperature: 0.3,
+      },
+      {
+        headers: {
+          'api-key':      AZURE_OPENAI_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000,
+      }
     );
 
-    logger.info('🤖 Calling Claude API...');
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 6000,          // Reduced from 4096 (cost control)
-        temperature: 0.3,          // Lower hallucination risk
-        system: SYSTEM_PROMPT,     // 🔒 Guardrails here
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return res.status(response.status).json({
-        success: false,
-        message: errorData.error?.message || `API error: ${response.status}`,
-      });
-    }
-
-    const claudeResponse = await response.json();
-    const responseText = claudeResponse.content?.[0]?.text;
+    // ✅ Azure response shape
+    const responseText = response.data?.choices?.[0]?.message?.content;
 
     if (!responseText) {
       return res.status(500).json({
         success: false,
-        message: 'Invalid response from Claude',
+        message: 'Invalid response from Azure OpenAI',
       });
     }
 
-    const inputTokens  = claudeResponse.usage?.input_tokens  ?? 0;
-    const outputTokens = claudeResponse.usage?.output_tokens ?? 0;
+    // ✅ Azure token fields
+    const inputTokens  = response.data?.usage?.prompt_tokens     ?? 0;
+    const outputTokens = response.data?.usage?.completion_tokens ?? 0;
     const totalTokens  = inputTokens + outputTokens;
-
-    const cost = calculateCost(MODEL, inputTokens, outputTokens);
+    const cost = calculateCost(inputTokens, outputTokens);
 
     logger.info(`📊 Token Usage | Input: ${inputTokens} | Output: ${outputTokens} | Total: ${totalTokens}`);
     logger.info(`💰 API Cost    | Input: $${cost.inputCost} | Output: $${cost.outputCost} | Total: $${cost.totalCost} USD`);
@@ -242,13 +248,13 @@ module.exports = async (req, res) => {
         v => v.type !== 'flowsteps'
       );
     }
-    
+
     return res.status(200).json({
       success: true,
       message: `Simplified explanation generated successfully from Section ${sectionNumber}`,
       data: {
         studentName: studentContext.studentName,
-        conceptGap: studentContext.conceptGap,
+        conceptGap:  studentContext.conceptGap,
         sectionNumber,
         explanation: explanationData,
         generatedAt: new Date().toISOString(),
@@ -260,11 +266,13 @@ module.exports = async (req, res) => {
         },
       },
     });
+
   } catch (error) {
     logger.error('❌ Unexpected error:', error.message);
+    const azureMsg = error?.response?.data?.error?.message || error?.message;
     return res.status(500).json({
       success: false,
-      message: error.message || 'Internal server error',
+      message: azureMsg || 'Internal server error',
     });
   }
 };
