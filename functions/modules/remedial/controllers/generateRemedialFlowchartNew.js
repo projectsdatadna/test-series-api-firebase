@@ -145,8 +145,8 @@ module.exports = async (req, res) => {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user',   content: prompt },
         ],
-        max_tokens:  2000,
-        temperature: 0.3,
+        max_tokens:  6000,
+        temperature: 0.5,
       },
       {
         headers: {

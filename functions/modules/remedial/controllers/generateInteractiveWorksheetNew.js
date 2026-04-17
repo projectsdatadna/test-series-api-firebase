@@ -38,6 +38,25 @@ Rules:
 - Do NOT reference any section name, section number, or examples from the section text in questions — test the concept only.
 - Keep answers concise.
 - ⚠️ LANGUAGE RULE: Detect the language of the SECTION text. Write all clues, title, and description in the SAME language as the section text. If the section is in Tamil, write clues in Tamil. If Hindi, write in Hindi. If English, write in English. NEVER switch languages. JSON keys must stay in English, but all values (clues, title, description) must match the section language.
+
+- ⚠️ WORD COUNT RULE — STRICTLY ENFORCED:
+  The TOTAL word count across ALL activities combined MUST be between 2000 and 3000 words.
+  Each of the 3 activities MUST contribute roughly EQUAL word counts (~667–1000 words each).
+  Follow these per-activity rules:
+
+  MATCHING activity (~700–1000 words):
+  - Must have AT LEAST 8 matching pairs (not fewer).
+  - Each "left" term: 5–10 words minimum (not a single word — write a short phrase or concept).
+  - Each "right" definition/description: AT LEAST 50–70 words — a full detailed explanation in
+    2–3 sentences. Do NOT write a one-word or one-phrase match. Write a proper descriptive match.
+
+  FILL-BLANK activity (~700–1000 words):
+  - Must have AT LEAST 8 fill-in-the-blank questions.
+  - Each "sentence": AT LEAST 30–40 words — a meaningful sentence that gives context, not a
+    stripped-down bare sentence. Include surrounding context so the student understands the concept.
+  - Each "answer": exact word or phrase copied from the section text.
+  - "wordBank": list ALL answers mixed up for the student to pick from.
+
 - Output valid JSON only. No markdown. No extra commentary.
 `;
 
@@ -78,6 +97,41 @@ Instructions:
 - Do NOT mention section names, section numbers, or copy example sentences/worked examples from the section into questions.
 - Keep wording simple and clear.
 
+⚠️ WORD COUNT — MANDATORY AND STRICTLY ENFORCED:
+Total combined word count across ALL 3 activities MUST be 2000–3000 words.
+Each activity must contribute roughly equal words (~700–1000 words each).
+
+MATCHING (~700–1000 words):
+- Exactly 8 pairs minimum.
+- "left" = a short concept phrase (5–10 words, NOT a single word).
+- "right" = a DETAILED explanation of 50–70 words in 2–3 full sentences.
+  Example of BAD right: "A type of cell"
+  Example of GOOD right: "A specialized type of cell found in the human body that carries
+  oxygen from the lungs to all other parts of the body through the bloodstream, giving
+  energy to cells and removing carbon dioxide waste in return."
+
+FILL-BLANK (~700–1000 words):
+- Exactly 8 questions minimum.
+- "sentence" = AT LEAST 30–40 words. Include enough context around the blank so the student
+  understands what concept is being tested. Do NOT write bare stripped sentences.
+  Example of BAD sentence: "The capital is ___."
+  Example of GOOD sentence: "When water is heated to a temperature of 100 degrees Celsius
+  under normal atmospheric pressure, it undergoes a process called ___, during which it
+  changes from liquid form into vapour and rises into the air."
+- "answer" = exact word/phrase from section text.
+- "wordBank" = list of ALL answers shuffled.
+
+TRUE-FALSE (~700–1000 words):
+- Exactly 8 statements minimum.
+- "statement" = AT LEAST 30–40 words. Write a full contextual statement that requires
+  understanding to evaluate, not just a short factual claim.
+  Example of BAD statement: "Plants need sunlight."
+  Example of GOOD statement: "Plants use a process called photosynthesis, which takes place
+  in the chloroplasts of their cells, to convert sunlight energy, carbon dioxide from the air,
+  and water absorbed through the roots into glucose sugar and oxygen."
+- "explanation" = AT LEAST 50–60 words. Explain clearly WHY this is true or false using
+  context from the section text, so the student learns from the correction.
+
 Return JSON:
 
 {
@@ -89,7 +143,14 @@ Return JSON:
       "title": "",
       "instructions": "",
       "items": [
-        { "left": "", "right": "", "id": 1 }
+        { "left": "concept phrase 5-10 words", "right": "detailed 50-70 word explanation here", "id": 1 },
+        { "left": "", "right": "", "id": 2 },
+        { "left": "", "right": "", "id": 3 },
+        { "left": "", "right": "", "id": 4 },
+        { "left": "", "right": "", "id": 5 },
+        { "left": "", "right": "", "id": 6 },
+        { "left": "", "right": "", "id": 7 },
+        { "left": "", "right": "", "id": 8 }
       ]
     },
     {
@@ -97,7 +158,14 @@ Return JSON:
       "title": "",
       "instructions": "",
       "questions": [
-        { "id": 1, "sentence": "", "answer": "" }
+        { "id": 1, "sentence": "30-40 word contextual sentence with ___ blank", "answer": "" },
+        { "id": 2, "sentence": "", "answer": "" },
+        { "id": 3, "sentence": "", "answer": "" },
+        { "id": 4, "sentence": "", "answer": "" },
+        { "id": 5, "sentence": "", "answer": "" },
+        { "id": 6, "sentence": "", "answer": "" },
+        { "id": 7, "sentence": "", "answer": "" },
+        { "id": 8, "sentence": "", "answer": "" }
       ],
       "wordBank": []
     },
@@ -106,7 +174,14 @@ Return JSON:
       "title": "",
       "instructions": "",
       "questions": [
-        { "id": 1, "statement": "", "answer": true, "explanation": "" }
+        { "id": 1, "statement": "30-40 word contextual statement", "answer": true, "explanation": "50-60 word explanation of why" },
+        { "id": 2, "statement": "", "answer": true, "explanation": "" },
+        { "id": 3, "statement": "", "answer": false, "explanation": "" },
+        { "id": 4, "statement": "", "answer": true, "explanation": "" },
+        { "id": 5, "statement": "", "answer": false, "explanation": "" },
+        { "id": 6, "statement": "", "answer": true, "explanation": "" },
+        { "id": 7, "statement": "", "answer": false, "explanation": "" },
+        { "id": 8, "statement": "", "answer": true, "explanation": "" }
       ]
     }
   ]
@@ -177,8 +252,8 @@ module.exports = async (req, res) => {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user',   content: prompt },
         ],
-        max_tokens:  5000,
-        temperature: 0.3,
+        max_tokens:  14000,
+        temperature: 0.5,
       },
       {
         headers: {

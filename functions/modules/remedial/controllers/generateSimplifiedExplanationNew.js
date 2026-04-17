@@ -49,7 +49,11 @@ Rules:
   - cycle: repeating process → "data": [{ "label": "" }]
   - compare: two groups side by side → "data": [{ "label": "", "group": "Group A" }]
   - geometry: geometric shape with labeled points, lines, angles → use "points", "lines", "angles", "markings", "shape"
-- Output valid JSON only. No markdown. No extra commentary.
+  - ⚠️ LENGTH RULE: The "mainExplanation" field MUST be at least 600 words. Write in full paragraphs.
+  Do NOT write a short summary. Elaborate every concept, give examples from the section, and
+  explain step by step so a student can fully understand without reading the original text.
+  If the section is short, expand by explaining each idea in depth using different angles.
+  - Output valid JSON only. No markdown. No extra commentary.
 `;
 
 // ✅ Same language detection as other generators
@@ -210,8 +214,8 @@ module.exports = async (req, res) => {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user',   content: prompt },
         ],
-        max_tokens:  6000,
-        temperature: 0.3,
+        max_tokens:  8000,
+        temperature: 0.5,
       },
       {
         headers: {

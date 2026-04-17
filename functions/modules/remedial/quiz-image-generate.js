@@ -363,7 +363,7 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('❌ Quiz image generation error:', error.message);
+    logger.error('❌ Quiz image generation error:', error.message, error?.response?.data);
     const azureMsg = error?.response?.data?.error?.message || error?.message;
     return res.status(500).json({ success: false, message: azureMsg || 'Internal server error' });
   }

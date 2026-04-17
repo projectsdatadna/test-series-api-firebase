@@ -39,6 +39,16 @@ Rules:
 - Do NOT invent practice questions unrelated to the section.
 - ⚠️ LANGUAGE RULE: Detect the language of the SECTION text. Write all clues, title, and description in the SAME language as the section text. If the section is in Tamil, write clues in Tamil. If Hindi, write in Hindi. If English, write in English. NEVER switch languages. JSON keys must stay in English, but all values (clues, title, description) must match the section language.
 - ⚠️ SPELLING RULE: Every "answer" must be COPIED EXACTLY as it appears in the section text — character by character. Do NOT retype, paraphrase, or reconstruct Tamil words from memory.
+
+- ⚠️ LENGTH RULE — STRICTLY ENFORCED:
+  * Each step's "description" field MUST contain AT LEAST 300–500 words on its own.
+  * Write 3–4 full sentences per idea. Do NOT write one-liners or bullet summaries inside description.
+  * Each "example" field MUST contain at least 200–300 words — a full paragraph, not a single sentence.
+  * Each "tips" array MUST have at least 3 tips, each tip being a full sentence of 80+ words.
+  * The TOTAL word count across all step descriptions combined MUST exceed 3000 words.
+  * If the section content is short, expand by explaining each idea from multiple angles,
+    relating it to real-life understanding, and walking through the concept slowly.
+
 - Output valid JSON only. No markdown. No extra text.
 `;
 
@@ -81,6 +91,17 @@ Instructions:
 - Do NOT invent extra information.
 - Only relate to the learning gap if it appears in the section.
 - Practice questions must be based directly on events or facts in the section.
+
+⚠️ WORD COUNT PER STEP — THIS IS MANDATORY:
+- "description": Write AT LEAST 300–500 words per step. Use 3–4 full paragraphs.
+  Explain what the concept is, why it matters, how it works, and what the student should
+  understand from it. Do NOT write a single sentence. Do NOT summarize — elaborate fully.
+- "example": Write AT LEAST 220–400 words. Give a detailed worked-through scenario or
+  illustration directly from the section text. Explain each part of the example step by step.
+- "tips": Write AT LEAST 3 tips. Each tip must be a complete sentence of 20 or more words
+  that gives the student a useful insight, caution, or memory aid for this concept.
+- "commonMistakes": Write AT LEAST 2 common mistakes students make, each as a full sentence.
+- TOTAL across all steps: descriptions combined MUST exceed 3000 words.
 
 Return JSON in this format:
 
@@ -152,8 +173,8 @@ module.exports = async (req, res) => {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user',   content: prompt },
         ],
-        max_tokens:  6000,
-        temperature: 0.3,
+        max_tokens:  10000,
+        temperature: 0.5,
       },
       {
         headers: {
