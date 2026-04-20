@@ -12,6 +12,7 @@ const generateImageRouter = require('./generateImage');
 
 const generateImageTest = require("./testGenerateImage");
 const quizImageRouter = require("./quiz-image-generate");
+const proxyImageRouter = require('./proxyImage');
 
 // Define routes
 router.post('/generate-remedial-flowchart', generateRemedialFlowchartNew);
@@ -26,5 +27,7 @@ router.use('/generateimage', generateImageRouter);
 router.post('/generateimage/test', generateImageTest);
 
 router.use('/quiz-image-generate', quizImageRouter);
+
+router.use('/proxy-image', proxyImageRouter);
 
 module.exports = router;

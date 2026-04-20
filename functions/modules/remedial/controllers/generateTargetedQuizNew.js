@@ -89,6 +89,14 @@ Instructions:
 - Do NOT copy worked examples or sample problems from the section into questions.
 - "correctAnswer" must be the option LABEL only: "A", "B", "C", or "D".
 
+⚠️ CRITICAL — CORRECT ANSWER DISTRIBUTION RULE:
+You MUST spread correct answers across ALL four options. Do NOT make option "A" the correct answer for more than 1 question in a row.
+For ${numberOfQuestions} questions, the correct answers must be distributed roughly evenly:
+- Approximately 25% should be A, 25% B, 25% C, 25% D.
+- No single option label should appear as the correct answer more than ${Math.ceil(numberOfQuestions / 2)} times total.
+- The sequence of correct answers (e.g., B, D, A, C, B, A, D, C...) must appear randomized and unpredictable.
+- Deliberately place the correct answer at different positions (A, B, C, D) for each question.
+
 Return JSON:
 
 {
