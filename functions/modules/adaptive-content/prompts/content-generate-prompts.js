@@ -30,7 +30,62 @@ CRITICAL CARD OVERFLOW PREVENTION:
 - Ensure all cards are fully visible without cropping
 Bloom's Taxonomy Level � Remember (Recall & Recognition): Focus on recall and recognition � use simple definitions, key terms, and memory cues.
 KATEX FOR MATH: Include KaTeX CDN in <head>: <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$',right:'$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>. Use $...$ for display math and \\(...\\) for inline math. NEVER use raw Unicode math symbols.
-Each sticky note must display concise content with clear information and supporting details. The design should be visually appealing and easy to read, with a consistent layout and color scheme. The sticky notes should be organized in a grid layout, with each card having a uniform size and shape. The overall design should be professional and suitable for use in an educational or training setting. notes of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature as a structured, visually elegant, and interactive reference sheet using Tailwind CSS. The layout should serve as a quick-access knowledge companion for students and professionals � focused on clarity, visual memory cues, and ease of scanning. CRITICAL EMOJI RENDERING REQUIREMENT: To ensure emojis render correctly in the generated image, you MUST use Twemoji library: 1. Add this script in the <head> section BEFORE the closing </head> tag: <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script> 2. Add this CSS in the <style> section to control emoji size: img.emoji { height: 1em; width: 1em; margin: 0 0.05em 0 0.1em; vertical-align: -0.1em; display: inline-block;   } 3. Add this script at the END of <body> section BEFORE the closing </body> tag: <script> window.addEventListener('DOMContentLoaded', (event) => { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); }); </script> 4. This will automatically convert all emoji characters (??, ??, ??, etc.) into properly sized SVG images that render perfectly in screenshots. 5. You can use emojis freely in the HTML - Twemoji will handle the rendering and sizing. CRITICAL A4 SINGLE PAGE REQUIREMENTS: 1. SINGLE PAGE ONLY: The entire content MUST fit within ONE A4 page (210mm � 297mm portrait). DO NOT create multiple pages. DO NOT exceed A4 dimensions. 2. Page Size: Use CSS @page rule with size: A4 portrait (210mm � 297mm). Set body margin to 0. 3. Page Container: Wrap all content in a SINGLE div with class "page" that has exact dimensions: width: 210mm, height: 297mm (NOT min-height), padding: 12mm, box-sizing: border-box, overflow: hidden. 4. Content Limits: Limit the number of sticky notes to fit within the single A4 page. Typically 4-6 sticky notes maximum depending on content length. Keep each note concise. 5. Compact Design: Use smaller fonts, tighter spacing, and compact layouts to ensure everything fits. Reduce padding and margins where necessary. 6. No Overflow: Set overflow: hidden on the page container to prevent content from exceeding A4 boundaries. Design Style: 'Sticky Notes Aesthetic' � handwritten font (Caveat) with pastel gradient backgrounds in 8 distinct color palettes (Yellow #FEF3C7 with border #FCD34D, Pink #FCE7F3 with border #F472B6, Blue #DBEAFE with border #60A5FA, Green #DCFCE7 with border #86EFAC, Purple #E9D5FF with border #D8B4FE, Orange #FFEDD5 with border #FDBA74, Red #FEE2E2 with border #FCA5A5, Cyan #CFFAFE with border #67E8F9), soft left border (4-5px), rounded corners (8px), soft shadows (0 8px 16px rgba), and subtle paper-like texture with organic rotations (-3deg to +3deg). Apply handwritten font (Caveat) for content and body text (Inter) for badges and labels. Consistent padding (1rem) for compact, digestible content. Layout Flow: 1. **Header / Title Section** � Compact title showing the topic name (1.5rem bold, Caveat) centered on paper-like background gradient (#FFFACD ? #F5F5DC), with subtitle 'Curated Summary | Powered by EduFit' (0.7rem). You may include relevant emoji icons to make it visually appealing. Dashed border bottom (#D4AF37). Minimal padding (0.5rem). 2. **Concept Overview** � OPTIONAL: Only include if space permits. A brief introduction in a neutral sticky note (Yellow background) with handwritten typography. Keep very concise (2-3 sentences max). 3. **Key Concepts Grid** � A responsive 2-column layout of sticky note cards (using 8-color palette cyclically), each representing a main concept. LIMIT TO 4-6 CARDS TOTAL to fit within A4. Each card includes: Category badge (top-left, translucent rgba(0,0,0,0.15)), Title in bold handwritten text (0.9rem, Caveat), subtle divider line (rgba(0,0,0,0.2)), and content in handwritten font (0.85rem, Caveat). Add subtle rotation effect (-2deg to +2deg) for organic placement. Max-height: 180px, compact padding (0.75rem). 4. **Footer / Attribution** � Footer text "� 2025 EduFit" (0.6rem, Inter) on paper-like background (#F9FAFB) with center alignment, minimal padding (0.5rem). Typography: Use handwritten font (Caveat) for all content and headings (1.5rem for h1, 0.9rem for card titles, 0.85rem for body). Use Inter font exclusively for badge labels and metadata. Maintain compact padding (0.5-0.75rem) and minimal whitespace for A4 fit. All text on colored backgrounds rendered in dark ink. Animations: Subtle fade-in for sections, no hover effects, organic rotations (-2deg to +2deg) applied at render time for natural sticky note placement. Color rotation: Distribute pastel colors cyclically across cards using the 8-color palette. Page background: Paper-like gradient (#FFFACD ? #F5F5DC ? #FFF8DC). IMPORTANT: Skip optional sections (Formulae, Mind Map, Quick Reference Table, Smart Insights, Knowledge Check) to ensure content fits within single A4 page. Focus only on the most essential key concepts. Output Format: <!DOCTYPE html>...complete HTML script here.... Strictly adhere to the output format given. Additional Notes: The page must look structured, calm, and intuitive for study purposes � readable in both light and dark modes. Avoid clutter, ensure responsive alignment, and use color cues for grouping concepts. CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely by removing all spaces between tags. The entire HTML must be one unbroken line from <!DOCTYPE to </html>. Do NOT format or pretty-print the HTML. Do NOT wrap the HTML in JSON. Do NOT add quotes around the HTML. Return ONLY the raw HTML code starting with <!DOCTYPE and ending with </html>, nothing else - no JSON wrapper, no markdown, no explanations.`
+
+CRITICAL CARD SPACING & UNIFORM LAYOUT:
+
+- ALL sticky notes MUST have equal visual size and alignment
+- Use a STRICT GRID layout (2 columns only)
+
+GRID RULES:
+- display: grid
+- grid-template-columns: repeat(2, 1fr)
+- gap: 10px (fixed spacing between all cards)
+- align-items: stretch
+
+CARD SIZE RULES:
+- Each card MUST stretch fully inside grid cell
+- height: 100%
+- display: flex
+- flex-direction: column
+- justify-content: flex-start
+
+ROW HEIGHT FIX:
+
+- Each grid row MUST have equal height
+- Use:
+  grid-auto-rows: 1fr
+
+- This ensures:
+  → all cards in a row take same height
+  → no empty gaps below shorter cards
+
+EVEN GRID BALANCE RULE:
+
+- Total number of sticky notes MUST always be EVEN (2, 4, or 6)
+- If number of sections is ODD:
+  → Merge the last two sections into one sticky note
+  → OR split content evenly across cards
+
+- NEVER leave a single card alone in last row
+- Grid must always be fully filled (no empty column)
+
+CONTENT SPACING RULES:
+- Title margin-bottom: 4px
+- Divider margin: 4px 0
+- Content line-height: 1.2 (compact but readable)
+- Use padding: 8px inside each card
+- Avoid large paragraphs → use bullet points
+
+TEXT CONTROL:
+- Maximum 5–6 lines per card
+- If content exceeds → shorten text (DO NOT expand card)
+
+VISUAL BALANCE:
+- Avoid uneven card heights
+- Keep all cards visually aligned like a perfect grid
+- No large empty spaces inside cards
+- No overflowing text
+Each sticky note must display concise content with clear information and supporting details. The design should be visually appealing and easy to read, with a consistent layout and color scheme. The sticky notes should be organized in a grid layout, with each card having a uniform size and shape. The overall design should be professional and suitable for use in an educational or training setting. notes of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature as a structured, visually elegant, and interactive reference sheet using Tailwind CSS. The layout should serve as a quick-access knowledge companion for students and professionals � focused on clarity, visual memory cues, and ease of scanning. CRITICAL EMOJI RENDERING REQUIREMENT: To ensure emojis render correctly in the generated image, you MUST use Twemoji library: 1. Add this script in the <head> section BEFORE the closing </head> tag: <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script> 2. Add this CSS in the <style> section to control emoji size: img.emoji { height: 1em; width: 1em; margin: 0 0.05em 0 0.1em; vertical-align: -0.1em; display: inline-block;   } 3. Add this script at the END of <body> section BEFORE the closing </body> tag: <script> window.addEventListener('DOMContentLoaded', (event) => { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); }); </script> 4. This will automatically convert all emoji characters (??, ??, ??, etc.) into properly sized SVG images that render perfectly in screenshots. 5. You can use emojis freely in the HTML - Twemoji will handle the rendering and sizing. CRITICAL A4 SINGLE PAGE REQUIREMENTS: 1. SINGLE PAGE ONLY: The entire content MUST fit within ONE A4 page (210mm � 297mm portrait). DO NOT create multiple pages. DO NOT exceed A4 dimensions. 2. Page Size: Use CSS @page rule with size: A4 portrait (210mm � 297mm). Set body margin to 0. 3. Page Container: Wrap all content in a SINGLE div with class "page" that has exact dimensions: width: 210mm, height: 297mm (NOT min-height), padding: 12mm, box-sizing: border-box, overflow: hidden. 4. Content Limits: Limit the number of sticky notes to fit within the single A4 page. Typically 4-6 sticky notes maximum depending on content length. Keep each note concise. 5. Compact Design: Use smaller fonts, tighter spacing, and compact layouts to ensure everything fits. Reduce padding and margins where necessary. 6. No Overflow: Set overflow: hidden on the page container to prevent content from exceeding A4 boundaries. Design Style: 'Sticky Notes Aesthetic' � handwritten font (Caveat) with pastel gradient backgrounds in 8 distinct color palettes (Yellow #FEF3C7 with border #FCD34D, Pink #FCE7F3 with border #F472B6, Blue #DBEAFE with border #60A5FA, Green #DCFCE7 with border #86EFAC, Purple #E9D5FF with border #D8B4FE, Orange #FFEDD5 with border #FDBA74, Red #FEE2E2 with border #FCA5A5, Cyan #CFFAFE with border #67E8F9), soft left border (4-5px), rounded corners (8px), soft shadows (0 8px 16px rgba), and subtle paper-like texture with organic rotations (-3deg to +3deg). Apply handwritten font (Caveat) for content and body text (Inter) for badges and labels. Consistent padding (1rem) for compact, digestible content. Layout Flow: 1. **Header / Title Section** � Compact title showing the topic name (1.5rem bold, Caveat) centered on paper-like background gradient (#FFFACD ? #F5F5DC), with subtitle 'Curated Summary | Powered by EduFit' (0.7rem). You may include relevant emoji icons to make it visually appealing. Dashed border bottom (#D4AF37). Minimal padding (0.5rem). 2. **Concept Overview** � OPTIONAL: Only include if space permits. A brief introduction in a neutral sticky note (Yellow background) with handwritten typography. Keep very concise (2-3 sentences max). 3. **Key Concepts Grid** � A responsive 2-column layout of sticky note cards (using 8-color palette cyclically), each representing a main concept. LIMIT TO 4-6 CARDS TOTAL to fit within A4. Each card includes: Category badge (top-left, translucent rgba(0,0,0,0.15)), Title in bold handwritten text (0.9rem, Caveat), subtle divider line (rgba(0,0,0,0.2)), and content in handwritten font (0.85rem, Caveat). Add subtle rotation effect (-2deg to +2deg) for organic placement. compact padding (0.75rem). 4. **Footer / Attribution** � Footer text "� 2025 EduFit" (0.6rem, Inter) on paper-like background (#F9FAFB) with center alignment, minimal padding (0.5rem). Typography: Use handwritten font (Caveat) for all content and headings (1.5rem for h1, 0.9rem for card titles, 0.85rem for body). Use Inter font exclusively for badge labels and metadata. Maintain compact padding (0.5-0.75rem) and minimal whitespace for A4 fit. All text on colored backgrounds rendered in dark ink. Animations: Subtle fade-in for sections, no hover effects, organic rotations (-2deg to +2deg) applied at render time for natural sticky note placement. Color rotation: Distribute pastel colors cyclically across cards using the 8-color palette. Page background: Paper-like gradient (#FFFACD ? #F5F5DC ? #FFF8DC). IMPORTANT: Skip optional sections (Formulae, Mind Map, Quick Reference Table, Smart Insights, Knowledge Check) to ensure content fits within single A4 page. Focus only on the most essential key concepts. Output Format: <!DOCTYPE html>...complete HTML script here.... Strictly adhere to the output format given. Additional Notes: The page must look structured, calm, and intuitive for study purposes � readable in both light and dark modes. Avoid clutter, ensure responsive alignment, and use color cues for grouping concepts. CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely by removing all spaces between tags. The entire HTML must be one unbroken line from <!DOCTYPE to </html>. Do NOT format or pretty-print the HTML. Do NOT wrap the HTML in JSON. Do NOT add quotes around the HTML. Return ONLY the raw HTML code starting with <!DOCTYPE and ending with </html>, nothing else - no JSON wrapper, no markdown, no explanations.`
 }
 
 function getReadyReckonerPrompt(params) {
@@ -91,7 +146,10 @@ EMOJIS AND IMAGES:
 - Use relevant emojis (??, ??, ??, ??, ?, ??, ??, ??, etc.) to make content visually appealing
 - Include emoji icons in headers and concept cards
 - Use actual emoji characters (not HTML entities) for better rendering
-- If images are available in context, include them in concept cards
+- Include images ONLY if a VALID direct image URL is provided in the input
+- DO NOT generate or guess image URLs
+- DO NOT use placeholders like /images/... or example.com
+- If no valid image URL is available → DO NOT include <img> tag at all
 - Add Twemoji script for proper emoji rendering: <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
 - Add Twemoji CSS: img.emoji{height:1em;width:1em;margin:0 0.05em 0 0.1em;vertical-align:-0.1em;display:inline-block;}
 - Add Twemoji initialization script before </body>: <script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script>
@@ -129,24 +187,23 @@ function getFlashCardsPrompt(params) {
     visualStyle = 'academic'
   } = params;
 
-  return `Generate flash cards in JSON format for: ${topicName} with ${contentDepth} depth in ${outputLanguage} language.
+  return `Generate high-quality flash cards in JSON format for: ${topicName} with ${contentDepth} depth in ${outputLanguage} language.
 
 CRITICAL SECTION COVERAGE REQUIREMENT:
 - Analyze ALL sections provided in the input chunk
-- Generate flash cards for ALL concepts in the section
-- Do NOT skip or ignore any section or concept
-- Do NOT limit to exactly 6 cards - generate as many as needed to cover all content
-- Each concept must have a corresponding flash card
-- File size increase is acceptable to ensure complete coverage
+- Cover ALL key concepts, but GROUP related ideas into single cards where appropriate
+- Avoid creating too many small or repetitive cards
+- Target: 6 to 10 well-balanced flash cards (NOT unlimited)
 
-CRITICAL CARD OVERFLOW PREVENTION:
-- Each card must display complete question and answer without truncation
-- No text should be cut off with "..." or ellipsis
-- Cards should expand vertically to fit content
-- Use min-height: auto; max-height: none; for all cards
-- Ensure all cards are fully visible on the page
+Bloom's Taxonomy Level – Remember (Recall & Recognition):
+- Questions must test definitions, facts, and key understanding
 
-Bloom's Taxonomy Level � Remember (Recall & Recognition): Focus on recall and recognition � questions should test definitions, facts, and key terms.
+QUALITY RULES:
+- Avoid duplicate or similar questions
+- Each card must represent a UNIQUE concept
+- Keep questions clear and exam-oriented
+- Keep answers concise (2–3 lines max)
+- Avoid overly long explanations
 
 RETURN ONLY VALID JSON - NO MARKDOWN, NO EXPLANATIONS, NO PREAMBLE.
 
@@ -174,17 +231,19 @@ JSON STRUCTURE REQUIRED:
 }
 
 REQUIREMENTS:
-- Generate flash cards for ALL concepts in the section (no fixed limit)
 - Each card MUST have: id, frontSide.question, backSide.answer
-- Each card SHOULD include: backSide.example and backSide.keyPoint (optional but recommended)
-- Questions should be clear and concise
-- Answers should be comprehensive but concise
-- Examples should illustrate the concept
-- Key points should highlight the most important aspect
-- Colors array must have exactly 6 hex color codes for UI styling
-- Return ONLY the JSON object, nothing else
-- Ensure all JSON is valid and properly formatted
-- No markdown code blocks, no explanations, no additional text`;
+- Each card SHOULD include: example and keyPoint
+- Questions must be short and clear
+- Answers must be concise and correct
+- Use real-world examples where possible
+- Keep JSON strictly valid
+
+IMPORTANT:
+- DO NOT generate CSS or HTML instructions
+- DO NOT include extra text outside JSON
+- DO NOT generate too many cards
+
+Return ONLY the JSON object.`;
 }
 
 /**
