@@ -1295,7 +1295,7 @@ const {
 const AWS = require("aws-sdk");
 const axios = require("axios");
 
-const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_CONTENT_DEPLOYMENT3;
+const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_CONTENT_DEPLOYMENT4;
 const AZURE_OPENAI_API_KEY    = process.env.AZURE_OPENAI_API_KEY;
 const AZURE_OPENAI_ENDPOINT   = process.env.AZURE_OPENAI_ENDPOINT;
 const AZURE_API_VERSION       = process.env.AZURE_OPENAI_API_VERSION || "2024-02-15-preview";
@@ -1425,7 +1425,7 @@ async function generateAdaptiveContent(req, res) {
     console.log("[AdaptiveContent] topicName:", req.body?.topicName || req.body?.topic);
     console.log("[AdaptiveContent] sectionTitle:", req.body?.sectionTitle);
     console.log("[AdaptiveContent] chunks count:", req.body?.chunks?.length ?? 0);
-    console.log("[AdaptiveContent] maxTokens:", req.body?.maxTokens ?? 2000);
+    console.log("[AdaptiveContent] maxTokens:", req.body?.maxTokens ?? 6000);
 
     if (!AZURE_OPENAI_API_KEY || !AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_DEPLOYMENT) {
       console.error("[AdaptiveContent] ERROR: Azure OpenAI env vars not set");
@@ -1456,7 +1456,7 @@ async function generateAdaptiveContent(req, res) {
       sectionNumbers = [],
       learningStyle = "visual",
       difficulty = "intermediate",
-      maxTokens = 2000,
+      maxTokens = 6000,
     } = req.body;
 
     const userId = req.user?.userId;
