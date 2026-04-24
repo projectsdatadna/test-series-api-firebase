@@ -31,29 +31,37 @@ CRITICAL CARD OVERFLOW PREVENTION:
 Bloom's Taxonomy Level � Remember (Recall & Recognition): Focus on recall and recognition � use simple definitions, key terms, and memory cues.
 KATEX FOR MATH: Include KaTeX CDN in <head>: <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$',right:'$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>. Use $...$ for display math and \\(...\\) for inline math. NEVER use raw Unicode math symbols.
 
-CRITICAL CARD SPACING & UNIFORM LAYOUT:
-
-- ALL sticky notes MUST have equal visual size and alignment
-- Use a STRICT GRID layout (2 columns only)
-
 GRID RULES:
 - display: grid
 - grid-template-columns: repeat(2, 1fr)
-- gap: 10px (fixed spacing between all cards)
-- align-items: stretch
+- gap: 20px
+- align-items: start
 
 CARD SIZE RULES:
-- Each card MUST stretch fully inside grid cell
-- height: 100%
+- height: auto (NO fixed height, NO min-height, NO max-height)
+- width: 100%
 - display: flex
 - flex-direction: column
 - justify-content: flex-start
+- overflow: visible
 
-ROW HEIGHT FIX:
+ROW HEIGHT:
+- Do NOT use grid-auto-rows: 1fr
+- Do NOT set equal row heights
+- Each card grows naturally to fit its content
+- Cards in the same row CAN have different heights
 
-- Each grid row MUST have equal height
-- Use:
-  grid-auto-rows: 1fr
+BADGE POSITIONING:
+- Badge must use position: relative (NOT absolute)
+- Badge renders as a normal inline-block element ABOVE the title
+- Badge must NOT overlap any text
+- Render order inside each card: [badge] → [title] → [divider] → [content]
+- margin-bottom: 6px on badge, margin-bottom: 4px on title
+
+EVEN GRID BALANCE RULE:
+- Total sticky notes MUST be EVEN (2, 4, or 6)
+- NEVER leave a single card in last row
+
 
 - This ensures:
   → all cards in a row take same height
@@ -73,8 +81,13 @@ CONTENT SPACING RULES:
 - Title margin-bottom: 4px
 - Divider margin: 4px 0
 - Content line-height: 1.2 (compact but readable)
-- Use padding: 8px inside each card
+- Use padding: 14px inside each card
 - Avoid large paragraphs → use bullet points
+- gap between all cards: 20px (both row-gap and column-gap)
+- margin-bottom on the grid container: 16px
+- Each card must have padding: 14px on all sides
+- Do NOT reduce gap below 20px
+- The grid gap creates visual separation between cards
 
 TEXT CONTROL:
 - Maximum 5–6 lines per card
@@ -85,6 +98,101 @@ VISUAL BALANCE:
 - Keep all cards visually aligned like a perfect grid
 - No large empty spaces inside cards
 - No overflowing text
+
+MANDATORY CSS - COPY THIS EXACTLY INTO THE <style> TAG:
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 8px;
+  padding: 8px 4px;
+}
+.note-card {
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  overflow: visible;
+  position: relative;
+  margin: 4px;
+}
+}
+/* Color palette - assign cyclically */
+.note-card:nth-child(1) { background: #FEF3C7; border-left: 5px solid #FCD34D; transform: rotate(-1deg); }
+.note-card:nth-child(2) { background: #FCE7F3; border-left: 5px solid #F472B6; transform: rotate(1deg); }
+.note-card:nth-child(3) { background: #DBEAFE; border-left: 5px solid #60A5FA; transform: rotate(-1.5deg); }
+.note-card:nth-child(4) { background: #DCFCE7; border-left: 5px solid #86EFAC; transform: rotate(0.5deg); }
+.note-card:nth-child(5) { background: #E9D5FF; border-left: 5px solid #D8B4FE; transform: rotate(-1deg); }
+.note-card:nth-child(6) { background: #FFEDD5; border-left: 5px solid #FDBA74; transform: rotate(1.5deg); }
+.badge {
+  display: inline-block;
+  position: relative;
+  background: rgba(0,0,0,0.12);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #374151;
+  margin-bottom: 6px;
+  width: fit-content;
+}
+.note-title {
+  font-family: 'Caveat', cursive;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+.note-divider {
+  border: none;
+  border-top: 1px solid rgba(0,0,0,0.15);
+  margin: 4px 0 8px 0;
+}
+.note-content {
+  font-family: 'Caveat', cursive;
+  font-size: 0.85rem;
+  color: #374151;
+  line-height: 1.35;
+}
+.note-content ul {
+  margin: 0;
+  padding-left: 16px;
+}
+.note-content li {
+  margin-bottom: 3px;
+}
+
+CARD STRUCTURE - EVERY CARD MUST USE THIS EXACT HTML STRUCTURE:
+<div class="note-card">
+  <span class="badge">CATEGORY NAME</span>
+  <h3 class="note-title">Card Title Here</h3>
+  <hr class="note-divider">
+  <div class="note-content">
+    <ul>
+      <li>Point one</li>
+      <li>Point two</li>
+    </ul>
+  </div>
+</div>
+
+GRID WRAPPER:
+<div class="notes-grid">
+  <!-- All note-card divs go here -->
+</div>
+
+RULES:
+- ALWAYS 2 columns, NEVER 1 or 3
+- Total cards MUST be EVEN (2, 4, or 6) — merge or split if needed
+- Maximum 4-5 bullet points per card, each under 12 words
+- badge is ALWAYS first inside card, NEVER overlapping title
+- DO NOT use position:absolute anywhere on badge or title
+- DO NOT use grid-auto-rows or fixed heights
+- Colors cycle: card 1=yellow, 2=pink, 3=blue, 4=green, 5=purple, 6=orange
+
 Each sticky note must display concise content with clear information and supporting details. The design should be visually appealing and easy to read, with a consistent layout and color scheme. The sticky notes should be organized in a grid layout, with each card having a uniform size and shape. The overall design should be professional and suitable for use in an educational or training setting. notes of the file with ${contentDepth} content depth in ${outputLanguage} language in ${contentType} style with ${visualStyle} nature as a structured, visually elegant, and interactive reference sheet using Tailwind CSS. The layout should serve as a quick-access knowledge companion for students and professionals � focused on clarity, visual memory cues, and ease of scanning. CRITICAL EMOJI RENDERING REQUIREMENT: To ensure emojis render correctly in the generated image, you MUST use Twemoji library: 1. Add this script in the <head> section BEFORE the closing </head> tag: <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script> 2. Add this CSS in the <style> section to control emoji size: img.emoji { height: 1em; width: 1em; margin: 0 0.05em 0 0.1em; vertical-align: -0.1em; display: inline-block;   } 3. Add this script at the END of <body> section BEFORE the closing </body> tag: <script> window.addEventListener('DOMContentLoaded', (event) => { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); }); </script> 4. This will automatically convert all emoji characters (??, ??, ??, etc.) into properly sized SVG images that render perfectly in screenshots. 5. You can use emojis freely in the HTML - Twemoji will handle the rendering and sizing. CRITICAL A4 SINGLE PAGE REQUIREMENTS: 1. SINGLE PAGE ONLY: The entire content MUST fit within ONE A4 page (210mm � 297mm portrait). DO NOT create multiple pages. DO NOT exceed A4 dimensions. 2. Page Size: Use CSS @page rule with size: A4 portrait (210mm � 297mm). Set body margin to 0. 3. Page Container: Wrap all content in a SINGLE div with class "page" that has exact dimensions: width: 210mm, height: 297mm (NOT min-height), padding: 12mm, box-sizing: border-box, overflow: hidden. 4. Content Limits: Limit the number of sticky notes to fit within the single A4 page. Typically 4-6 sticky notes maximum depending on content length. Keep each note concise. 5. Compact Design: Use smaller fonts, tighter spacing, and compact layouts to ensure everything fits. Reduce padding and margins where necessary. 6. No Overflow: Set overflow: hidden on the page container to prevent content from exceeding A4 boundaries. Design Style: 'Sticky Notes Aesthetic' � handwritten font (Caveat) with pastel gradient backgrounds in 8 distinct color palettes (Yellow #FEF3C7 with border #FCD34D, Pink #FCE7F3 with border #F472B6, Blue #DBEAFE with border #60A5FA, Green #DCFCE7 with border #86EFAC, Purple #E9D5FF with border #D8B4FE, Orange #FFEDD5 with border #FDBA74, Red #FEE2E2 with border #FCA5A5, Cyan #CFFAFE with border #67E8F9), soft left border (4-5px), rounded corners (8px), soft shadows (0 8px 16px rgba), and subtle paper-like texture with organic rotations (-3deg to +3deg). Apply handwritten font (Caveat) for content and body text (Inter) for badges and labels. Consistent padding (1rem) for compact, digestible content. Layout Flow: 1. **Header / Title Section** � Compact title showing the topic name (1.5rem bold, Caveat) centered on paper-like background gradient (#FFFACD ? #F5F5DC), with subtitle 'Curated Summary | Powered by EduFit' (0.7rem). You may include relevant emoji icons to make it visually appealing. Dashed border bottom (#D4AF37). Minimal padding (0.5rem). 2. **Concept Overview** � OPTIONAL: Only include if space permits. A brief introduction in a neutral sticky note (Yellow background) with handwritten typography. Keep very concise (2-3 sentences max). 3. **Key Concepts Grid** � A responsive 2-column layout of sticky note cards (using 8-color palette cyclically), each representing a main concept. LIMIT TO 4-6 CARDS TOTAL to fit within A4. Each card includes: Category badge (top-left, translucent rgba(0,0,0,0.15)), Title in bold handwritten text (0.9rem, Caveat), subtle divider line (rgba(0,0,0,0.2)), and content in handwritten font (0.85rem, Caveat). Add subtle rotation effect (-2deg to +2deg) for organic placement. compact padding (0.75rem). 4. **Footer / Attribution** � Footer text "� 2025 EduFit" (0.6rem, Inter) on paper-like background (#F9FAFB) with center alignment, minimal padding (0.5rem). Typography: Use handwritten font (Caveat) for all content and headings (1.5rem for h1, 0.9rem for card titles, 0.85rem for body). Use Inter font exclusively for badge labels and metadata. Maintain compact padding (0.5-0.75rem) and minimal whitespace for A4 fit. All text on colored backgrounds rendered in dark ink. Animations: Subtle fade-in for sections, no hover effects, organic rotations (-2deg to +2deg) applied at render time for natural sticky note placement. Color rotation: Distribute pastel colors cyclically across cards using the 8-color palette. Page background: Paper-like gradient (#FFFACD ? #F5F5DC ? #FFF8DC). IMPORTANT: Skip optional sections (Formulae, Mind Map, Quick Reference Table, Smart Insights, Knowledge Check) to ensure content fits within single A4 page. Focus only on the most essential key concepts. Output Format: <!DOCTYPE html>...complete HTML script here.... Strictly adhere to the output format given. Additional Notes: The page must look structured, calm, and intuitive for study purposes � readable in both light and dark modes. Avoid clutter, ensure responsive alignment, and use color cues for grouping concepts. CRITICAL REQUIREMENT: The HTML must be returned as a SINGLE CONTINUOUS LINE with absolutely NO newline characters (\\n), NO line breaks, NO tabs, and NO formatting whitespace. Minify the HTML completely by removing all spaces between tags. The entire HTML must be one unbroken line from <!DOCTYPE to </html>. Do NOT format or pretty-print the HTML. Do NOT wrap the HTML in JSON. Do NOT add quotes around the HTML. Return ONLY the raw HTML code starting with <!DOCTYPE and ending with </html>, nothing else - no JSON wrapper, no markdown, no explanations.`
 }
 
@@ -436,7 +544,48 @@ CRITICAL REQUIREMENTS:
 - NO emoji icons in content cards - only SVG line diagrams with labels
 - Card titles must NOT have emoji prefixes
 - Insight text must NOT have emoji prefixes
-- Return ONLY the complete minified HTML. ONE CONTINUOUS LINE. NO MARKDOWN. NO EXPLANATIONS.`;
+- Return ONLY the complete minified HTML. ONE CONTINUOUS LINE. NO MARKDOWN. NO EXPLANATIONS.
+
+LAYOUT STRICTNESS RULES (CRITICAL FOR GPT OUTPUT):
+- The .page div width is FIXED at 210mm with padding 14mm on each side — usable content width is 182mm
+- ALL child elements (card-grid, comparison table, topic-strip) MUST fit within this 182mm — NEVER exceed it
+- .card-grid: use grid-template-columns:repeat(2,1fr) with gap:12px — DO NOT use fixed pixel widths on cards
+- Every card (.card): width:100%; box-sizing:border-box; — this is MANDATORY
+- .comparison and .comp-table: width:100%; box-sizing:border-box; table-layout:fixed — MANDATORY
+- .comp-table td, .comp-table th: word-wrap:break-word; overflow-wrap:break-word — MANDATORY to prevent overflow
+- .visual-zone svg: width:100%; max-width:200px; height:auto; display:block; margin:0 auto — MANDATORY
+- NEVER use position:absolute or position:fixed on any element inside .page
+- NEVER set explicit px widths on .card, .card-grid, .comparison, or .comp-table
+
+CARD COUNT RULES:
+- Generate EXACTLY 6 cards minimum, arranged in 3 rows of 2 columns
+- If content has fewer than 6 concepts, REPEAT a concept with a different perspective or sub-concept
+- NEVER leave an empty grid cell — the grid MUST always have an even number of cards
+- Each card MUST have: .card-title + .visual-zone (with SVG) + .explanation + .insight
+
+FOOTER PINNING RULES:
+- .page must have: display:flex; flex-direction:column; min-height:297mm
+- footer must have: margin-top:auto; flex-shrink:0
+- The footer text "© 2025 EduFit | Visual Explainers Generated by AI" MUST appear as the LAST visible element
+- DO NOT place any div or element after the footer inside .page
+
+TOPIC STRIP ALIGNMENT:
+- .topic-strip: display:flex; flex-direction:row; align-items:center; gap:12px
+- .topic-strip h2 and .topic-strip p must both be on the same row, vertically centered
+- DO NOT wrap topic-strip children in additional nested divs
+
+SVG SAFETY RULES:
+- Every SVG viewBox MUST be exactly: viewBox="0 0 200 120"
+- SVG width="100%" height="auto" MUST be set as HTML attributes (not just CSS)
+- All SVG text elements: clip-path MUST NOT be used
+- All SVG content must stay within the 0 0 200 120 viewBox bounds — no elements outside this box
+- Text labels inside SVG must use y values between 12 and 115 only
+
+HTML OUTPUT RULES:
+- Output MUST be a single continuous line of minified HTML
+- NO line breaks, NO indentation, NO markdown code fences
+- All inline styles must use semicolons properly — no missing semicolons
+- All double quotes inside style attributes must be properly escaped`;
 }
 
 
@@ -936,7 +1085,7 @@ FORMULA CONTENT � inside a .container (max-width 1200px, margin 0 auto):
 - Section title style: font-size 1.8em, font-weight 600, color #1F2937, border-bottom 3px solid #6366F1, margin-bottom 20px
 
 OUTPUT STRUCTURE � USE THIS EXACT HTML SKELETON:
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$',right:'$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script><script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter','Manrope','Lexend',sans-serif;background:linear-gradient(135deg,#F9FAFB 0%,#EEF2FF 100%);min-height:100vh;padding:20px;color:#1F2937}header{background:linear-gradient(135deg,#6366F1 0%,#14B8A6 100%);border-radius:20px;padding:40px;text-align:center;margin-bottom:30px;box-shadow:0 8px 32px rgba(99,102,241,0.15)}.header-icon{font-size:48px;margin-bottom:10px}.header-title{color:white;font-size:2.5em;font-weight:700;margin-bottom:8px}.header-subtitle{color:rgba(255,255,255,0.9);font-size:0.95em;font-weight:300}.container{max-width:1200px;margin:0 auto}.section{margin-bottom:40px}.section-title{font-size:1.8em;font-weight:600;color:#1F2937;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #6366F1}img.emoji{height:1em;width:1em;margin:0 0.05em 0 0.1em;vertical-align:-0.1em;display:inline-block}.formula-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;overflow:visible}.formula-card{background:linear-gradient(135deg,#EEF2FF,#FFFFFF);border-radius:16px;padding:2rem;box-shadow:0 6px 16px rgba(0,0,0,0.08);min-height:auto;max-height:none;overflow:visible}.formula-badge{display:inline-block;background:#3B82F6;color:white;border-radius:999px;padding:0.4rem 1rem;font-size:0.85em;font-weight:600;margin-bottom:12px}.formula-display{font-size:1.2rem;color:#1F2937;background:#F8FAFC;border-radius:8px;padding:14px 16px;margin-bottom:12px;border-left:4px solid #6366F1;text-align:center;overflow-x:auto}.formula-section{margin-bottom:10px}.formula-section-label{font-size:0.75em;font-weight:700;color:#6366F1;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}.formula-section-text{font-size:0.875rem;color:#374151;line-height:1.6}.difficulty{display:inline-block;border-radius:999px;padding:0.25rem 0.75rem;font-size:0.75em;font-weight:600;margin-top:8px}.easy{background:#D1FAE5;color:#065F46}.medium{background:#FEF3C7;color:#92400E}.hard{background:#FEE2E2;color:#991B1B}.katex-display{margin:0.3em 0}.katex{font-size:1.1em}footer{background:white;border-radius:16px;padding:25px;text-align:center;color:#6B7280;font-size:0.9em;box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-top:40px}@media(max-width:768px){.header-title{font-size:1.8em}.formula-grid{grid-template-columns:1fr}}</style></head><body><header><div class="header-icon">SUBJECT EMOJI HERE</div><div class="header-title">Key Formula Sheet: ${sectionNumber}</div><div class="header-subtitle">Curated Summary | Powered by EduFit</div></header><div class="container"><section class="section"><h2 class="section-title">Formulas &amp; Equations</h2><div class="formula-grid">FORMULA CARDS HERE � each .formula-display must contain $LaTeX formula here$</div></section></div><footer>� 2025 EduFit � Key Formula Sheet Generated by AI</footer><script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script></body></html>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}]})"></script><script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter','Manrope','Lexend',sans-serif;background:linear-gradient(135deg,#F9FAFB 0%,#EEF2FF 100%);min-height:100vh;padding:20px;color:#1F2937}header{background:linear-gradient(135deg,#6366F1 0%,#14B8A6 100%);border-radius:20px;padding:40px;text-align:center;margin-bottom:30px;box-shadow:0 8px 32px rgba(99,102,241,0.15)}.header-icon{font-size:48px;margin-bottom:10px}.header-title{color:white;font-size:2.5em;font-weight:700;margin-bottom:8px}.header-subtitle{color:rgba(255,255,255,0.9);font-size:0.95em;font-weight:300}.container{max-width:1200px;margin:0 auto}.section{margin-bottom:40px}.section-title{font-size:1.8em;font-weight:600;color:#1F2937;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #6366F1}img.emoji{height:1em;width:1em;margin:0 0.05em 0 0.1em;vertical-align:-0.1em;display:inline-block}.formula-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;overflow:visible}.formula-card{background:linear-gradient(135deg,#EEF2FF,#FFFFFF);border-radius:16px;padding:2rem;box-shadow:0 6px 16px rgba(0,0,0,0.08);min-height:auto;max-height:none;overflow:visible}.formula-badge{display:inline-block;background:#3B82F6;color:white;border-radius:999px;padding:0.4rem 1rem;font-size:0.85em;font-weight:600;margin-bottom:12px}.formula-display{font-size:1.2rem;color:#1F2937;background:#F8FAFC;border-radius:8px;padding:14px 16px;margin-bottom:12px;border-left:4px solid #6366F1;text-align:center;overflow-x:auto}.formula-section{margin-bottom:10px}.formula-section-label{font-size:0.75em;font-weight:700;color:#6366F1;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}.formula-section-text{font-size:0.875rem;color:#374151;line-height:1.6}.difficulty{display:inline-block;border-radius:999px;padding:0.25rem 0.75rem;font-size:0.75em;font-weight:600;margin-top:8px}.easy{background:#D1FAE5;color:#065F46}.medium{background:#FEF3C7;color:#92400E}.hard{background:#FEE2E2;color:#991B1B}.katex-display{margin:0.3em 0}.katex{font-size:1.1em}footer{background:white;border-radius:16px;padding:25px;text-align:center;color:#6B7280;font-size:0.9em;box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-top:40px}@media(max-width:768px){.header-title{font-size:1.8em}.formula-grid{grid-template-columns:1fr}}</style></head><body><header><div class="header-icon">SUBJECT EMOJI HERE</div><div class="header-title">Key Formula Sheet: ${sectionNumber}</div><div class="header-subtitle">Curated Summary | Powered by EduFit</div></header><div class="container"><section class="section"><h2 class="section-title">Formulas &amp; Equations</h2><div class="formula-grid">FORMULA CARDS HERE � each .formula-display must contain $LaTeX formula here$</div></section></div><footer>� 2025 EduFit � Key Formula Sheet Generated by AI</footer><script>window.addEventListener('DOMContentLoaded',(event)=>{twemoji.parse(document.body,{folder:'svg',ext:'.svg'});});</script></body></html>
 
 CONSTRAINTS:
 - HEADER: gradient background, large emoji icon, title "Key Formula Sheet: ${sectionNumber}", subtitle exactly as shown
@@ -944,6 +1093,7 @@ CONSTRAINTS:
 - KATEX: Only use $...$ or \\(...\\) for actual math/science formulas with symbols. For non-math topics (biology, history, etc.), write plain HTML text in .formula-display � NEVER use \\text{}, \\mathrm{}, or any LaTeX command for plain words. A bare \\text{Word} outside $...$ will render as broken text.
 - Replace all placeholder text with actual content from the document
 - Minified HTML (one continuous line)
+
 
 RETURN ONLY THE HTML. NOTHING ELSE.`;
 }
