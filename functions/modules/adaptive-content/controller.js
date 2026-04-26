@@ -5,6 +5,11 @@ const { getSystemPrompt } = require("./prompts/systemPrompts");
 const {
   getDocumentStructureExtractionPrompt,
 } = require("./prompts/extraction-prompts");
+const { generateAndUploadDiagramImage } = require("./generatei/diagrammetic");
+
+const { generateAndUploadMindMapImage } = require("./generatei/mindmapImage");
+
+const { generateAndUploadVisualImage } = require("./generatei/visualexplainerimage");
 // COMMENTED OUT: No longer using embeddings and cosine similarity
 // const { generateEmbedding, cosineSimilarity } = require("../rag/embeddings");
 const AWS = require("aws-sdk");
@@ -374,56 +379,123 @@ async function generateAdaptiveContent(req, res) {
 
     // Skip image conversion for mind-maps (returns JSON, not HTML)
     if (contentTypeId === 'mind-maps') {
-      console.log("[AdaptiveContent] mind-maps: returning JSON directly");
-
+      console.log('AdaptiveContent: mind-maps returning JSON directly');
       let mindMapsJson = content;
-      mindMapsJson = mindMapsJson.replace(/```(?:json)?\s*/g, '');
-      mindMapsJson = mindMapsJson.replace(/```\s*/g, '');
+      mindMapsJson = mindMapsJson.replace(/```json?/g, '');
+      mindMapsJson = mindMapsJson.replace(/```/g, '');
       mindMapsJson = mindMapsJson.trim();
 
       try {
         const parsedData = JSON.parse(mindMapsJson);
-        return res.status(200).json(parsedData);
+
+        // Generate supporting illustration — non-fatal if it fails
+        let generatedMindMapImage = null;
+        try {
+          generatedMindMapImage = await generateAndUploadMindMapImage(parsedData, finalTopicName);
+          console.log('[MindMapImage] Generation result:', generatedMindMapImage);
+        } catch (imgErr) {
+          console.error('[MindMapImage] Generation failed (non-fatal):', imgErr.message);
+        }
+
+        // Embed mindImage inside mindMap object so frontend receives it in one place
+        const mindMapPayload = parsedData.mindMap
+          ? {
+              ...parsedData,
+              mindMap: {
+                ...parsedData.mindMap,
+                mindImage:   generatedMindMapImage?.imageUrl  || null,
+                mindImageId: generatedMindMapImage?.imageId   || null,
+              },
+            }
+          : {
+              ...parsedData,
+              mindImage:   generatedMindMapImage?.imageUrl  || null,
+              mindImageId: generatedMindMapImage?.imageId   || null,
+            };
+
+        return res.status(200).json(mindMapPayload);
+
       } catch (parseError) {
-        console.error("Failed to parse mind maps JSON:", parseError);
+        console.error('Failed to parse mind maps JSON:', parseError);
         return res.status(200).json({
           success: true,
-          header: { title: "", subtitle: "", emoji: "" },
-          mindMap: { mainTopic: "", concepts: [] },
-          footer: { copyright: "", author: "" },
+          header:  { title: '', subtitle: '', emoji: '' },
+          mindMap: { mainTopic: '', concepts: [], mindImage: null, mindImageId: null },
+          footer:  { copyright: '', author: '' },
           styling: {},
           rawContent: content,
-          parseError: parseError.message
+          parseError: parseError.message,
         });
       }
     }
 
+    
     // Skip image conversion for diagrammatic-representation (returns JSON, not HTML)
     if (contentTypeId === 'diagrammatic-representation') {
-      console.log("[AdaptiveContent] diagrammatic-representation: returning JSON directly");
-
+      console.log('AdaptiveContent: diagrammatic-representation returning JSON directly');
       let diagramJson = content;
-      diagramJson = diagramJson.replace(/```(?:json)?\s*/g, '');
-      diagramJson = diagramJson.replace(/```\s*/g, '');
+      diagramJson = diagramJson.replace(/```json/g, '');
+      diagramJson = diagramJson.replace(/```/g, '');
       diagramJson = diagramJson.trim();
 
       try {
         const parsedData = JSON.parse(diagramJson);
-        return res.status(200).json(parsedData);
+
+        let generatedDiagramImage = null;
+        try {
+          generatedDiagramImage = await generateAndUploadDiagramImage(parsedData, finalTopicName);
+          console.log('Diagram image generation result:', generatedDiagramImage);
+        } catch (imgErr) {
+          console.error('Diagram image generation failed:', imgErr.message);
+        }
+
+        return res.status(200).json({
+          ...parsedData,
+          diagramImage: generatedDiagramImage?.imageUrl || null,
+          diagramImageId: generatedDiagramImage?.imageId || null,
+        });
       } catch (parseError) {
-        console.error("Failed to parse diagrammatic representation JSON:", parseError);
+        console.error('Failed to parse diagrammatic representation JSON:', parseError);
+
         return res.status(200).json({
           success: true,
-          header: { title: "", subtitle: "", emoji: "" },
-          coreIdea: "",
-          diagram: { type: "", rootId: "", nodes: [], edges: [] },
+          header: { title: '', subtitle: '', emoji: '📘' },
+          coreIdea: '',
+          diagram: { type: 'TREE', rootId: 'A', nodes: [], edges: [] },
           keyNotes: [],
-          summary: "",
-          footer: { text: "" },
+          summary: '',
+          footer: { text: '2025 EduFit Diagrammatic Representation Generated by AI' },
+          diagramImage: null,
+          diagramImageId: null,
           rawContent: content,
-          parseError: parseError.message
+          parseError: parseError.message,
         });
       }
+    }
+
+    if (contentTypeId === 'visual-explainers') {
+      console.log('[AdaptiveContent] visual-explainers: generating AI concept image...');
+
+      let generatedVisualImage = null;
+      try {
+        generatedVisualImage = await generateAndUploadVisualImage(finalTopicName);
+        console.log('[VisualExplainerImage] Generation result:', generatedVisualImage);
+      } catch (imgErr) {
+        console.error('[VisualExplainerImage] Generation failed (non-fatal):', imgErr.message);
+      }
+
+      // Build images array — one entry for the AI-generated concept illustration
+      const images = generatedVisualImage
+        ? [{ slideNumber: 1, url: generatedVisualImage.imageUrl, imageId: generatedVisualImage.imageId }]
+        : [];
+
+      return res.status(200).json({
+        success:     true,
+        images,                    // AI-generated concept illustration (for VisualExplainerRenderer)
+        htmlContent: htmlContent,  // Full HTML content (for dangerouslySetInnerHTML render)
+        content:     content,
+        truncated:   finishReason === 'length',
+      });
     }
 
     let pageCount = (htmlContent.match(/class=["']page["']/g) || []).length || 1;
