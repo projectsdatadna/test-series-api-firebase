@@ -21,23 +21,50 @@ const S3_BUCKET = process.env.AWS_S3_BUCKET;
 async function buildVisualExplainerImagePrompt(topicName) {
   const topic = topicName || 'Educational concept';
 
-  const userContent = `You are an expert educational illustration prompt writer.
-Write a visual-only image generation prompt for an educational VISUAL EXPLAINER illustration.
+  const userContent = `You are an expert educational diagram designer.
+
+Create a VISUAL SEQUENCE illustration prompt for a step-by-step educational explanation.
 
 Topic: "${topic}"
 
-The image must be a BLACK AND WHITE LINE ART visual explainer — like a hand-drawn textbook diagram.
+🚨 CORE REQUIREMENT:
+The image must show a CLEAR STEP-BY-STEP PROCESS from left to right.
 
-STRICT STYLE RULES:
-- Style: Black ink line art on a pure white background. Like a pen sketch in an academic textbook.
-- All lines, outlines, and icons drawn in thin black strokes only. NO color fills whatsoever.
-- Layout: Clear focal point at the centre representing the main concept, supporting visual icons arranged around it
-- Icons and shapes: Simple outlined symbols and icons (black stroke, white fill) representing the concept visually
-- Connections: Thin straight black lines or simple arrows connecting related icons if needed
-- NO color, NO gradients, NO shading, NO fill colors — pure black lines on white only
-- NO text, NO letters, NO numbers, NO labels anywhere in the image
+STRUCTURE:
+- Step A → Step B → Step C → Final Output
+- Each step must visually evolve from the previous step
+- The last step must represent the FINAL RESULT of the concept
 
-Write ONLY the image prompt in under 100 words. Nothing else.`;
+VISUAL FLOW RULES:
+- Arrange elements horizontally (left → right progression)
+- Each step should be clearly separated but connected
+- Use simple arrows or connecting lines to show progression
+- Each step must visually change (not repeated icons)
+
+STYLE RULES:
+- Black and white line art only
+- Thin black strokes on pure white background
+- No colors, no shading, no gradients
+
+STRICTLY FORBIDDEN:
+- NO text, NO labels, NO letters, NO numbers
+- NO decorative icons that don’t represent process
+- NO radial or mind-map layout
+
+VISUAL THINKING:
+- Step A = starting state
+- Step B = transformation begins
+- Step C = further change
+- Final = completed concept
+
+EXAMPLE FLOW:
+Seed → Sprout → Plant → Tree  
+OR  
+Object at rest → Motion begins → Acceleration → Final movement state
+
+OUTPUT:
+Write ONLY the image generation prompt under 120 words.
+No explanation.`;
 
   const azureUrl = `${TEXT_ENDPOINT}/openai/deployments/${TEXT_DEPLOYMENT}/chat/completions?api-version=${TEXT_API_VERSION}`;
 
@@ -65,12 +92,21 @@ async function generateAndUploadVisualImage(topicName) {
     const imagePrompt = await buildVisualExplainerImagePrompt(topicName);
 
     const finalPrompt = [
-      `STYLE: Black and white line art only. Pure white background. Thin black ink strokes. Textbook pen-and-ink sketch / technical diagram style. NO color, NO gradients, NO shading, NO fills of any color — only black outlines on white.`,
+      `STYLE: Black and white line art only. Pure white background. Thin black ink strokes. Educational textbook diagram style.`,
+
       imagePrompt,
-      `LAYOUT RULES: Visual explainer composition. One prominent central icon or symbol (outlined, black stroke, white fill) representing the core concept. Supporting concept icons arranged spatially around it. Simple thin black connector lines between related elements where needed. Clean, uncluttered layout with generous spacing between icons.`,
-      `COLOR RULES: This must be strictly MONOCHROME. Black ink lines and outlines only on a pure white canvas. Any color in the output is a failure. Treat this exactly like a pen-and-ink technical illustration from an academic textbook.`,
-      `CRITICAL: NO text, NO letters, NO numbers, NO words, NO labels anywhere. Zero readable characters.`,
-      `CANVAS: All content inside boundaries. 5% padding on all sides.`,
+
+      `LAYOUT: Strict LEFT-TO-RIGHT SEQUENTIAL FLOW. Show 3–5 stages of transformation.`,
+
+      `STRUCTURE: Step A → Step B → Step C → Final Output. Each stage must visually evolve from previous stage.`,
+
+      `CONNECTIONS: Use thin arrows or lines to indicate direction of process.`,
+
+      `IMPORTANT: Each step must look different and represent progression, not repetition.`,
+
+      `STRICT RULES: NO text, NO labels, NO letters, NO numbers.`,
+
+      `CANVAS: Clean layout with spacing between steps. All elements inside frame.`,
     ].join('\n\n');
 
     const url = `${IMAGE_ENDPOINT}/openai/deployments/${IMAGE_DEPLOYMENT}/images/generations?api-version=${IMAGE_API_VERSION_IMG}`;

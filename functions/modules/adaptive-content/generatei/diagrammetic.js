@@ -24,25 +24,36 @@ async function buildDiagramImagePrompt(diagramData, topicName) {
   const coreIdea    = diagramData?.coreIdea || '';
   const subject     = diagramData?.header?.title || topicName || 'Educational concept';
 
-  const userContent = `You are an expert educational illustration prompt writer.
-Write a visual-only image generation prompt for an educational ${diagramType} diagram illustration.
+  const userContent = `You are an expert educational diagram designer.
+
+Write a visual-only image generation prompt for an educational diagram.
 
 Topic: "${subject}"
 Core idea: ${coreIdea}
-Key concepts shown: ${nodeLabels}
+Key concepts: ${nodeLabels}
 
-The image must be a BLACK AND WHITE LINE ART diagram — like a textbook hand-drawn sketch.
+🚨 GOAL:
+Create a diagram that clearly REPRESENTS STRUCTURE so it can be EXPLAINED visually like a textbook (e.g., human body diagram).
 
-STRICT STYLE RULES:
-- Style: Black ink line art on pure white background. Like a pencil/pen sketch in a textbook.
-- All lines, outlines, and icons drawn in thin black strokes only. NO color fills whatsoever.
-- Nodes: Clean outlined rounded rectangles or circles (black stroke, white fill) with a simple line-art icon inside each
-- Connections: Thin straight black lines connecting parent to child nodes. NO arrows, NO arrowheads, NO curves
-- Layout: Top-down hierarchy. Root node at top, children below, grandchildren at bottom
-- NO color, NO gradients, NO shading, NO fill colors — pure black lines on white only
-- NO text, NO letters, NO numbers, NO labels anywhere in the image
+STYLE:
+- Black and white line art (pen sketch style)
+- Thin black strokes on pure white background
 
-Write ONLY the image prompt in under 100 words. Nothing else.`;
+VISUAL STRUCTURE:
+- Main subject clearly visible (central or top)
+- Supporting parts arranged logically around or below
+- Each part must be visually distinguishable using shapes/icons
+
+IMPORTANT:
+- The diagram must be SELF-EXPLANATORY visually
+- Each node must represent a real concept (not decorative)
+
+STRICT RULES:
+- NO text, NO labels, NO letters, NO numbers
+- NO color, NO shading
+
+OUTPUT:
+Write ONLY the image prompt under 100 words.`;
 
   const azureUrl = `${TEXT_ENDPOINT}/openai/deployments/${TEXT_DEPLOYMENT}/chat/completions?api-version=${TEXT_API_VERSION}`;
 
@@ -69,12 +80,39 @@ async function generateAndUploadDiagramImage(diagramData, topicName) {
     const imagePrompt = await buildDiagramImagePrompt(diagramData, topicName);
 
     const finalPrompt = [
-      `STYLE: Black and white line art only. Pure white background. Thin black ink strokes. Textbook sketch / technical diagram style. NO color, NO gradients, NO shading, NO fills of any color — only black outlines on white.`,
+      `STYLE: Black and white line art only. Pure white background. Thin black ink strokes. Educational textbook illustration style (like biology or science diagrams).`,
+
       imagePrompt,
-      `LAYOUT RULES: Top-down hierarchy tree. Nodes are outlined rounded rectangles or circles (white inside, black border) with a simple black line-art icon inside each. Parent-child connections use ONLY thin straight black lines — absolutely NO arrows, NO arrowheads, NO curved connectors, NO organic branches, NO flowing lines, NO tree trunk imagery.`,
-      `COLOR RULES: This must be MONOCHROME. Black ink lines and outlines only on a pure white canvas. Any color in the output is a failure. Treat this like a pen-and-ink technical illustration from an academic textbook.`,
-      `CRITICAL: NO text, NO letters, NO numbers, NO words, NO labels anywhere. Zero readable characters.`,
-      `CANVAS: All content inside boundaries. 5% padding on all sides.`,
+
+      `LAYOUT RULES:
+    - Create a clear educational diagram (NOT UI boxes or flowchart)
+    - One MAIN subject (central or top) representing the core concept
+    - Supporting parts arranged logically around or below the main subject
+    - Each part must visually represent a real concept (like organs, components, or stages)
+    - Use simple shapes and meaningful icons, not abstract symbols
+    - Maintain clean spacing and balanced composition`,
+
+      `STRUCTURE:
+    - The diagram must be visually understandable without text
+    - Each element should clearly represent a part of the concept
+    - Relationships between parts should be obvious from placement and structure`,
+
+      `CONNECTION RULES:
+    - Use thin straight lines only if needed to show relationships
+    - Avoid complex connectors, arrows, or decorative lines`,
+
+      `COLOR RULES:
+    - STRICTLY black ink lines only on pure white background
+    - No color, no shading, no gradients`,
+
+      `CRITICAL:
+    - NO text, NO labels, NO letters, NO numbers anywhere
+    - No UI-style boxes or mind map layouts
+    - Must look like a real educational diagram from a textbook`,
+
+      `CANVAS:
+    - Keep all elements inside boundaries
+    - Maintain 5–10% padding on all sides`,
     ].join('\n\n');
 
     const url = `${IMAGE_ENDPOINT}/openai/deployments/${IMAGE_DEPLOYMENT}/images/generations?api-version=${IMAGE_API_VERSION_IMG}`;
