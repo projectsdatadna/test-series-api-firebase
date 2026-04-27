@@ -5,10 +5,11 @@ const { getSystemPrompt } = require("./prompts/systemPrompts");
 const {
   getDocumentStructureExtractionPrompt,
 } = require("./prompts/extraction-prompts");
-
 const { generateAndUploadDiagramImage } = require("./generatei/diagrammetic");
 
 const { generateAndUploadVisualImage } = require("./generatei/visualexplainerimage");
+
+const { getMindMapSystemPrompt } = require("./prompts/mindMapSystemPrompt");
 // COMMENTED OUT: No longer using embeddings and cosine similarity
 // const { generateEmbedding, cosineSimilarity } = require("../rag/embeddings");
 const AWS = require("aws-sdk");
@@ -242,7 +243,14 @@ async function generateAdaptiveContent(req, res) {
       contentType: contentType || '',
     });
 
-    const systemPrompt = getSystemPrompt(contentTypeId);
+    let systemPrompt;
+
+    if (contentTypeId === "mind-maps") {
+      systemPrompt = getMindMapSystemPrompt();
+    } else {
+      systemPrompt = getSystemPrompt(contentTypeId); // existing
+    }
+
     if (context) {
       prompt = `${basePrompt}\n\nUse the following context from the document to generate the content:\n\n${context}`;
     }
@@ -253,6 +261,8 @@ async function generateAdaptiveContent(req, res) {
     const azureUrl = `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${AZURE_API_VERSION}`;
     const azureStart = Date.now();
 
+    console.log("\n===== SYSTEM PROMPT =====\n", systemPrompt);
+    console.log("\n===== USER PROMPT =====\n", prompt);
     // ✅ Azure OpenAI call — replaces Claude fetch
     const response = await axios.post(
       azureUrl,
@@ -387,7 +397,6 @@ async function generateAdaptiveContent(req, res) {
       try {
         const parsedData = JSON.parse(mindMapsJson);
 
-        // Embed mindImage inside mindMap object so frontend receives it in one place
         const mindMapPayload = parsedData.mindMap
           ? {
               ...parsedData,
@@ -406,7 +415,7 @@ async function generateAdaptiveContent(req, res) {
         return res.status(200).json({
           success: true,
           header:  { title: '', subtitle: '', emoji: '' },
-          mindMap: { mainTopic: '', concepts: [], mindImage: null, mindImageId: null },
+          mindMap: { mainTopic: '', concepts: [] },
           footer:  { copyright: '', author: '' },
           styling: {},
           rawContent: content,
