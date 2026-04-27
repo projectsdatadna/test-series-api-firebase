@@ -5,9 +5,8 @@ const { getSystemPrompt } = require("./prompts/systemPrompts");
 const {
   getDocumentStructureExtractionPrompt,
 } = require("./prompts/extraction-prompts");
-const { generateAndUploadDiagramImage } = require("./generatei/diagrammetic");
 
-const { generateAndUploadMindMapImage } = require("./generatei/mindmapImage");
+const { generateAndUploadDiagramImage } = require("./generatei/diagrammetic");
 
 const { generateAndUploadVisualImage } = require("./generatei/visualexplainerimage");
 // COMMENTED OUT: No longer using embeddings and cosine similarity
@@ -388,29 +387,16 @@ async function generateAdaptiveContent(req, res) {
       try {
         const parsedData = JSON.parse(mindMapsJson);
 
-        // Generate supporting illustration — non-fatal if it fails
-        let generatedMindMapImage = null;
-        try {
-          generatedMindMapImage = await generateAndUploadMindMapImage(parsedData, finalTopicName);
-          console.log('[MindMapImage] Generation result:', generatedMindMapImage);
-        } catch (imgErr) {
-          console.error('[MindMapImage] Generation failed (non-fatal):', imgErr.message);
-        }
-
         // Embed mindImage inside mindMap object so frontend receives it in one place
         const mindMapPayload = parsedData.mindMap
           ? {
               ...parsedData,
               mindMap: {
                 ...parsedData.mindMap,
-                mindImage:   generatedMindMapImage?.imageUrl  || null,
-                mindImageId: generatedMindMapImage?.imageId   || null,
               },
             }
           : {
               ...parsedData,
-              mindImage:   generatedMindMapImage?.imageUrl  || null,
-              mindImageId: generatedMindMapImage?.imageId   || null,
             };
 
         return res.status(200).json(mindMapPayload);
