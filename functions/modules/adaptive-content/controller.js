@@ -482,29 +482,29 @@ async function generateAdaptiveContent(req, res) {
     }
 
     if (contentTypeId === 'visual-explainers') {
-      console.log('[AdaptiveContent] visual-explainers: generating AI concept image...');
+      console.log('[AdaptiveContent] visual-explainers: generating AI concept images...');
 
       let generatedVisualImages = null;
       try {
-        // This now returns ALL 4 images (A, B, C, FINAL)
-        generatedVisualImages = await generateAndUploadVisualImage(finalTopicName);
+        // Pass the actual content context for better prompts
+        const contentContext = chunks.map(c => c.text).join(' ').substring(0, 2000);
+        generatedVisualImages = await generateAndUploadVisualImage(finalTopicName, contentContext);
         console.log('[VisualExplainerImage] Generation result:', generatedVisualImages);
-        console.log(`[VisualExplainerImage] Generated ${generatedVisualImages?.length || 0} images`);
+        console.log(`[VisualExplainerImage] Generated ${generatedVisualImages?.length || 0} images with descriptions`);
       } catch (imgErr) {
         console.error('[VisualExplainerImage] Generation failed (non-fatal):', imgErr.message);
       }
 
-      // ✅ FIX: Use the complete array of generated images
       const images = generatedVisualImages && Array.isArray(generatedVisualImages) 
-        ? generatedVisualImages  // This already has slideNumber, stepName, url, imageId
+        ? generatedVisualImages  // Now includes description field
         : [];
 
-      console.log(`[AdaptiveContent] Returning ${images.length} visual explainer images`);
+      console.log(`[AdaptiveContent] Returning ${images.length} visual explainer images with descriptions`);
 
       return res.status(200).json({
         success: true,
-        images,                    // ← ALL 4 images (A, B, C, FINAL)
-        htmlContent: htmlContent,  // Full HTML content for the iframe
+        images,                    // Contains: slideNumber, stepName, url, imageId, prompt, description
+        htmlContent: htmlContent,
         content: content,
         truncated: finishReason === 'length',
       });
@@ -1184,7 +1184,7 @@ async function chatboxQuery(req, res) {
 
 async function generateAdaptiveContentPDF(req, res) {
   try {
-    const { images, filename = 'adaptive-content', htmlContent } = req.body;
+    const { images, imageDescriptions = [], filename = 'adaptive-content', htmlContent } = req.body;
 
     if ((!images || !Array.isArray(images) || images.length === 0) && !htmlContent) {
       return res.status(400).json({ 
@@ -1195,16 +1195,13 @@ async function generateAdaptiveContentPDF(req, res) {
 
     console.log(`[AdaptiveContentPDF] Generating PDF with:`, {
       hasHtml: !!htmlContent,
-      imageCount: images?.length || 0
+      imageCount: images?.length || 0,
+      hasDescriptions: imageDescriptions.length > 0,
+      descriptionCount: imageDescriptions.length
     });
 
-    // If we have HTML content, use puppeteer for proper rendering
-    if (htmlContent && htmlContent.trim().length > 0) {
-      return await generateHtmlPdf(req, res);
-    }
-
-    // Otherwise use the existing image-only logic
-    return await generateImageOnlyPdf(req, res);
+    // Always use puppeteer for better rendering with descriptions
+    return await generateHtmlPdfWithDescriptions(req, res);
 
   } catch (error) {
     console.error('[AdaptiveContentPDF] Error:', error.message);
@@ -1214,6 +1211,373 @@ async function generateAdaptiveContentPDF(req, res) {
       error: error.message 
     });
   }
+}
+
+
+async function generateHtmlPdfWithDescriptions(req, res) {
+  const puppeteer = require('puppeteer');
+  const { htmlContent, images = [], imageDescriptions = [], filename = 'adaptive-content' } = req.body;
+ 
+  let browser = null;
+  
+  try {
+    console.log('[PDF] Launching puppeteer...');
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    
+    // Build complete HTML with images and descriptions
+    let fullHtml = htmlContent || '';
+    
+    // If no htmlContent, create a basic document
+    if (!fullHtml || !fullHtml.includes('<!DOCTYPE html>')) {
+      fullHtml = `<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            html {
+              margin: 0;
+              padding: 0;
+            }
+            body {
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              line-height: 1.5;
+              color: #1f2937;
+              background: white;
+              padding: 30px;
+              margin: 0;
+            }
+            .page-break {
+              page-break-before: always;
+            }
+            .images-section {
+              margin-top: 30px;
+              width: 100%;
+              padding-top: 20px;
+              border-top: 2px solid #e5e7eb;
+            }
+            .section-title {
+              text-align: center;
+              margin: 20px 0 30px 0;
+              color: #374151;
+              font-size: 18px;
+              font-weight: 700;
+              page-break-after: avoid;
+            }
+            .images-container {
+              display: flex;
+              flex-direction: column;
+              gap: 40px;
+              align-items: center;
+              width: 100%;
+            }
+            .image-step {
+              width: 100%;
+              max-width: 550px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              page-break-inside: avoid;
+              margin: 0 auto;
+            }
+            .step-image {
+              width: 100%;
+              height: auto;
+              display: block;
+              margin: 0;
+              border-radius: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            }
+            .description-box {
+              margin-top: 14px;
+              padding: 14px 16px;
+              background: #f0f9ff;
+              border-radius: 6px;
+              border-left: 4px solid #2563eb;
+              width: 100%;
+              page-break-inside: avoid;
+            }
+            .description-header {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              margin-bottom: 8px;
+              page-break-inside: avoid;
+            }
+            .description-icon {
+              font-size: 16px;
+              line-height: 1;
+            }
+            .description-label {
+              font-size: 10px;
+              font-weight: 700;
+              color: #2563eb;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            }
+            .description-text {
+              font-size: 13px;
+              color: #1e293b;
+              line-height: 1.5;
+              margin: 0;
+              page-break-inside: avoid;
+            }
+            /* Ensure section title stays with first image */
+            .section-title + .images-container .image-step:first-child {
+              page-break-before: avoid;
+            }
+            @media print {
+              * {
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+              body {
+                padding: 20px !important;
+              }
+              .page-break {
+                page-break-before: always;
+              }
+              .image-step {
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+              }
+              .description-box {
+                page-break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${fullHtml}
+        </body>
+      </html>`;
+    }
+    
+    // Build images section with descriptions
+    if (images && images.length > 0) {
+      const stepNames = ['A', 'B', 'C', 'D', 'E', 'Final'];
+      
+      const imagesHtml = `
+        <div class="images-section">
+          <h2 class="section-title">📸 Step-by-Step Visual Sequence</h2>
+          <div class="images-container">
+            ${images.map((img, idx) => {
+              const description = imageDescriptions[idx] || `Step ${idx + 1} demonstrates the key concept in the learning process.`;
+              const stepName = stepNames[idx] || String.fromCharCode(65 + (idx % 26));
+              const stepNumber = idx + 1;
+              
+              return `
+                <div class="image-step">
+                  <img src="${img}" alt="Step ${stepNumber}: ${stepName}" class="step-image" />
+                  <div class="description-box">
+                    <div class="description-header">
+                      <span class="description-icon">📝</span>
+                      <span class="description-label">Step ${stepNumber}: ${stepName}</span>
+                    </div>
+                    <p class="description-text">${escapeHtml(description)}</p>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+      
+      // Insert images section before closing body tag
+      if (fullHtml.includes('</body>')) {
+        fullHtml = fullHtml.replace('</body>', `${imagesHtml}</body>`);
+      } else {
+        fullHtml = fullHtml + imagesHtml;
+      }
+    }
+    
+    // Set page content
+    console.log('[PDF] Setting page content...');
+    await page.setContent(fullHtml, {
+      waitUntil: 'networkidle0',
+      timeout: 30000
+    });
+    
+    // Wait for images to load
+    await page.evaluate(() => {
+      return Promise.all(
+        Array.from(document.querySelectorAll('img'))
+          .filter(img => !img.complete)
+          .map(img => new Promise(resolve => { img.onload = img.onerror = resolve; }))
+      );
+    });
+    
+    // Generate PDF with optimized settings
+    console.log('[PDF] Generating PDF buffer...');
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '15mm',
+        bottom: '15mm',
+        left: '18mm',
+        right: '18mm'
+      },
+      displayHeaderFooter: false,
+      preferCSSPageSize: false,  // ← Use our page size
+      scale: 1
+    });
+    
+    await browser.close();
+    
+    console.log(`[PDF] Generated PDF with descriptions — ${pdfBuffer.length} bytes`);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename.replace(/\.pdf$/i, '')}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    return res.send(pdfBuffer);
+    
+  } catch (error) {
+    console.error('[PDF] Error:', error);
+    if (browser) await browser.close();
+    throw error;
+  }
+}
+ 
+// Helper function to escape HTML special characters
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\n/g, '<br>');
+}
+
+/**
+ * Generate PDF from images with descriptions (original logic with descriptions added)
+ */
+async function generateImageOnlyPdfWithDescriptions(req, res) {
+  const { images, imageDescriptions = [], filename = 'adaptive-content' } = req.body;
+  
+  const sharp = require('sharp');
+  const { PDFDocument } = require('pdf-lib');
+
+  // A4 in points at 72dpi
+  const A4_WIDTH_PT = 595;
+  const A4_HEIGHT_PT = 842;
+
+  const pdfDoc = await PDFDocument.create();
+  
+  // Add a font for text
+  const font = await pdfDoc.embedFont('Helvetica');
+  const boldFont = await pdfDoc.embedFont('Helvetica-Bold');
+
+  for (let i = 0; i < images.length; i++) {
+    const imgData = images[i];
+    const description = imageDescriptions[i] || `Step ${i + 1} visual explanation.`;
+
+    // Resolve image to PNG Buffer
+    let imgBuffer;
+    if (imgData.startsWith('http://') || imgData.startsWith('https://')) {
+      const imgResponse = await fetch(imgData);
+      if (!imgResponse.ok) throw new Error(`Failed to fetch image ${i + 1}`);
+      const arrayBuffer = await imgResponse.arrayBuffer();
+      imgBuffer = Buffer.from(arrayBuffer);
+    } else {
+      const base64 = imgData.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,\s*/, '').trim();
+      imgBuffer = Buffer.from(base64, 'base64');
+    }
+
+    const pngBuffer = await sharp(imgBuffer).png().toBuffer();
+    const embeddedImage = await pdfDoc.embedPng(pngBuffer);
+    
+    // Calculate image dimensions (keep aspect ratio, max width 500pt)
+    const maxWidth = 500;
+    const maxHeight = 400;
+    let imgWidth = embeddedImage.width;
+    let imgHeight = embeddedImage.height;
+    
+    if (imgWidth > maxWidth) {
+      imgHeight = (imgHeight * maxWidth) / imgWidth;
+      imgWidth = maxWidth;
+    }
+    if (imgHeight > maxHeight) {
+      imgWidth = (imgWidth * maxHeight) / imgHeight;
+      imgHeight = maxHeight;
+    }
+    
+    // Calculate position (centered)
+    const imgX = (A4_WIDTH_PT - imgWidth) / 2;
+    let imgY = 50;
+    
+    // Add page for this image
+    const page = pdfDoc.addPage([A4_WIDTH_PT, A4_HEIGHT_PT]);
+    
+    // Draw image
+    page.drawImage(embeddedImage, {
+      x: imgX,
+      y: A4_HEIGHT_PT - imgY - imgHeight,
+      width: imgWidth,
+      height: imgHeight,
+    });
+    
+    // Draw description text below image
+    const textY = A4_HEIGHT_PT - imgY - imgHeight - 40;
+    
+    // Draw header
+    page.drawText(`📝 Step ${i + 1} Explanation`, {
+      x: 50,
+      y: textY,
+      size: 12,
+      font: boldFont,
+      color: { r: 0.15, g: 0.4, b: 0.92 }, // #2563eb
+    });
+    
+    // Wrap and draw description text
+    const fontSize = 10;
+    const maxCharsPerLine = 90;
+    const words = description.split(' ');
+    let lines = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      if ((currentLine + ' ' + word).length <= maxCharsPerLine) {
+        currentLine = currentLine ? currentLine + ' ' + word : word;
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    
+    let yOffset = 0;
+    for (const line of lines) {
+      page.drawText(line, {
+        x: 50,
+        y: textY - 20 - yOffset,
+        size: fontSize,
+        font: font,
+        color: { r: 0.12, g: 0.16, b: 0.23 }, // #1e293b
+      });
+      yOffset += fontSize + 4;
+    }
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  console.log(`[Image PDF] Generated with descriptions — ${pdfBytes.length} bytes`);
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}.pdf"`);
+  res.setHeader('Content-Length', pdfBytes.length);
+  return res.send(Buffer.from(pdfBytes));
 }
 
 /**
