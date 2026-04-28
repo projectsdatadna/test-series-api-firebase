@@ -17,54 +17,65 @@ const IMAGE_API_VERSION_IMG = '2025-04-01-preview';
 const S3_BUCKET = process.env.AWS_S3_BUCKET;
 
 
-// ── Step A (VisualExplainer): Build image prompt from topic name ──────────────
-async function buildVisualExplainerImagePrompt(topicName) {
+// ── Step A (VisualExplainer): Build individual step prompts ──────────────────
+/**
+ * Generate sequential image prompts for each step of the concept
+ * Returns array of prompts: [stepA_prompt, stepB_prompt, stepC_prompt, final_prompt]
+ */
+async function buildVisualExplainerStepPrompts(topicName) {
   const topic = topicName || 'Educational concept';
 
-  const userContent = `You are an expert educational diagram designer.
-
-Create a VISUAL SEQUENCE illustration prompt for a step-by-step educational explanation.
+  const userContent = `You are an expert educational diagram designer creating a STEP-BY-STEP visual sequence.
 
 Topic: "${topic}"
 
-🚨 CORE REQUIREMENT:
-The image must show a CLEAR STEP-BY-STEP PROCESS from left to right.
+🎯 YOUR TASK:
+Create 4 INDIVIDUAL image prompts (one for each step of a process). Each image should show ONE stage of the concept's evolution.
 
-STRUCTURE:
-- Step A → Step B → Step C → Final Output
-- Each step must visually evolve from the previous step
-- The last step must represent the FINAL RESULT of the concept
+STEP STRUCTURE (A → B → C → Final):
+- STEP A: Starting state or initial concept
+- STEP B: First transformation or intermediate stage
+- STEP C: Second transformation or further progression  
+- STEP FINAL: Completed concept or final result
 
-VISUAL FLOW RULES:
-- Arrange elements horizontally (left → right progression)
-- Each step should be clearly separated but connected
-- Use simple arrows or connecting lines to show progression
-- Each step must visually change (not repeated icons)
+📋 FOR EACH STEP, PROVIDE:
+A clear, standalone image description showing ONLY that step's state.
 
-STYLE RULES:
+VISUAL RULES FOR ALL STEPS:
 - Black and white line art only
 - Thin black strokes on pure white background
-- No colors, no shading, no gradients
+- NO colors, NO shading, NO gradients
+- NO text, NO labels, NO numbers, NO letters
+- Each image must be visually DIFFERENT from the previous step
 
-STRICTLY FORBIDDEN:
-- NO text, NO labels, NO letters, NO numbers
-- NO decorative icons that don’t represent process
-- NO radial or mind-map layout
+OUTPUT FORMAT:
+Return EXACTLY 4 lines, one prompt per line:
+Line 1: [STEP A - starting state]
+Line 2: [STEP B - first transformation]
+Line 3: [STEP C - further progression]
+Line 4: [STEP FINAL - completed concept]
 
-VISUAL THINKING:
-- Step A = starting state
-- Step B = transformation begins
-- Step C = further change
-- Final = completed concept
+EXAMPLES:
+Topic: Plant Growth
+A: Single seed in soil, outline view
+B: Small seedling sprouting, thin stem with two leaves, outline only
+C: Young plant with stem and multiple leaves, roots visible
+FINAL: Mature plant with thick stem, many leaves, flowers blooming
 
-EXAMPLE FLOW:
-Seed → Sprout → Plant → Tree  
-OR  
-Object at rest → Motion begins → Acceleration → Final movement state
+Topic: Water Cycle
+A: Water in a container, outline of water droplets
+B: Droplets rising with arrows showing evaporation, vapor clouds forming
+C: Clouds formed, raindrops falling
+FINAL: Rain collecting in ground and container, cycle complete
 
-OUTPUT:
-Write ONLY the image generation prompt under 120 words.
-No explanation.`;
+Topic: Photosynthesis
+A: Plant leaf outline with sun rays above
+B: Leaf with sun rays penetrating, arrow showing energy flow
+C: Internal leaf structure showing conversion happening
+FINAL: Leaf producing oxygen bubbles, glucose molecules shown
+
+NOW generate 4 sequential prompts for: "${topic}"
+Each line must be exactly ONE prompt (under 40 words per line).`;
 
   const azureUrl = `${TEXT_ENDPOINT}/openai/deployments/${TEXT_DEPLOYMENT}/chat/completions?api-version=${TEXT_API_VERSION}`;
 
@@ -72,8 +83,8 @@ No explanation.`;
     azureUrl,
     {
       messages: [{ role: 'user', content: userContent }],
-      max_tokens:  200,
-      temperature: 0.2,
+      max_tokens: 600,
+      temperature: 0.3,
     },
     {
       headers: { 'api-key': TEXT_API_KEY, 'Content-Type': 'application/json' },
@@ -81,70 +92,147 @@ No explanation.`;
     }
   );
 
-  return response.data?.choices?.[0]?.message?.content?.trim()
-    || `Black and white line art visual explainer illustrating ${topic}. Central outlined icon representing the main concept, surrounding outlined supporting icons connected by thin black lines. Pure white background, no color, no labels, no text. Textbook pen-and-ink sketch style.`;
+  const responseText = response.data?.choices?.[0]?.message?.content?.trim() || '';
+  
+  // Parse the 4 lines
+  const lines = responseText.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 10) // Skip empty or too-short lines
+    .slice(0, 4); // Take first 4 valid prompts
+
+  // Ensure we have exactly 4 prompts, use defaults if needed
+  const prompts = [
+    lines[0] || `Black and white line art showing the starting state of ${topic}. Simple outlined shapes, pure white background.`,
+    lines[1] || `Black and white line art showing the first transformation of ${topic}. Thin black strokes, no text, no color.`,
+    lines[2] || `Black and white line art showing progression of ${topic}. Further change from previous step.`,
+    lines[3] || `Black and white line art showing final completed state of ${topic}. All elements present, no text.`,
+  ];
+
+  console.log('[VisualExplainerPrompts] Generated 4 step prompts');
+  prompts.forEach((p, i) => console.log(`  Step ${['A', 'B', 'C', 'FINAL'][i]}: ${p.substring(0, 60)}...`));
+
+  return prompts;
 }
 
 
-// ── Step B (VisualExplainer): Generate image via Azure + upload to S3 ─────────
+// ── Step B (VisualExplainer): Generate 4 images sequentially ─────────────────
+/**
+ * Generate 4 images (one per step) and upload all to S3
+ * Returns array: [{ slideNumber: 1, url, imageId }, ...]
+ */
 async function generateAndUploadVisualImage(topicName) {
+  const results = [];
   try {
-    const imagePrompt = await buildVisualExplainerImagePrompt(topicName);
+    console.log('[VisualExplainer] Generating 4-step visual sequence...');
+    
+    const stepPrompts = await buildVisualExplainerStepPrompts(topicName);
+    const stepNames = ['A', 'B', 'C', 'FINAL'];
+    
 
-    const finalPrompt = [
-      `STYLE: Black and white line art only. Pure white background. Thin black ink strokes. Educational textbook diagram style.`,
+    // Generate image for each step sequentially
+    for (let i = 0; i < stepPrompts.length; i++) {
+      const stepName = stepNames[i];
+      const basePrompt = stepPrompts[i];
 
-      imagePrompt,
+      // Enhance prompt with strict style requirements
+      const finalPrompt = [
+        `STEP ${stepName}: Educational textbook diagram`,
+        basePrompt,
+        `CRITICAL VISUAL RULES:`,
 
-      `LAYOUT: Strict LEFT-TO-RIGHT SEQUENTIAL FLOW. Show 3–5 stages of transformation.`,
+        `- MUST represent REAL-WORLD objects related to the topic`,
+        `- DO NOT use abstract circles, nodes, or molecule-like structures`,
+        `- DO NOT generate chemical structures or random connected dots`,
+        `- Use recognizable objects (e.g., wires, batteries, plants, human body parts, machines)`,
 
-      `STRUCTURE: Step A → Step B → Step C → Final Output. Each stage must visually evolve from previous stage.`,
+        `STRUCTURE:`,
+        `- Show ONLY this step's state clearly`,
+        `- Each step must look visually different and meaningful`,
+        `- Progression must be logical and easy to understand`,
 
-      `CONNECTIONS: Use thin arrows or lines to indicate direction of process.`,
+        `STYLE:`,
+        `- Black and white line art only`,
+        `- Thin black strokes on pure white background`,
+        `- Clean textbook-style illustration`,
+        `- Use ONLY real-world objects (wire, battery, plant, human body, machine parts)`,
+        `- NEVER describe shapes like circle, square, hexagon, pattern`,
 
-      `IMPORTANT: Each step must look different and represent progression, not repetition.`,
+        `CONNECTION RULE:`,
+        `- Use straight lines ONLY when needed to connect real components`,
+        `- Avoid decorative or complex networks`,
 
-      `STRICT RULES: NO text, NO labels, NO letters, NO numbers.`,
+        `STRICTLY FORBIDDEN:`,
+        `- NO text, NO labels, NO letters, NO numbers`,
+        `- NO molecule diagrams`,
+        `- NO random node-link graphs`,
+        `- NO purely geometric abstract patterns`,
 
-      `CANVAS: Clean layout with spacing between steps. All elements inside frame.`,
-    ].join('\n\n');
+        `QUALITY:`,
+        `- Diagram must be understandable visually without text`,
+        `- Must look like a school textbook illustration`,
+      ].join('\n');
 
-    const url = `${IMAGE_ENDPOINT}/openai/deployments/${IMAGE_DEPLOYMENT}/images/generations?api-version=${IMAGE_API_VERSION_IMG}`;
+      console.log(`[VisualExplainer] Generating image for STEP ${stepName}...`);
 
-    const imgResponse = await axios.post(
-      url,
-      { prompt: finalPrompt, n: 1, size: '1024x1024', quality: 'high', output_format: 'png' },
-      {
-        headers: { 'api-key': IMAGE_API_KEY, 'Content-Type': 'application/json' },
-        timeout: 90000,
+      const url = `${IMAGE_ENDPOINT}/openai/deployments/${IMAGE_DEPLOYMENT}/images/generations?api-version=${IMAGE_API_VERSION_IMG}`;
+
+      const imgResponse = await axios.post(
+        url,
+        { 
+          prompt: finalPrompt, 
+          n: 1, 
+          size: '1024x1024', 
+          quality: 'high', 
+          output_format: 'png' 
+        },
+        {
+          headers: { 'api-key': IMAGE_API_KEY, 'Content-Type': 'application/json' },
+          timeout: 90000,
+        }
+      );
+
+      const base64 = imgResponse.data?.data?.[0]?.b64_json;
+      if (!base64) throw new Error(`No image data for step ${stepName}`);
+
+      const buffer  = Buffer.from(base64, 'base64');
+      const imageId = uuidv4();
+      const s3Key   = `visual-explainer-images/${imageId}.png`;
+
+      await s3.putObject({
+        Bucket:      S3_BUCKET,
+        Key:         s3Key,
+        Body:        buffer,
+        ContentType: 'image/png',
+      }).promise();
+
+      const imageUrl = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+      
+      results.push({
+        slideNumber: i + 1,
+        stepName,
+        url: imageUrl,
+        imageId,
+      });
+
+      console.log(`[VisualExplainer] ✓ STEP ${stepName} uploaded to S3`);
+
+      // Small delay between API calls to avoid rate limiting
+      if (i < stepPrompts.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-    );
+    }
 
-    const base64 = imgResponse.data?.data?.[0]?.b64_json;
-    if (!base64) throw new Error('No image data returned from Azure');
-
-    const buffer  = Buffer.from(base64, 'base64');
-    const imageId = uuidv4();
-    const s3Key   = `visual-explainer-images/${imageId}.png`;
-
-    await s3.putObject({
-      Bucket:      S3_BUCKET,
-      Key:         s3Key,
-      Body:        buffer,
-      ContentType: 'image/png',
-    }).promise();
-
-    const imageUrl = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
-    return { imageUrl, imageId };
+    console.log(`[VisualExplainer] ✓ All 4 images generated and uploaded`);
+    return results;
 
   } catch (err) {
     console.error('[VisualExplainerImage] Generation failed (non-fatal):', err.message);
-    return null;
+    return results;
   }
 }
 
 
 module.exports = {
-  buildVisualExplainerImagePrompt,
+  buildVisualExplainerStepPrompts,
   generateAndUploadVisualImage,
 };

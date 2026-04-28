@@ -6,7 +6,7 @@ function getMindMapSystemPrompt() {
 - NO markdown, NO explanation, NO extra text
 
 🚨 CONTENT RULES (VERY IMPORTANT):
-- Use ONLY SHORT PHRASES (1–3 words)
+- Use ONLY SHORT PHRASES (5-7 words)
 - DO NOT generate sentences
 - DO NOT explain anything
 - Each subconcept must be concise label only
@@ -28,11 +28,11 @@ function getMindMapSystemPrompt() {
 🚨 STRUCTURE RULES:
 - Generate ALL concepts needed
 - Each concept MUST have EXACTLY 3 subconcepts
-- Each subconcept MUST be 1–3 words only
+- Each subconcept MUST be 5–7 words only
 
 🚨 AUTO VALIDATION:
 For EVERY subconcept:
-- More than 3 words → REWRITE
+- More than 5 words → REWRITE
 - Looks like a sentence → REWRITE
 
 🚨 CONTENT QUALITY RULE (CRITICAL):
@@ -102,7 +102,7 @@ For EVERY subconcept:
 - Avoid unrelated or mixed concepts
 
 🚨 FINAL RULE:
-- Every subconcept MUST be short label (1–3 words)
+- Every subconcept MUST be short label (5–7 words)
 - EXACTLY 3 subconcepts per concept`;
 }
 

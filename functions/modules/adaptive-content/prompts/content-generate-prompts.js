@@ -376,7 +376,7 @@ Topic: ${topicName}
 🚨 RULES:
 - Extract key concepts only
 - DO NOT generate sentences
-- Use ONLY short labels (1–3 words)
+- Use ONLY short labels (5–7 words)
 
 🚨 STRUCTURE:
 - Create multiple concepts
