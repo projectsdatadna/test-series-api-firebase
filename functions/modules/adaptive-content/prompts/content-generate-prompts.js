@@ -361,40 +361,50 @@ Return ONLY the JSON object.`;
  */
 function getMindMapsPrompt(params) {
   const {
-    sectionNumber = '',
-    topicName = '',
-    contentDepth = 'intermediate',
-    contentType = '',
-    outputLanguage = 'english',
-    visualStyle = 'academic'
+  sectionNumber = '',
+  topicName = '',
+  contentDepth = 'intermediate',
+  contentType = '',
+  outputLanguage = 'english',
+  visualStyle = 'academic'
   } = params;
 
-  return `Generate a SIMPLE mind map in JSON format.
+  return `Generate a MIND MAP in JSON format.
 
-Topic: ${topicName}
+  Topic: ${topicName}
 
-🚨 RULES:
-- Extract key concepts only
-- DO NOT generate sentences
-- Use ONLY short labels (5–7 words)
+  🚨 CONTENT RULES:
 
-🚨 STRUCTURE:
-- Create multiple concepts
-- Each concept MUST have EXACTLY 3 subconcepts
-- Each subconcept MUST be short label
+  * Each subconcept MUST be a COMPLETE, grammatically correct sentence
+  * Keep sentences concise (8–15 words)
+  * Use clear academic explanations (not short labels)
+  * Avoid fragments like "Opposite sides are parallel"
 
-✅ EXAMPLE:
-Concept: "Linear Motion"
-Subconcepts:
-- "Straight Path"
-- "Uniform Motion"
-- "Speed Change"
+  ✅ GOOD:
+  "Opposite sides of a rhombus are parallel and equal in length"
 
-🚨 OUTPUT:
-- Return ONLY JSON
-- No explanation
-- No extra text`;
-}
+  ❌ BAD:
+  "Opposite sides are parallel"
+
+  🚨 STRUCTURE:
+
+  * Create 6–12 concepts
+  * Each concept MUST have EXACTLY 3 subconcepts
+  * Each subconcept MUST be a full meaningful sentence
+
+  🚨 QUALITY:
+
+  * Content must be mathematically/scientifically correct
+  * No vague or incomplete statements
+  * Ensure logical clarity in examples
+
+  🚨 OUTPUT:
+
+  * Return ONLY JSON
+  * No explanation
+  * No extra text`;
+  }
+
 
 function getVisualExplainersPrompt(params) {
   const {

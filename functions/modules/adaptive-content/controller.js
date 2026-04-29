@@ -1216,226 +1216,330 @@ async function generateAdaptiveContentPDF(req, res) {
 
 async function generateHtmlPdfWithDescriptions(req, res) {
   const puppeteer = require('puppeteer');
-  const { htmlContent, images = [], imageDescriptions = [], filename = 'adaptive-content' } = req.body;
+  const { htmlContent, images = [], imageDescriptions = [], imageTitles = [], filename = 'adaptive-content' } = req.body;
  
   let browser = null;
   
   try {
-    console.log('[PDF] Launching puppeteer...');
+    console.log('[PDF] Launching puppeteer with extended timeout...');
+    
+    // ✅ Launch with increased protocol timeout
     browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu'
+      ],
+      protocolTimeout: 120000, // 120 seconds for protocol operations
     });
     
     const page = await browser.newPage();
     
-    // Build complete HTML with images and descriptions
-    let fullHtml = htmlContent || '';
+    // ✅ Set default navigation timeout
+    page.setDefaultNavigationTimeout(90000);
+    page.setDefaultTimeout(90000);
     
-    // If no htmlContent, create a basic document
-    if (!fullHtml || !fullHtml.includes('<!DOCTYPE html>')) {
-      fullHtml = `<!DOCTYPE html>
+    // Filter valid images (remove nulls and invalid URLs)
+    const validImages = images.filter(img => img && typeof img === 'string' && img.startsWith('http'));
+    
+    // If no valid images, return error
+    if (validImages.length === 0 && !htmlContent) {
+      throw new Error('No valid images or HTML content to generate PDF');
+    }
+    
+    const stepLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    
+    // Build modern styled HTML with beautiful card layout
+    let styledHtml = '';
+    
+    // If there's existing HTML content, preserve it
+    if (htmlContent && htmlContent.trim()) {
+      styledHtml = htmlContent;
+    } else {
+      styledHtml = `<!DOCTYPE html>
       <html>
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            html {
-              margin: 0;
-              padding: 0;
-            }
-            body {
-              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              line-height: 1.5;
-              color: #1f2937;
-              background: white;
-              padding: 30px;
-              margin: 0;
-            }
-            .page-break {
-              page-break-before: always;
-            }
-            .images-section {
-              margin-top: 30px;
-              width: 100%;
-              padding-top: 20px;
-              border-top: 2px solid #e5e7eb;
-            }
-            .section-title {
-              text-align: center;
-              margin: 20px 0 30px 0;
-              color: #374151;
-              font-size: 18px;
-              font-weight: 700;
-              page-break-after: avoid;
-            }
-            .images-container {
-              display: flex;
-              flex-direction: column;
-              gap: 40px;
-              align-items: center;
-              width: 100%;
-            }
-            .image-step {
-              width: 100%;
-              max-width: 550px;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              page-break-inside: avoid;
-              margin: 0 auto;
-            }
-            .step-image {
-              width: 100%;
-              height: auto;
-              display: block;
-              margin: 0;
-              border-radius: 10px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            }
-            .description-box {
-              margin-top: 14px;
-              padding: 14px 16px;
-              background: #f0f9ff;
-              border-radius: 6px;
-              border-left: 4px solid #2563eb;
-              width: 100%;
-              page-break-inside: avoid;
-            }
-            .description-header {
-              display: flex;
-              align-items: center;
-              gap: 6px;
-              margin-bottom: 8px;
-              page-break-inside: avoid;
-            }
-            .description-icon {
-              font-size: 16px;
-              line-height: 1;
-            }
-            .description-label {
-              font-size: 10px;
-              font-weight: 700;
-              color: #2563eb;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            }
-            .description-text {
-              font-size: 13px;
-              color: #1e293b;
-              line-height: 1.5;
-              margin: 0;
-              page-break-inside: avoid;
-            }
-            /* Ensure section title stays with first image */
-            .section-title + .images-container .image-step:first-child {
-              page-break-before: avoid;
-            }
-            @media print {
-              * {
-                margin: 0 !important;
-                padding: 0 !important;
-              }
-              body {
-                padding: 20px !important;
-              }
-              .page-break {
-                page-break-before: always;
-              }
-              .image-step {
-                page-break-inside: avoid;
-                margin-bottom: 20px;
-              }
-              .description-box {
-                page-break-inside: avoid;
-              }
-            }
-          </style>
+          <title>Visual Explainer - ${filename}</title>
         </head>
         <body>
-          ${fullHtml}
+          <div class="content-wrapper"></div>
         </body>
       </html>`;
     }
     
-    // Build images section with descriptions
-    if (images && images.length > 0) {
-      const stepNames = ['A', 'B', 'C', 'D', 'E', 'Final'];
+    // Create the modern image gallery HTML (only if we have images)
+    let modernGalleryHtml = '';
+    
+    if (validImages.length > 0) {
+      modernGalleryHtml = `
+      <style>
+        /* Modern Visual Explainer Styles */
+        .visual-explainer-section {
+          margin-top: 40px;
+          padding: 0 20px;
+        }
+        
+        .section-header {
+          text-align: center;
+          margin-bottom: 40px;
+          padding: 20px 0;
+        }
+        
+        .section-header h2 {
+          font-size: 28px;
+          font-weight: 700;
+          background: linear-gradient(135deg, #1e293b, #3b82f6);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          margin-bottom: 8px;
+        }
+        
+        .section-header p {
+          color: #64748b;
+          font-size: 14px;
+        }
+        
+        /* Step Card Container */
+        .steps-container {
+          display: flex;
+          flex-direction: column;
+          gap: 32px;
+          max-width: 900px;
+          margin: 0 auto;
+        }
+        
+        /* Individual Step Card */
+        .step-card {
+          background: white;
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+          page-break-inside: avoid;
+          border: 1px solid #e2e8f0;
+        }
+        
+        /* Card Header with Gradient */
+        .step-card-header {
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          padding: 16px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        
+        .step-badge {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+        
+        .step-letter-circle {
+          width: 48px;
+          height: 48px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          font-weight: 700;
+          color: white;
+        }
+        
+        .step-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: white;
+        }
+        
+        .step-counter {
+          background: rgba(255, 255, 255, 0.15);
+          padding: 6px 12px;
+          border-radius: 30px;
+          font-size: 13px;
+          font-weight: 500;
+          color: white;
+        }
+        
+        /* Image Container */
+        .step-image-container {
+          padding: 24px;
+          background: #fafbfc;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          border-bottom: 1px solid #f0f2f5;
+        }
+        
+        .step-image {
+          max-width: 100%;
+          height: auto;
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          background: white;
+        }
+        
+        /* Description Box */
+        .step-description {
+          padding: 20px 24px;
+          background: #f0f9ff;
+          border-left: 4px solid #3b82f6;
+        }
+        
+        .description-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        
+        .description-icon {
+          font-size: 18px;
+        }
+        
+        .description-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: #3b82f6;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        
+        .description-text {
+          font-size: 14px;
+          line-height: 1.6;
+          color: #1e293b;
+          margin: 0;
+        }
+        
+        /* Print Styles */
+        @media print {
+          .step-card {
+            page-break-inside: avoid;
+            break-inside: avoid;
+            box-shadow: none;
+          }
+          
+          .step-card-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+          
+          .step-description {
+            background: #f0f9ff;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+        }
+      </style>
       
-      const imagesHtml = `
-        <div class="images-section">
-          <h2 class="section-title">📸 Step-by-Step Visual Sequence</h2>
-          <div class="images-container">
-            ${images.map((img, idx) => {
-              const description = imageDescriptions[idx] || `Step ${idx + 1} demonstrates the key concept in the learning process.`;
-              const stepName = stepNames[idx] || String.fromCharCode(65 + (idx % 26));
-              const stepNumber = idx + 1;
-              
-              return `
-                <div class="image-step">
-                  <img src="${img}" alt="Step ${stepNumber}: ${stepName}" class="step-image" />
-                  <div class="description-box">
-                    <div class="description-header">
-                      <span class="description-icon">📝</span>
-                      <span class="description-label">Step ${stepNumber}: ${stepName}</span>
-                    </div>
-                    <p class="description-text">${escapeHtml(description)}</p>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
+      <div class="visual-explainer-section">
+        <div class="section-header">
+          <h2>📸 Visual Learning Sequence</h2>
+          <p>Step-by-step visual guide with explanations</p>
         </div>
-      `;
-      
-      // Insert images section before closing body tag
-      if (fullHtml.includes('</body>')) {
-        fullHtml = fullHtml.replace('</body>', `${imagesHtml}</body>`);
+        
+        <div class="steps-container">
+          ${validImages.map((img, idx) => {
+            const stepLetter = stepLabels[idx] || String.fromCharCode(65 + idx);
+            const stepTitle = imageTitles[idx] || `Step ${stepLetter}`;
+            const description = imageDescriptions[idx] || `Step ${stepLetter}: ${stepTitle} demonstrates the key concept in this learning process.`;
+            
+            return `
+              <div class="step-card">
+                <div class="step-card-header">
+                  <div class="step-badge">
+                    <div class="step-letter-circle">${stepLetter}</div>
+                    <div class="step-title">${escapeHtml(stepTitle)}</div>
+                  </div>
+                  <div class="step-counter">${idx + 1}/${validImages.length}</div>
+                </div>
+                <div class="step-image-container">
+                  <img src="${img}" alt="Step ${stepLetter}: ${stepTitle}" class="step-image" />
+                </div>
+                <div class="step-description">
+                  <div class="description-header">
+                    <span class="description-icon">📝</span>
+                    <span class="description-label">Step ${stepLetter} • Detailed Explanation</span>
+                  </div>
+                  <p class="description-text">${escapeHtml(description)}</p>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    }
+    
+    // Combine existing HTML content with the modern gallery
+    let finalHtml = styledHtml;
+    
+    if (modernGalleryHtml) {
+      if (finalHtml.includes('</body>')) {
+        finalHtml = finalHtml.replace('</body>', `${modernGalleryHtml}</body>`);
       } else {
-        fullHtml = fullHtml + imagesHtml;
+        finalHtml = finalHtml + modernGalleryHtml;
       }
     }
     
-    // Set page content
+    // Ensure proper viewport and print settings
+    if (!finalHtml.includes('<meta name="viewport"')) {
+      finalHtml = finalHtml.replace('<head>', '<head><meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    }
+    
     console.log('[PDF] Setting page content...');
-    await page.setContent(fullHtml, {
-      waitUntil: 'networkidle0',
-      timeout: 30000
+    
+    // ✅ Use a simpler approach to set content
+    await page.setContent(finalHtml, {
+      waitUntil: 'domcontentloaded', // ✅ Changed from 'networkidle0' to 'domcontentloaded' for speed
+      timeout: 60000
     });
     
-    // Wait for images to load
+    // ✅ Wait for images with a more efficient approach
+    console.log('[PDF] Waiting for images to load...');
     await page.evaluate(() => {
-      return Promise.all(
-        Array.from(document.querySelectorAll('img'))
-          .filter(img => !img.complete)
-          .map(img => new Promise(resolve => { img.onload = img.onerror = resolve; }))
-      );
+      const images = Array.from(document.querySelectorAll('img'));
+      const promises = images.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+          // Set a timeout for each image
+          setTimeout(resolve, 5000);
+        });
+      });
+      return Promise.all(promises);
     });
     
-    // Generate PDF with optimized settings
+    // ✅ Additional small delay for layout
+    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 500)));
+    
     console.log('[PDF] Generating PDF buffer...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: {
-        top: '15mm',
-        bottom: '15mm',
-        left: '18mm',
-        right: '18mm'
+        top: '20mm',
+        bottom: '20mm',
+        left: '15mm',
+        right: '15mm'
       },
       displayHeaderFooter: false,
-      preferCSSPageSize: false,  // ← Use our page size
-      scale: 1
+      preferCSSPageSize: true, // ✅ Changed to true for better print handling
+      timeout: 90000
     });
     
     await browser.close();
     
-    console.log(`[PDF] Generated PDF with descriptions — ${pdfBuffer.length} bytes`);
+    console.log(`[PDF] Generated styled PDF — ${pdfBuffer.length} bytes with ${validImages.length} images`);
     
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename.replace(/\.pdf$/i, '')}.pdf"`);
@@ -1444,12 +1548,23 @@ async function generateHtmlPdfWithDescriptions(req, res) {
     
   } catch (error) {
     console.error('[PDF] Error:', error);
-    if (browser) await browser.close();
+    if (browser) {
+      await browser.close();
+    }
+    
+    // ✅ Return a more helpful error message
+    if (error.message.includes('timeout')) {
+      return res.status(504).json({
+        success: false,
+        message: 'PDF generation timed out. The content may be too large. Please try again with fewer images or smaller HTML content.',
+        error: error.message
+      });
+    }
+    
     throw error;
   }
 }
- 
-// Helper function to escape HTML special characters
+
 function escapeHtml(text) {
   if (!text) return '';
   return text

@@ -23,86 +23,100 @@ const S3_BUCKET = process.env.AWS_S3_BUCKET;
 async function buildVisualExplainerStepPromptsAndDescriptions(topicName, contentContext = '') {
   const topic = topicName || 'Educational concept';
 
-  const userContent = `You are an expert educational diagram designer creating a STEP-BY-STEP visual sequence.
+  const userContent = `You are an expert educational visual designer.
 
-Topic: "${topic}"
-${contentContext ? `Additional Context: ${contentContext}` : ''}
+  Topic: "${topic}"
+  ${contentContext ? `Content: ${contentContext}` : ''}
 
-🎯 YOUR TASK:
-Create 4 steps (A → B → C → Final) that visually explain this concept.
+  🎯 TASK:
+  Analyze the given content deeply and convert it into a STEP-BY-STEP visual explanation.
 
-For EACH step, provide:
-1. A CLEAR image generation prompt (2-3 lines) for black & white line art
-2. A DESCRIPTIVE explanation (3 lines) of what the image shows
+  🚨 STEP GENERATION RULES:
 
-STEP STRUCTURE:
-- STEP A: Starting state or initial concept
-- STEP B: First transformation or intermediate stage
-- STEP C: Second transformation or further progression
-- STEP FINAL: Completed concept or final result
+  * Identify the natural progression of the concept from start to end
+  * Break the concept into 3–5 logical steps based on how it actually works
+  * DO NOT force artificial steps
+  * Each step must represent a REAL transformation or progression
 
-VISUAL RULES FOR ALL IMAGES:
-- Black and white line art only
-- Thin black strokes on pure white background
-- NO colors, NO shading, NO gradients
-- NO text, NO labels, NO numbers, NO letters
-- Each image must be visually DIFFERENT from the previous step
-- Use real-world objects (no abstract shapes)
+  STEP STRUCTURE:
 
-OUTPUT FORMAT - Return EXACTLY this JSON structure:
-{
+  * STEP A: Initial state / starting condition
+  * STEP B: First transformation / process begins
+  * STEP C: Intermediate development
+  * STEP D (optional): Further progression if needed
+  * FINAL STEP: Completed result / final outcome
+
+  🚨 VERY IMPORTANT:
+
+  * Each step MUST be visually different
+  * Each step MUST logically follow the previous one
+  * The FINAL step MUST clearly show the completed concept
+
+  ---
+
+  🎨 IMAGE PROMPT RULES (CRITICAL):
+  For EACH step generate:
+
+  1. IMAGE PROMPT (2–3 lines):
+
+  * Black and white line art
+  * Real-world objects only
+  * Clear visual difference from previous step
+  * Show ONLY that step's state
+
+  2. DESCRIPTION (2–3 lines):
+
+  * Explain what happens in this step
+  * Explain how it leads to the next step
+  * Keep it simple and educational
+
+  ---
+
+  🚨 STRICT VISUAL RULES:
+
+  * Black and white line art only
+  * Thin black strokes on white background
+  * NO text, NO labels, NO numbers
+  * NO abstract shapes, NO molecules
+  * Use real objects related to topic
+
+  ---
+
+  🚨 OUTPUT FORMAT (STRICT JSON):
+  {
   "steps": [
-    {
-      "stepName": "A",
-      "prompt": "Black and white line art showing [specific starting state]. Simple outlined shapes, pure white background.",
-      "description": "This image illustrates the initial stage of the concept. The visual shows the fundamental elements before any transformation begins. It establishes the baseline for understanding the process."
-    },
-    {
-      "stepName": "B",
-      "prompt": "Black and white line art showing [first transformation]. Thin black strokes showing key changes from step A.",
-      "description": "This image shows the first major transformation in the process. New elements appear while previous ones evolve. It represents the intermediate stage of development."
-    },
-    {
-      "stepName": "C",
-      "prompt": "Black and white line art showing [second transformation]. Further progression from step B.",
-      "description": "This image depicts continued transformation toward completion. The concept becomes more refined and complex. It prepares for the final state."
-    },
-    {
-      "stepName": "FINAL",
-      "prompt": "Black and white line art showing [completed concept]. All elements present, fully formed.",
-      "description": "This image presents the complete concept with all elements in place. The visual shows the final result after all transformations. It represents the ultimate understanding of the topic."
-    }
+  {
+  "stepName": "A",
+  "prompt": "...",
+  "description": "..."
+  },
+  {
+  "stepName": "B",
+  "prompt": "...",
+  "description": "..."
+  },
+  {
+  "stepName": "C",
+  "prompt": "...",
+  "description": "..."
+  },
+  {
+  "stepName": "FINAL",
+  "prompt": "...",
+  "description": "..."
+  }
   ]
-}
+  }
 
-EXAMPLE for "Plant Growth":
-{
-  "steps": [
-    {
-      "stepName": "A",
-      "prompt": "Black and white line art of a single seed in soil, cross-section view showing seed and surrounding dirt particles.",
-      "description": "This image shows the starting point of plant growth - a seed buried in soil. The cross-section reveals the seed's position beneath the surface. It represents potential waiting to be activated."
-    },
-    {
-      "stepName": "B",
-      "prompt": "Black and white line art showing a small seedling sprouting from soil, with a thin stem and two small leaves emerging.",
-      "description": "This image captures the first visible growth stage - germination. The seedling breaks through the soil surface with initial leaves. It represents the awakening of life from the seed."
-    },
-    {
-      "stepName": "C",
-      "prompt": "Black and white line art of a young plant with developed stem, multiple leaves, and visible root system below ground.",
-      "description": "This image shows continued growth with more complex structure. Both above-ground and below-ground parts are developing. It represents the maturing phase of the plant."
-    },
-    {
-      "stepName": "FINAL",
-      "prompt": "Black and white line art of a mature flowering plant with thick stem, many leaves, open flowers, and extensive roots.",
-      "description": "This image presents the complete, mature plant in its final form. All parts - roots, stem, leaves, flowers - are fully developed. It represents the culmination of the growth cycle."
-    }
-  ]
-}
+  🚨 QUALITY RULES:
 
-NOW generate steps for: "${topic}"
-Return ONLY valid JSON, no other text.`;
+  * Steps must come from CONTENT, not imagination
+  * Each step must show progression
+  * FINAL step must clearly complete the concept
+  * Avoid repeating same visuals
+
+  Return ONLY JSON.`;
+
 
   const azureUrl = `${TEXT_ENDPOINT}/openai/deployments/${TEXT_DEPLOYMENT}/chat/completions?api-version=${TEXT_API_VERSION}`;
 
