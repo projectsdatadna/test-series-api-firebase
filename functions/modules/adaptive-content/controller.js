@@ -1257,19 +1257,60 @@ async function generateHtmlPdfWithDescriptions(req, res) {
     
     // If there's existing HTML content, preserve it
     if (htmlContent && htmlContent.trim()) {
-      styledHtml = htmlContent;
+      styledHtml = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Explainer - ${filename}</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        background: white;
+      }
+      
+      /* Ensure all content has proper spacing */
+      .content-wrapper, .visual-explainer-section {
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    ${htmlContent}
+  </body>
+</html>`;
     } else {
       styledHtml = `<!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Visual Explainer - ${filename}</title>
-        </head>
-        <body>
-          <div class="content-wrapper"></div>
-        </body>
-      </html>`;
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Explainer - ${filename}</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content-wrapper"></div>
+  </body>
+</html>`;
     }
     
     // Create the modern image gallery HTML (only if we have images)
@@ -1280,14 +1321,14 @@ async function generateHtmlPdfWithDescriptions(req, res) {
       <style>
         /* Modern Visual Explainer Styles */
         .visual-explainer-section {
-          margin-top: 40px;
-          padding: 0 20px;
+          margin-top: 20px;
+          padding-top: 0;
         }
         
         .section-header {
           text-align: center;
-          margin-bottom: 40px;
-          padding: 20px 0;
+          margin: 0 0 20px 0;
+          padding: 10px 0 5px;
         }
         
         .section-header h2 {
@@ -1299,6 +1340,14 @@ async function generateHtmlPdfWithDescriptions(req, res) {
           color: transparent;
           margin-bottom: 8px;
         }
+ 
+        .section-header h2 {
+          margin: 0;
+        }
+ 
+        .section-header p {
+          margin: 4px 0 0 0;
+        }
         
         .section-header p {
           color: #64748b;
@@ -1309,9 +1358,10 @@ async function generateHtmlPdfWithDescriptions(req, res) {
         .steps-container {
           display: flex;
           flex-direction: column;
-          gap: 32px;
+          gap: 12px;
           max-width: 900px;
           margin: 0 auto;
+          padding: 0 10px;
         }
         
         /* Individual Step Card */
@@ -1322,6 +1372,8 @@ async function generateHtmlPdfWithDescriptions(req, res) {
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
           page-break-inside: avoid;
           border: 1px solid #e2e8f0;
+          margin-bottom: 10px;
+          break-inside: avoid;
         }
         
         /* Card Header with Gradient */
@@ -1369,25 +1421,31 @@ async function generateHtmlPdfWithDescriptions(req, res) {
         
         /* Image Container */
         .step-image-container {
-          padding: 24px;
+          padding: 12px 12px;
           background: #fafbfc;
           display: flex;
           justify-content: center;
           align-items: center;
           border-bottom: 1px solid #f0f2f5;
+          margin: 0;
         }
         
         .step-image {
-          max-width: 100%;
+          max-width: 60%;
           height: auto;
+          max-height: 260px;
+          width: auto;
           border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
           background: white;
+          object-fit: contain;
+          margin: 0 auto;
+          display: block;
         }
         
         /* Description Box */
         .step-description {
-          padding: 20px 24px;
+          padding: 12px 16px;
           background: #f0f9ff;
           border-left: 4px solid #3b82f6;
         }
@@ -1420,6 +1478,11 @@ async function generateHtmlPdfWithDescriptions(req, res) {
         
         /* Print Styles */
         @media print {
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          
           .step-card {
             page-break-inside: avoid;
             break-inside: avoid;
@@ -1490,16 +1553,11 @@ async function generateHtmlPdfWithDescriptions(req, res) {
       }
     }
     
-    // Ensure proper viewport and print settings
-    if (!finalHtml.includes('<meta name="viewport"')) {
-      finalHtml = finalHtml.replace('<head>', '<head><meta name="viewport" content="width=device-width, initial-scale=1.0">');
-    }
-    
     console.log('[PDF] Setting page content...');
     
     // ✅ Use a simpler approach to set content
     await page.setContent(finalHtml, {
-      waitUntil: 'domcontentloaded', // ✅ Changed from 'networkidle0' to 'domcontentloaded' for speed
+      waitUntil: 'domcontentloaded',
       timeout: 60000
     });
     
@@ -1512,7 +1570,6 @@ async function generateHtmlPdfWithDescriptions(req, res) {
         return new Promise((resolve) => {
           img.onload = resolve;
           img.onerror = resolve;
-          // Set a timeout for each image
           setTimeout(resolve, 5000);
         });
       });
@@ -1523,17 +1580,19 @@ async function generateHtmlPdfWithDescriptions(req, res) {
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 500)));
     
     console.log('[PDF] Generating PDF buffer...');
+    
+    // ✅ FIXED: Removed header/footer, consistent margins all around
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: {
-        top: '20mm',
-        bottom: '20mm',
+        top: '15mm',
+        bottom: '15mm',
         left: '15mm',
         right: '15mm'
       },
-      displayHeaderFooter: false,
-      preferCSSPageSize: true, // ✅ Changed to true for better print handling
+      displayHeaderFooter: false,   // ✅ REMOVED - No header/footer
+      preferCSSPageSize: true,
       timeout: 90000
     });
     
@@ -1552,7 +1611,6 @@ async function generateHtmlPdfWithDescriptions(req, res) {
       await browser.close();
     }
     
-    // ✅ Return a more helpful error message
     if (error.message.includes('timeout')) {
       return res.status(504).json({
         success: false,
@@ -1564,7 +1622,7 @@ async function generateHtmlPdfWithDescriptions(req, res) {
     throw error;
   }
 }
-
+ 
 function escapeHtml(text) {
   if (!text) return '';
   return text
@@ -1734,7 +1792,9 @@ async function generateHtmlPdf(req, res) {
               line-height: 1.5;
               color: #1f2937;
               background: white;
-              padding: 40px;
+              margin: 0;
+              padding: 0;
+              margin-top: 40px;
             }
             img {
               max-width: 100%;
@@ -1750,13 +1810,28 @@ async function generateHtmlPdf(req, res) {
                 page-break-before: always;
               }
             }
+            @page {
+              margin-top: 80mm;
+              margin: 20mm 15mm; /* control exact PDF spacing */
+            }
+            .pdf-page-wrapper {
+              padding: 10mm 0;   /* internal breathing space */
+            }
+            .visual-explainer-section {
+              margin-top: 20px;
+              padding-top: 5px;
+            
+            }
           </style>
           <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
           <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
         </head>
         <body>
-          ${htmlContent}
+          <div class="pdf-page-wrapper">
+            ${htmlContent}
+            ${modernGalleryHtml}
+          </div>
         </body>
       </html>`;
     }
@@ -1815,7 +1890,7 @@ async function generateHtmlPdf(req, res) {
       format: 'A4',
       printBackground: true,
       margin: {
-        top: '20mm',
+        top: '0mm',
         bottom: '20mm',
         left: '15mm',
         right: '15mm'
