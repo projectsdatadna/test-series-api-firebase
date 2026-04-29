@@ -798,7 +798,10 @@ async function generateQuestionPaper(req, res) {
       differentiate,
       sequencing,
       geometry,
+      outputLanguage = 'english',
     } = req.body;
+
+    console.log("outputlanguage:", outputLanguage);
 
     // Validate required fields - chunks must be provided
     if (!chunks || chunks.length === 0) {
@@ -1083,7 +1086,8 @@ CRITICAL RULES:
 - Ensure ALL requested question types are present in response.
 - Start with { and end with } - nothing else.
 - IMPORTANT: If you are asked to generate 12 Short Answer questions, you MUST generate exactly 12, not 10 or fewer.
-- Keep answers concise to fit within token limits while maintaining quality.`;
+- Keep answers concise to fit within token limits while maintaining quality.
+- ⚠️ LANGUAGE INSTRUCTION: Generate ALL questions, answers, and options in ${outputLanguage.toUpperCase()}. Every single word of every question and answer must be written in ${outputLanguage}. Do NOT use English if a different language is requested.`;
 
     console.log("[QuestionPaper] Calling Azure OpenAI (deployment:", AZURE_OPENAI_DEPLOYMENT, "| maxTokens:", maxTokens, ")...");
 

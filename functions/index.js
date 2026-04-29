@@ -43,10 +43,10 @@ app.use((req, res, next) => {
     return next();
   }
   
-  express.json({ limit: '10mb' })(req, res, next);  // ← Added limit
+  express.json({ limit: '50mb' })(req, res, next);  // ← Added limit
 });
 
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Initialize Firebase (config is loaded in modules)
 require('./config/firebase');
