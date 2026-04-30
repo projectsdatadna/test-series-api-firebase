@@ -373,6 +373,63 @@ function getMindMapsPrompt(params) {
 
   Topic: ${topicName}
 
+  🚨 STRICT CONTENT BOUNDARY:
+  - Use ONLY information relevant to the given topic
+  - DO NOT include content from other chapters or unrelated concepts
+  - DO NOT expand beyond the scope of the topic
+  - Stay strictly within textbook-defined boundaries
+
+  🚨 STRICT NON-REPETITION ENFORCEMENT:
+  - No two subconcepts across the entire mind map should convey the same idea
+  - Avoid semantic duplication even with different wording
+  - Each subconcept must introduce a NEW learning insight, not a variation
+  - Do NOT reuse the same keywords across multiple subconcepts unless essential
+
+  🚨 CROSS-CONCEPT UNIQUENESS:
+  - Each concept must represent a DISTINCT category of the topic
+  - Concepts must NOT overlap in meaning or coverage
+  - Subconcepts under different concepts must not repeat similar ideas
+
+  🚨 DEDUPLICATION CHECK (MANDATORY):
+  - Before finalizing, internally compare all subconcepts
+  - If two subconcepts are similar, keep ONLY the most precise one
+  - Replace or rewrite duplicates with new unique insights
+
+  🚨 VARIATION ENFORCEMENT:
+  - Use different angles such as definition, mechanism, example, cause, effect, or application
+  - Avoid repeating patterns like:
+    "X helps prevent disease"
+    "Y reduces disease risk"
+    "Z improves health"
+
+  🚨 ANTI-REPETITION RULES:
+  - DO NOT repeat the same idea across multiple subconcepts
+  - Each subconcept MUST introduce a UNIQUE point
+  - Avoid rewording the same sentence with minor variations
+  - Ensure conceptual diversity across all concepts
+
+  🚨 NO REFERENCE TEXT RULE:
+  - DO NOT include phrases like:
+    "as shown in figure"
+    "refer to the diagram"
+    "in the above image"
+    "as discussed earlier"
+  - DO NOT mention figures, tables, charts, or external references
+  - Content must be fully standalone and self-explanatory
+
+  🚨 DOMAIN SEPARATION RULE:
+  - Each concept must cover a completely different domain (e.g., diet, hygiene, mental health)
+  - Do NOT split similar domains into multiple concepts
+  - Avoid inverse duplication (e.g., good habits vs bad habits of same category)
+
+  🚨 NO CONTEXT DRIFT:
+  - Avoid country-specific, historical, or extra factual details unless essential to the topic
+  - Focus only on core conceptual understanding
+
+  🚨 DEPTH ENFORCEMENT:
+  - Avoid generic sentences like "prevents many problems"
+  - Use specific outcomes (e.g., reduces infection risk, improves cardiovascular function)
+
   🚨 CONTENT RULES:
 
   * Each subconcept MUST be a COMPLETE, grammatically correct sentence
@@ -392,17 +449,26 @@ function getMindMapsPrompt(params) {
   * Each concept MUST have EXACTLY 3 subconcepts
   * Each subconcept MUST be a full meaningful sentence
 
-  🚨 QUALITY:
-
-  * Content must be mathematically/scientifically correct
-  * No vague or incomplete statements
-  * Ensure logical clarity in examples
+  🚨 QUALITY CONTROL:
+  - Ensure all statements are factually correct
+  - Avoid generic phrases like "various types" or "different methods"
+  - Every subconcept must add new learning value
+  - Maintain logical consistency within each concept
 
   🚨 OUTPUT:
 
   * Return ONLY JSON
+  * No markdown
   * No explanation
-  * No extra text`;
+  * No extra text
+
+  🚨 FINAL VALIDATION CHECK:
+  ✓ All content stays within topic scope
+  ✓ No repetition across subconcepts
+  ✓ No references to figures/images/text
+  ✓ Exactly 3 subconcepts per concept
+  ✓ Minimum 6 concepts generated
+  ✓ Each sentence is 8–15 words`;
   }
 
 
@@ -584,6 +650,51 @@ Section: ${sectionNumber}
 Depth: ${contentDepth} | Language: ${outputLanguage}
 Adaptive rule: ${adaptiveRule}
 
+🚨 STUDY MATERIAL ENFORCEMENT (CRITICAL):
+- The diagram must function as a COMPLETE STUDY TOOL, not just a visual structure
+- Each node label must carry MEANINGFUL academic content, not just headings
+- Avoid generic labels like "Types", "Process", "Factors", "Details"
+- Every node should teach a concept, definition, rule, or relationship
+
+🚨 LEARNING VALUE REQUIREMENT:
+- Ensure the diagram alone is sufficient for revision without textbook reference
+- Include key definitions, mechanisms, causes, effects, or examples within node labels
+- Prefer informative labels over short vague titles
+
+❌ BAD NODE LABELS:
+"Types of Diseases"
+"Process"
+"Steps"
+"Factors"
+
+✅ GOOD NODE LABELS:
+"Communicable diseases spread through pathogens like bacteria and viruses"
+"Vaccination stimulates immune response and prevents infectious diseases"
+"Antibiotic misuse leads to development of resistant bacterial strains"
+
+🚨 CONCEPT COMPLETENESS:
+- Cover ALL major subtopics required for understanding the topic
+- Do NOT leave gaps in conceptual explanation
+- Ensure logical flow between nodes builds understanding step by step
+
+🚨 DEPTH ADAPTATION:
+- ${adaptiveRule}
+- Beginner: use simple but meaningful explanations
+- Intermediate: include definitions + cause/effect + examples
+- Advanced: include mechanisms, relationships, and deeper reasoning
+
+🚨 NO SHALLOW DIAGRAMS:
+- Do NOT generate diagrams with only structural hierarchy
+- Avoid "title-only" nodes
+- Each node must add learning value
+
+🚨 NODE CONTENT QUALITY:
+- Each label should be:
+  - Clear
+  - Informative
+  - Concise (max 30 characters constraint still applies, but maximize meaning)
+- Use compressed academic phrasing if needed
+
 CRITICAL SECTION COVERAGE REQUIREMENT:
 - Analyze ALL sections provided in the input chunk
 - Include ALL concepts as nodes in the diagram
@@ -615,7 +726,8 @@ Edge rules:
 - FLOWCHART decision nodes only: add "label": "Yes" or "label": "No"
 - CYCLE: last node must have an edge back to rootId
 - COMPARISON: root connects to both left and right group heads
-- Max node label: 30 chars
+- Max node label: 60-80 chars
+- Labels must prioritize meaning over brevity
 
 STEP 3 � DETECT SUBJECT COLOR:
 Biology/Nature: accent=#16a34a, pastel=#dcfce7
@@ -655,7 +767,33 @@ OUTPUT � return exactly this JSON structure:
   "footer": {
     "text": "� 2025 EduFit � Diagrammatic Representation Generated by AI"
   }
-}`;
+}
+
+
+🚨 EXPLANATION-FIRST RULE:
+- Every node must answer at least one:
+  - What?
+  - Why?
+  - How?
+- Avoid naming-only or topic-only nodes
+
+
+🚨 NO LABEL-ONLY NODES:
+- Nodes must NOT be headings or examples alone
+- Each node must include a clear explanation or definition
+- Example nodes must include WHY or HOW, not just WHAT
+
+❌ BAD:
+"Salt dissolves in water"
+
+✅ GOOD:
+"Salt dissolves in water because polar molecules attract ions"
+  
+🚨 FINAL VALIDATION:
+✓ Diagram can be used directly for exam revision
+✓ Each node teaches something meaningful
+✓ No vague or empty labels
+✓ Logical flow improves understanding`;
 
 }
 
