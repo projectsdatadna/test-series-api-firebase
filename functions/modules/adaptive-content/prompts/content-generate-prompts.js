@@ -21,6 +21,31 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - File size increase is acceptable to ensure complete coverage
 - Each section must be represented in the generated content
 
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every sticky note content MUST be directly traceable to the given content
+- Ensure ALL important points from the content are included
+- Do NOT skip any key idea, definition, or concept from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every bullet point must be verifiable from the source content
+- If any point cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
+
 CRITICAL CARD OVERFLOW PREVENTION:
 - Remove max-height constraint from sticky notes
 - Set overflow: visible on all card containers
@@ -218,6 +243,32 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - File size increase is acceptable to ensure complete coverage
 - Each concept must be represented in the generated content
 
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every concept card content MUST be directly traceable to the given content
+- Ensure ALL important points from the content are included
+- Do NOT skip any key idea, definition, or concept from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every concept card point must be verifiable from the source content
+- If any point cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
+
+
 CRITICAL CARD OVERFLOW PREVENTION:
 - Remove max-height constraint from concept cards
 - Set overflow: visible on concepts-grid
@@ -302,6 +353,31 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - Cover ALL key concepts, but GROUP related ideas into single cards where appropriate
 - Avoid creating too many small or repetitive cards
 - Target: 6 to 10 well-balanced flash cards (NOT unlimited)
+
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every flash card content MUST be directly traceable to the given content
+- Ensure ALL important points from the content are included
+- Do NOT skip any key idea, definition, or concept from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every question and answer must be verifiable from the source content
+- If any card cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
 
 Bloom's Taxonomy Level – Remember (Recall & Recognition):
 - Questions must test definitions, facts, and key understanding
@@ -491,6 +567,31 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - Do NOT limit to 4 cards - expand grid layout as needed to cover all content
 - Each concept must be represented in the generated content
 - File size increase is acceptable to ensure complete coverage
+
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every visual explainer content MUST be directly traceable to the given content
+- Ensure ALL important points from the content are included
+- Do NOT skip any key idea, definition, or concept from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every card content must be verifiable from the source content
+- If any content cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
 
 CRITICAL CARD OVERFLOW PREVENTION:
 - Set min-height: auto; overflow: visible; on all card containers
@@ -703,6 +804,31 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - Allow diagram to expand to accommodate all nodes
 - Generate key notes for ALL important concepts (not limited to 5)
 - File size increase is acceptable to ensure complete coverage
+
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every node and key note MUST be directly traceable to the given content
+- Ensure ALL important points from the content are included
+- Do NOT skip any key idea, definition, or concept from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every node label and key note must be verifiable from the source content
+- If any content cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
 
 Bloom's Taxonomy Level � Understand (Comprehension): Focus on comprehension � use diagrams to clarify structure, relationships, and simplified understanding.
 
@@ -927,6 +1053,7 @@ CONSTRAINTS:
 
 RETURN ONLY THE HTML. NOTHING ELSE.`;
 }
+
 function getCompareContrastTablesPrompt(params) {
   const {
     sectionNumber = '',
@@ -946,6 +1073,31 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - Do NOT limit to 8-12 rows - add as many rows as needed to cover all content
 - Each feature must be represented in the generated content
 - File size increase is acceptable to ensure complete coverage
+
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every comparison row MUST be directly traceable to the given content
+- Ensure ALL important points from the content are included
+- Do NOT skip any key idea, definition, or concept from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every table row and summary must be verifiable from the source content
+- If any content cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
 
 CRITICAL CARD OVERFLOW PREVENTION:
 - Allow table to expand vertically as needed
@@ -1011,6 +1163,31 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - Do NOT limit to 2-3 pairs - generate complete chain
 - Each cause-effect pair must be represented in the generated content
 - File size increase is acceptable to ensure complete coverage
+
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every cause-effect pair MUST be directly traceable to the given content
+- Ensure ALL important relationships from the content are included
+- Do NOT skip any key idea, definition, or relationship from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every cause and effect must be verifiable from the source content
+- If any pair cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
 
 CRITICAL CARD OVERFLOW PREVENTION:
 - Allow chain-card to expand vertically as needed
@@ -1084,6 +1261,31 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - Each event must be represented in the generated content
 - File size increase is acceptable to ensure complete coverage
 
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every timeline event MUST be directly traceable to the given content
+- Ensure ALL important events from the content are included
+- Do NOT skip any key idea, milestone, or event from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every timeline event must be verifiable from the source content
+- If any event cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
+
 CRITICAL CARD OVERFLOW PREVENTION:
 - Set min-height: auto; overflow: visible; on timeline-event cards
 - Remove any max-height constraints
@@ -1147,6 +1349,31 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - Allow formula grid to expand as needed
 - Each formula must be represented in the generated content
 - File size increase is acceptable to ensure complete coverage
+
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every formula and explanation MUST be directly traceable to the given content
+- Ensure ALL important formulas from the content are included
+- Do NOT skip any key formula, rule, or equation from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every formula and description must be verifiable from the source content
+- If any content cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
 
 CRITICAL CARD OVERFLOW PREVENTION:
 - Set min-height: auto; overflow: visible; on formula cards
@@ -1218,6 +1445,31 @@ CRITICAL SECTION COVERAGE REQUIREMENT:
 - Allow summary to expand as needed
 - Each section must be represented in the generated content
 - File size increase is acceptable to ensure complete coverage
+
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the input/context
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every summary section MUST be directly traceable to the given content
+- Ensure ALL important points from the content are included
+- Do NOT skip any key idea, definition, concept, or explanation from the source
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material, even if related
+- Avoid adding textbook knowledge unless it exists in the provided content
+- If information is not present, DO NOT invent or infer it
+
+🚨 CONTENT FIDELITY:
+- Preserve the original meaning of the content
+- Rephrase only for clarity without changing the concept
+
+🚨 TRACEABILITY CHECK:
+- Every section and point must be verifiable from the source content
+- If any content cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
 
 CRITICAL CARD OVERFLOW PREVENTION:
 - Set min-height: auto; overflow: visible; on all content boxes

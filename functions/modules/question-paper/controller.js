@@ -837,8 +837,24 @@ async function generateQuestionPaper(req, res) {
     });
 
     // Build combined prompt with all question types
-    let combinedPrompt =
-      "Generate all question types below in a single JSON response.\n\n";
+    let combinedPrompt = `Generate all question types below in a single JSON response.
+
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the content provided in the context below
+- DO NOT use external knowledge
+- DO NOT introduce new concepts not present in the content
+- Cover ALL important concepts from the provided content
+- Every question MUST be based strictly on the given content
+
+🚨 NO OUTSIDE CONTENT RULE:
+- Do NOT add extra examples or facts not present in content
+- Do NOT expand beyond the given material
+- If information is missing, DO NOT guess
+
+🚨 TRACEABILITY:
+- Every question must be directly traceable to the provided content
+
+`;
 
     if (mcq && mcq.count > 0) {
       combinedPrompt +=
@@ -1075,6 +1091,26 @@ CRITICAL REQUIREMENTS:
     const userMessage = `${combinedPrompt}\n\nUse the following context from the document to generate questions:\n\n${contextText}`;
 
     const systemMessage = `You are a question paper generator. Output ONLY valid JSON, nothing else.
+
+🚨 STRICT CONTENT COVERAGE (MANDATORY):
+- Use ONLY the provided document context (chunks)
+- DO NOT use prior knowledge, assumptions, or general knowledge
+- DO NOT introduce new concepts not present in the source content
+- Every question and answer MUST be directly traceable to the given content
+- Ensure ALL important concepts from the content are covered through questions
+- Do NOT skip any key idea, definition, concept, or relationship
+
+🚨 NO OUTSIDE CONTENT RULE:
+- DO NOT add examples, facts, or explanations not explicitly mentioned in the input
+- DO NOT expand beyond the given material
+- If information is not present, DO NOT invent or infer it
+
+🚨 TRACEABILITY CHECK:
+- Every generated question must be verifiable from the source content
+- If a question cannot be traced back, REMOVE it
+
+🚨 CRITICAL FAILURE CONDITION:
+- If any content is added from outside the source, the output is INVALID
 
 CRITICAL RULES:
 - Output ONLY the JSON object. No explanations, no text before or after, no markdown code blocks.
