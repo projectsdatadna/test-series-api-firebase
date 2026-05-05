@@ -385,7 +385,13 @@ CRITICAL REQUIREMENTS:
 
     // Format chunks as context text
     const contextText = chunks
-      .map((chunk, idx) => `[Context ${idx + 1}] ${chunk.text}`)
+      .map((chunk, idx) => `
+    ==============================
+    SECTION ${idx + 1}: ${chunk.sectionTitle || 'Topic'}
+    ==============================
+
+    ${chunk.text}
+    `)
       .join("\n\n");
 
     // ✅ Build final user message — combines combinedPrompt + context
@@ -414,27 +420,31 @@ CRITICAL REQUIREMENTS:
 🚨 CRITICAL FAILURE CONDITION:
 - If any content is added from outside the source, the output is INVALID
 
-🚨 MULTI-CHAPTER COVERAGE (CRITICAL FIX):
+🚨 STRICT MULTI-SECTION DISTRIBUTION (NON-NEGOTIABLE):
 
-- The provided context may contain MULTIPLE chapters or sections.
-- You MUST generate questions from ALL contexts, not just one.
+The input contains MULTIPLE SECTIONS.
 
-MANDATORY DISTRIBUTION RULE:
-- Questions must be DISTRIBUTED across ALL provided contexts
-- Do NOT generate all questions from a single context
-- Each context (e.g., [Context 1], [Context 2]) MUST contribute to the final questions
+YOU MUST:
+- Generate questions from EACH section separately
+- Ensure ALL sections are represented
 
-MINIMUM COVERAGE REQUIREMENT:
-- Each context must contribute at least 30–50% of its key concepts
-- If 2 chapters are provided → BOTH must appear in questions
-- If 3 chapters → all 3 must appear
+MANDATORY RULES:
+- Each section must contribute at least 2 questions
+- Questions must be evenly distributed across sections
+- Do NOT generate all questions from one section
 
-🚨 IDENTIFICATION RULE:
-- Treat each [Context X] as a separate source
-- Ensure questions reference concepts from DIFFERENT contexts
+SECTION TRACKING:
+- While generating questions, internally map:
+  Question → Section source
 
-🚨 FAILURE CONDITION:
-- If questions come from only one context → OUTPUT IS INVALID
+BALANCE REQUIREMENT:
+- Include:
+  - Conceptual questions (Slow/Fast)
+  - Formula questions (Speed)
+  - Definition/comparison questions (Uniform Motion)
+
+🚨 HARD FAILURE:
+- If any section is missing → output is INVALID
 
 CRITICAL RULES:
 - Output ONLY the JSON object. No explanations, no text before or after, no markdown code blocks.
