@@ -1,6 +1,7 @@
 const express = require("express");
 const { generateQuestionPaper } = require("./controller");
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
+const { questionImgGenerate } = require("./questionImgGenerate");
 
 const router = express.Router();
 
@@ -62,5 +63,7 @@ router.options("/generate", (req, res) => {
 });
 
 router.post("/generate", verifyJWT, generateQuestionPaper);
+
+router.post('/generateQuestionImg', questionImgGenerate);
 
 module.exports = router;

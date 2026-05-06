@@ -58,6 +58,36 @@ function buildCombinedPrompt(typeConfigs, difficultyLevel, subject, isSingleSect
 🚨 TRACEABILITY:
 - Every question must be directly traceable to the provided content
 
+🚨 FIGURE / EXAMPLE BASED CONTENT RESTRICTION:
+- Do NOT generate questions that depend on figures, diagrams, images, tables, charts, maps, or example labels unless the actual figure content is explicitly provided in the text
+- Do NOT create questions using references like:
+  - "Fig. 7.4"
+  - "Figure 3.1"
+  - "Diagram above"
+  - "Table below"
+  - "Refer to the image"
+  - "Example shown"
+- Do NOT generate questions asking students to identify options from unnamed figures or visual examples
+- Avoid questions containing phrases such as:
+  - "according to the figure"
+  - "from the diagram"
+  - "in the above example"
+  - "which triangle in Fig..."
+  - "shown in the image"
+- If the source content references a figure/example without full textual explanation, SKIP that content entirely
+- Generate ONLY text-answerable questions directly supported by textual content
+
+🚨 INVALID QUESTION EXAMPLES (DO NOT GENERATE):
+- "Which triangle is NOT congruent to triangle ABC according to Fig. 7.4?"
+- "Identify the part marked in the diagram"
+- "Choose the correct graph from the figure"
+- "What is shown in the above image?"
+
+🚨 IMPORTANT:
+- Example-based practice questions from textbooks must NOT be copied or transformed into new questions
+- Ignore solved examples, figure references, activity references, and exercise-example identifiers
+- Prefer conceptual and theory-based questions from explanatory text only
+
 `;
 
   if (!isSingleSection) {
@@ -82,8 +112,38 @@ MINIMUM COVERAGE REQUIREMENT:
 🚨 FAILURE CONDITION:
 - If questions come from only one context → OUTPUT IS INVALID
 
+🚨 FIGURE / EXAMPLE BASED CONTENT RESTRICTION:
+- Do NOT generate questions that depend on figures, diagrams, images, tables, charts, maps, or example labels unless the actual figure content is explicitly provided in the text
+- Do NOT create questions using references like:
+  - "Fig. 7.4"
+  - "Figure 3.1"
+  - "Diagram above"
+  - "Table below"
+  - "Refer to the image"
+  - "Example shown"
+- Do NOT generate questions asking students to identify options from unnamed figures or visual examples
+- Avoid questions containing phrases such as:
+  - "according to the figure"
+  - "from the diagram"
+  - "in the above example"
+  - "which triangle in Fig..."
+  - "shown in the image"
+- If the source content references a figure/example without full textual explanation, SKIP that content entirely
+- Generate ONLY text-answerable questions directly supported by textual content
+
+🚨 INVALID QUESTION EXAMPLES (DO NOT GENERATE):
+- "Which triangle is NOT congruent to triangle ABC according to Fig. 7.4?"
+- "Identify the part marked in the diagram"
+- "Choose the correct graph from the figure"
+- "What is shown in the above image?"
+
+🚨 IMPORTANT:
+- Example-based practice questions from textbooks must NOT be copied or transformed into new questions
+- Ignore solved examples, figure references, activity references, and exercise-example identifiers
+- Prefer conceptual and theory-based questions from explanatory text only
+
 `;
-  }
+}
 
   if (mcq && mcq.count > 0) {
     prompt += getMCQPrompt({ count: mcq.count, marks: mcq.marks, difficultyLevel, subject }) + "\n\n";
