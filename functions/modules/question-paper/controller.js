@@ -77,6 +77,41 @@ function buildCombinedPrompt(typeConfigs, difficultyLevel, subject, isSingleSect
 - If the source content references a figure/example without full textual explanation, SKIP that content entirely
 - Generate ONLY text-answerable questions directly supported by textual content
 
+🚨 DUPLICATE QUESTION RESTRICTION (CRITICAL):
+- EVERY generated question MUST be unique
+- NEVER repeat the same question
+- NEVER repeat the same meaning using different wording
+- Do NOT generate duplicate MCQs with identical options
+- Do NOT generate questions that test the exact same concept repeatedly
+- Each question must cover a DIFFERENT concept, fact, definition, or idea
+
+🚨 HARD REJECTION RULE:
+If a generated question is similar to a previous question in:
+- wording
+- meaning
+- answer
+- options
+- concept
+THEN DO NOT GENERATE IT.
+
+🚨 UNIQUENESS REQUIREMENT:
+- All questions must be semantically different
+- Avoid repeated sentence structures
+- Avoid repeated answers
+- Avoid repeating the same keyword-focused question
+
+🚨 INVALID EXAMPLES (DO NOT GENERATE):
+❌ Same question repeated multiple times
+❌ Same MCQ with changed option order
+❌ Same meaning rewritten slightly
+❌ Same answer appearing repeatedly for identical questions
+
+🚨 REQUIRED:
+Before finalizing output:
+- Check ALL generated questions
+- Remove duplicates
+- Regenerate unique replacements
+
 🚨 INVALID QUESTION EXAMPLES (DO NOT GENERATE):
 - "Which triangle is NOT congruent to triangle ABC according to Fig. 7.4?"
 - "Identify the part marked in the diagram"
@@ -131,6 +166,90 @@ MINIMUM COVERAGE REQUIREMENT:
 - If the source content references a figure/example without full textual explanation, SKIP that content entirely
 - Generate ONLY text-answerable questions directly supported by textual content
 
+🚨 TABLE / ACTIVITY / REFERENCE RESTRICTION:
+- Do NOT generate questions referring to:
+  - tables
+  - activities
+  - boxed examples
+  - textbook exercises
+  - numbered references
+  - charts
+  - reference labels
+
+- Completely avoid phrases such as:
+  - "represented in Table"
+  - "shown in Table"
+  - "from Table 3.2"
+  - "according to Table"
+  - "as listed in the table"
+  - "Activity 1"
+  - "Exercise 3.1"
+  - "Refer to the passage above"
+  - "Based on the case given"
+  - "Observe the following"
+  - "study the table"
+  - "look at the chart"
+
+🚨 IMPORTANT:
+- Convert ONLY conceptual textual explanations into questions
+- Ignore textbook reference structures entirely
+- Ignore all numbered labels such as:
+  - Table 1.1
+  - Fig. 2.3
+  - Activity 4
+  - Exercise 5.2
+  - Example 7
+  - Case Study 1
+  - Example-based practice questions from textbooks must NOT be copied or transformed into new questions
+
+🚨 HARD REJECTION:
+If a question contains words like:
+- table
+- figure
+- fig
+- chart
+- activity
+- diagram
+- example above
+- shown below
+- represented in
+THEN DO NOT GENERATE THAT QUESTION.
+
+🚨 DUPLICATE QUESTION RESTRICTION (CRITICAL):
+- EVERY generated question MUST be unique
+- NEVER repeat the same question
+- NEVER repeat the same meaning using different wording
+- Do NOT generate duplicate MCQs with identical options
+- Do NOT generate questions that test the exact same concept repeatedly
+- Each question must cover a DIFFERENT concept, fact, definition, or idea
+
+🚨 HARD REJECTION RULE:
+If a generated question is similar to a previous question in:
+- wording
+- meaning
+- answer
+- options
+- concept
+THEN DO NOT GENERATE IT.
+
+🚨 UNIQUENESS REQUIREMENT:
+- All questions must be semantically different
+- Avoid repeated sentence structures
+- Avoid repeated answers
+- Avoid repeating the same keyword-focused question
+
+🚨 INVALID EXAMPLES (DO NOT GENERATE):
+❌ Same question repeated multiple times
+❌ Same MCQ with changed option order
+❌ Same meaning rewritten slightly
+❌ Same answer appearing repeatedly for identical questions
+
+🚨 REQUIRED:
+Before finalizing output:
+- Check ALL generated questions
+- Remove duplicates
+- Regenerate unique replacements
+
 🚨 INVALID QUESTION EXAMPLES (DO NOT GENERATE):
 - "Which triangle is NOT congruent to triangle ABC according to Fig. 7.4?"
 - "Identify the part marked in the diagram"
@@ -141,6 +260,7 @@ MINIMUM COVERAGE REQUIREMENT:
 - Example-based practice questions from textbooks must NOT be copied or transformed into new questions
 - Ignore solved examples, figure references, activity references, and exercise-example identifiers
 - Prefer conceptual and theory-based questions from explanatory text only
+
 
 `;
 }
@@ -555,6 +675,89 @@ ${chunk.text}
 - Generate EXACTLY the requested number of questions
 - Each question must be traceable to the content
 
+🚨 TABLE / ACTIVITY / REFERENCE RESTRICTION:
+- Do NOT generate questions referring to:
+  - tables
+  - activities
+  - boxed examples
+  - textbook exercises
+  - numbered references
+  - charts
+  - reference labels
+
+- Completely avoid phrases such as:
+  - "represented in Table"
+  - "shown in Table"
+  - "from Table 3.2"
+  - "according to Table"
+  - "as listed in the table"
+  - "Activity 1"
+  - "Exercise 3.1"
+  - "Refer to the passage above"
+  - "Based on the case given"
+  - "Observe the following"
+  - "study the table"
+  - "look at the chart"
+
+🚨 IMPORTANT:
+- Convert ONLY conceptual textual explanations into questions
+- Ignore textbook reference structures entirely
+- Ignore all numbered labels such as:
+  - Table 1.1
+  - Fig. 2.3
+  - Activity 4
+  - Exercise 5.2
+  - Example 7
+  - Case Study 1
+
+🚨 HARD REJECTION:
+If a question contains words like:
+- table
+- figure
+- fig
+- chart
+- activity
+- diagram
+- example above
+- shown below
+- represented in
+THEN DO NOT GENERATE THAT QUESTION.
+
+🚨 DUPLICATE QUESTION RESTRICTION (CRITICAL):
+- EVERY generated question MUST be unique
+- NEVER repeat the same question
+- NEVER repeat the same meaning using different wording
+- Do NOT generate duplicate MCQs with identical options
+- Do NOT generate questions that test the exact same concept repeatedly
+- Each question must cover a DIFFERENT concept, fact, definition, or idea
+
+🚨 HARD REJECTION RULE:
+If a generated question is similar to a previous question in:
+- wording
+- meaning
+- answer
+- options
+- concept
+THEN DO NOT GENERATE IT.
+
+🚨 UNIQUENESS REQUIREMENT:
+- All questions must be semantically different
+- Avoid repeated sentence structures
+- Avoid repeated answers
+- Avoid repeating the same keyword-focused question
+
+🚨 INVALID EXAMPLES (DO NOT GENERATE):
+❌ Same question repeated multiple times
+❌ Same MCQ with changed option order
+❌ Same meaning rewritten slightly
+❌ Same answer appearing repeatedly for identical questions
+
+🚨 REQUIRED:
+Before finalizing output:
+- Check ALL generated questions
+- Remove duplicates
+- Regenerate unique replacements
+
 ⚠️ LANGUAGE: Generate all content in ${outputLanguage.toUpperCase()}
 
 Return ONLY the JSON object. No markdown, no explanations.`;
@@ -638,6 +841,89 @@ ${chunk.text}
 - Ensure ALL sections are represented
 - Each section must contribute questions
 - Do NOT generate all questions from one section
+
+🚨 TABLE / ACTIVITY / REFERENCE RESTRICTION:
+- Do NOT generate questions referring to:
+  - tables
+  - activities
+  - boxed examples
+  - textbook exercises
+  - numbered references
+  - charts
+  - reference labels
+
+- Completely avoid phrases such as:
+  - "represented in Table"
+  - "shown in Table"
+  - "from Table 3.2"
+  - "according to Table"
+  - "as listed in the table"
+  - "Activity 1"
+  - "Exercise 3.1"
+  - "Refer to the passage above"
+  - "Based on the case given"
+  - "Observe the following"
+  - "study the table"
+  - "look at the chart"
+
+🚨 IMPORTANT:
+- Convert ONLY conceptual textual explanations into questions
+- Ignore textbook reference structures entirely
+- Ignore all numbered labels such as:
+  - Table 1.1
+  - Fig. 2.3
+  - Activity 4
+  - Exercise 5.2
+  - Example 7
+  - Case Study 1
+
+🚨 HARD REJECTION:
+If a question contains words like:
+- table
+- figure
+- fig
+- chart
+- activity
+- diagram
+- example above
+- shown below
+- represented in
+THEN DO NOT GENERATE THAT QUESTION.
+
+🚨 DUPLICATE QUESTION RESTRICTION (CRITICAL):
+- EVERY generated question MUST be unique
+- NEVER repeat the same question
+- NEVER repeat the same meaning using different wording
+- Do NOT generate duplicate MCQs with identical options
+- Do NOT generate questions that test the exact same concept repeatedly
+- Each question must cover a DIFFERENT concept, fact, definition, or idea
+
+🚨 HARD REJECTION RULE:
+If a generated question is similar to a previous question in:
+- wording
+- meaning
+- answer
+- options
+- concept
+THEN DO NOT GENERATE IT.
+
+🚨 UNIQUENESS REQUIREMENT:
+- All questions must be semantically different
+- Avoid repeated sentence structures
+- Avoid repeated answers
+- Avoid repeating the same keyword-focused question
+
+🚨 INVALID EXAMPLES (DO NOT GENERATE):
+❌ Same question repeated multiple times
+❌ Same MCQ with changed option order
+❌ Same meaning rewritten slightly
+❌ Same answer appearing repeatedly for identical questions
+
+🚨 REQUIRED:
+Before finalizing output:
+- Check ALL generated questions
+- Remove duplicates
+- Regenerate unique replacements
 
 🚨 OUTPUT RULES:
 - Output ONLY the JSON object
