@@ -4,7 +4,10 @@ function getSystemPrompt(contentTypeId, outputLanguage = 'english') {
     'english': 'English',
     'hindi': 'Hindi',
     'spanish': 'Spanish',
-    'tamil': 'Tamil'
+    'tamil': 'Tamil',
+    'kannada': 'Kannada',
+    'malayalam': 'Malayalam',
+    'telugu': 'Telugu'
   };
   
   const targetLanguage = languageMap[outputLanguage] || 'English';
