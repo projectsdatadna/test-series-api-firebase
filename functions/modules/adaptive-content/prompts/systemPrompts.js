@@ -1,5 +1,27 @@
-function getSystemPrompt(contentTypeId) {
-  const SYSTEM_PROMPTS = {
+function getSystemPrompt(contentTypeId, outputLanguage = 'english') {
+
+    const languageMap = {
+    'english': 'English',
+    'hindi': 'Hindi',
+    'spanish': 'Spanish',
+    'tamil': 'Tamil'
+  };
+  
+  const targetLanguage = languageMap[outputLanguage] || 'English';
+  
+  const LANGUAGE_ENFORCEMENT = `
+  🚨 LANGUAGE ENFORCEMENT - CRITICAL:
+  - You MUST generate ALL content in ${targetLanguage} language
+  - Header titles, card titles, descriptions, bullet points MUST be in ${targetLanguage}
+  - DO NOT generate any content in English if ${targetLanguage} is selected
+  - Translate all concepts, definitions, and examples to ${targetLanguage}
+  - Button labels, badges, and UI text MUST be in ${targetLanguage}
+  - Footer text MUST be in ${targetLanguage}
+  - If ${targetLanguage} is not English, you MUST translate everything appropriately
+  - Use proper grammar and vocabulary for ${targetLanguage}
+  `;
+
+  const BASE_PROMPTS = {
     'ready-reckoner': `YOU ARE A READY RECKONER GENERATOR WITH CONCEPT OVERVIEW AND KEY CONCEPTS ONLY.
 Bloom's Taxonomy Level � Remember (Recall & Recognition): Focus on recall and recognition � present key concepts and definitions for quick reference.
 
@@ -371,7 +393,15 @@ A4 CONSTRAINTS:
 RETURN ONLY COMPLETE MINIFIED HTML. ONE CONTINUOUS LINE. NO MARKDOWN. NO EXPLANATIONS.`
   };
 
-  return SYSTEM_PROMPTS[contentTypeId] || SYSTEM_PROMPTS['default'];
+  const basePrompt = BASE_PROMPTS[contentTypeId] || BASE_PROMPTS['default'];
+  
+  // For flash-cards and mind-maps (JSON outputs), don't add HTML-specific language enforcement
+  if (contentTypeId === 'flash-cards' || contentTypeId === 'mind-maps' || contentTypeId === 'diagrammatic-representation') {
+    return `${LANGUAGE_ENFORCEMENT}\n\n${basePrompt}`;
+  }
+  
+  // For HTML content types, ensure language enforcement is at the top
+  return `${LANGUAGE_ENFORCEMENT}\n\n${basePrompt}`;
 }
 
 module.exports = {

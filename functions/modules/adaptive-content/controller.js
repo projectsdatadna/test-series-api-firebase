@@ -248,7 +248,7 @@ async function generateAdaptiveContent(req, res) {
     if (contentTypeId === "mind-maps") {
       systemPrompt = getMindMapSystemPrompt();
     } else {
-      systemPrompt = getSystemPrompt(contentTypeId); // existing
+      systemPrompt = getSystemPrompt(contentTypeId, language); // existing
     }
 
     if (context) {
@@ -1231,7 +1231,7 @@ async function generateHtmlPdfWithDescriptions(req, res) {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
-        '--disable-gpu'
+        '--disable-gpu',
       ],
       protocolTimeout: 120000, // 120 seconds for protocol operations
     });
