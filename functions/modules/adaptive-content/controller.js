@@ -1223,7 +1223,6 @@ async function generateHtmlPdfWithDescriptions(req, res) {
   try {
     console.log('[PDF] Launching puppeteer with extended timeout...');
     
-    // ✅ Launch with increased protocol timeout
     browser = await puppeteer.launch({
       headless: 'new',
       args: [
@@ -1233,36 +1232,32 @@ async function generateHtmlPdfWithDescriptions(req, res) {
         '--disable-accelerated-2d-canvas',
         '--disable-gpu',
       ],
-      protocolTimeout: 120000, // 120 seconds for protocol operations
+      protocolTimeout: 120000,
     });
     
     const page = await browser.newPage();
     
-    // ✅ Set default navigation timeout
     page.setDefaultNavigationTimeout(90000);
     page.setDefaultTimeout(90000);
     
-    // Filter valid images (remove nulls and invalid URLs)
     const validImages = images.filter(img => img && typeof img === 'string' && img.startsWith('http'));
-    
-    // If no valid images, return error
-    if (validImages.length === 0 && !htmlContent) {
-      throw new Error('No valid images or HTML content to generate PDF');
-    }
     
     const stepLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
     
-    // Build modern styled HTML with beautiful card layout
+    // Logo URL
+    const logoUrl = 'https://testserieslogo.s3.ap-south-1.amazonaws.com/testseriesico.png';
+    
+    // Build styled HTML with proper page break handling and EduFit logo
     let styledHtml = '';
     
-    // If there's existing HTML content, preserve it
     if (htmlContent && htmlContent.trim()) {
       styledHtml = `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Explainer - ${filename}</title>
+    <title>EduFit - ${filename}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
       * {
         margin: 0;
@@ -1273,17 +1268,235 @@ async function generateHtmlPdfWithDescriptions(req, res) {
       body {
         margin: 0;
         padding: 0;
+        background: #f8fafc;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      
+      /* PDF Container */
+      .pdf-container {
+        max-width: 100%;
         background: white;
       }
       
-      /* Ensure all content has proper spacing */
-      .content-wrapper, .visual-explainer-section {
-        padding: 0;
+      /* ✅ EduFit Header with Logo - Centered */
+      .edufit-header {
+        background: #ffffff;
+        padding: 18px 30px;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: center;
+      }
+      
+      .header-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .logo-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo-image {
+        width: 54px;
+        height: 54px;
+        object-fit: contain;
+      }
+
+      .logo-text {
+        font-size: 24px;
+        font-weight: 800;
+        color: #111827;
+        letter-spacing: -0.5px;
+        line-height: 1;
+      }
+
+      .logo-text span {
+        color: inherit;
+        background: none;
+        -webkit-background-clip: unset;
+        background-clip: unset;
+      }
+      /* ✅ Content Wrapper */
+      .content-wrapper {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 30px 40px 30px;
+      }
+      
+      /* ✅ CRITICAL: Prevent ANY content from splitting across pages */
+      .chapter-section,
+      .section-block,
+      .card,
+      .concept-card,
+      .summary-card,
+      .key-points,
+      .practice-questions,
+      .important-points,
+      .section-title,
+      .subsection {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        break-inside: avoid-page;
+      }
+      
+      /* Headers should stay with their content */
+      h1, h2, h3, h4 {
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+      
+      /* Ensure images don't cause overflow */
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+      
+      /* Lists should stay together */
+      ul, ol, p {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      
+      /* Chapter Summary specific styling */
+      .chapter-summary {
+        background: white;
+        border-radius: 24px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      
+      .section-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 3px solid #506ef7;
+        display: inline-block;
+      }
+      
+      .subsection-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #334155;
+        margin: 20px 0 12px 0;
+      }
+      
+      .key-concept {
+        background: #f0f9ff;
+        padding: 16px 20px;
+        border-radius: 16px;
+        border-left: 4px solid #506ef7;
+        margin: 16px 0;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      
+      .bullet-list {
+        padding-left: 24px;
+        margin: 12px 0;
+      }
+      
+      .bullet-list li {
+        margin: 8px 0;
+        line-height: 1.5;
+      }
+      
+      .practice-question {
+        background: #f8fafc;
+        padding: 16px 20px;
+        border-radius: 16px;
+        margin: 12px 0;
+        border: 1px solid #e2e8f0;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      
+      /* Print Styles */
+      @media print {
+        body {
+          background: white;
+          padding: 0;
+          margin: 0;
+        }
+        
+        .edufit-header {
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+          break-inside: avoid;
+        }
+        
+        .chapter-summary,
+        .key-concept,
+        .practice-question {
+          page-break-inside: avoid;
+          break-inside: avoid;
+          box-shadow: none;
+          border: 1px solid #e2e8f0;
+        }
+        
+        .pdf-container {
+          background: white;
+        }
+        
+        h1, h2, h3, h4 {
+          break-after: avoid;
+        }
+
+        .chapter-summary,
+        .key-concept,
+        .practice-question,
+        .summary-card,
+        .section-card,
+        .card,
+        .content-card,
+        .concept-card,
+        .chapter-overview,
+        .learning-objectives,
+        .key-concepts {
+          
+          display: inline-block !important;
+          width: 100% !important;
+
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+
+          overflow: visible !important;
+
+          position: relative !important;
+
+          transform: translateZ(0);
+          -webkit-transform: translateZ(0);
+
+          margin-bottom: 18px !important;
+        }
       }
     </style>
   </head>
   <body>
-    ${htmlContent}
+    <div class="pdf-container">
+      <!-- ✅ EduFit Header with Logo - Centered -->
+      <div class="edufit-header">
+        <div class="header-content">
+          <div class="logo-section">
+            <img src="${logoUrl}" alt="EduFit Logo" class="logo-image" />
+            <div class="logo-text">Edu<span>Fit</span></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="content-wrapper">
+        ${htmlContent}
+      </div>
+    </div>
   </body>
 </html>`;
     } else {
@@ -1292,7 +1505,8 @@ async function generateHtmlPdfWithDescriptions(req, res) {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Explainer - ${filename}</title>
+    <title>EduFit - ${filename}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
       * {
         margin: 0;
@@ -1303,23 +1517,95 @@ async function generateHtmlPdfWithDescriptions(req, res) {
       body {
         margin: 0;
         padding: 0;
+        background: #f8fafc;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      
+      .pdf-container {
+        max-width: 100%;
         background: white;
+      }
+      
+      .edufit-header {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        padding: 20px 30px;
+        margin-bottom: 30px;
+        border-bottom: 3px solid #506ef7;
+        text-align: center;
+      }
+      
+      .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+      }
+      
+      .logo-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .logo-image {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        object-fit: contain;
+      }
+      
+      .logo-text {
+        font-size: 28px;
+        font-weight: 800;
+        color: white;
+        letter-spacing: -0.5px;
+      }
+      
+      .logo-text span {
+        background: linear-gradient(135deg, #818cf8, #c084fc);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      
+      .content-wrapper {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 30px 40px 30px;
+      }
+      
+      @media print {
+        .edufit-header {
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="content-wrapper"></div>
+    <div class="pdf-container">
+      <div class="edufit-header">
+        <div class="header-content">
+          <div class="logo-section">
+            <img src="${logoUrl}" alt="EduFit Logo" class="logo-image" />
+            <div class="logo-text">Edu<span>Fit</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="content-wrapper"></div>
+    </div>
   </body>
 </html>`;
     }
     
-    // Create the modern image gallery HTML (only if we have images)
+    // Modern gallery HTML with page break fixes
     let modernGalleryHtml = '';
     
     if (validImages.length > 0) {
       modernGalleryHtml = `
       <style>
-        /* Modern Visual Explainer Styles */
         .visual-explainer-section {
           margin-top: 20px;
           padding-top: 0;
@@ -1341,20 +1627,12 @@ async function generateHtmlPdfWithDescriptions(req, res) {
           margin-bottom: 8px;
         }
  
-        .section-header h2 {
-          margin: 0;
-        }
- 
-        .section-header p {
-          margin: 4px 0 0 0;
-        }
-        
         .section-header p {
           color: #64748b;
           font-size: 14px;
+          margin: 4px 0 0 0;
         }
         
-        /* Step Card Container */
         .steps-container {
           display: flex;
           flex-direction: column;
@@ -1364,19 +1642,20 @@ async function generateHtmlPdfWithDescriptions(req, res) {
           padding: 0 10px;
         }
         
-        /* Individual Step Card */
+        /* ✅ CRITICAL: Prevent card from splitting across pages */
         .step-card {
           background: white;
           border-radius: 20px;
           overflow: hidden;
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-          page-break-inside: avoid;
           border: 1px solid #e2e8f0;
           margin-bottom: 10px;
+          page-break-inside: avoid;
           break-inside: avoid;
+          break-inside: avoid-page;
+          break-inside: avoid-column;
         }
         
-        /* Card Header with Gradient */
         .step-card-header {
           background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
           padding: 16px 24px;
@@ -1419,7 +1698,6 @@ async function generateHtmlPdfWithDescriptions(req, res) {
           color: white;
         }
         
-        /* Image Container */
         .step-image-container {
           padding: 12px 12px;
           background: #fafbfc;
@@ -1443,7 +1721,6 @@ async function generateHtmlPdfWithDescriptions(req, res) {
           display: block;
         }
         
-        /* Description Box */
         .step-description {
           padding: 12px 16px;
           background: #f0f9ff;
@@ -1476,7 +1753,6 @@ async function generateHtmlPdfWithDescriptions(req, res) {
           margin: 0;
         }
         
-        /* Print Styles */
         @media print {
           body {
             margin: 0;
@@ -1542,11 +1818,14 @@ async function generateHtmlPdfWithDescriptions(req, res) {
     `;
     }
     
-    // Combine existing HTML content with the modern gallery
+    // Combine HTML - insert gallery before the closing content-wrapper div
     let finalHtml = styledHtml;
     
     if (modernGalleryHtml) {
-      if (finalHtml.includes('</body>')) {
+      // Insert gallery before the closing content-wrapper or before </body>
+      if (finalHtml.includes('</div></div></body>')) {
+        finalHtml = finalHtml.replace('</div></div></body>', `${modernGalleryHtml}</div></div></body>`);
+      } else if (finalHtml.includes('</body>')) {
         finalHtml = finalHtml.replace('</body>', `${modernGalleryHtml}</body>`);
       } else {
         finalHtml = finalHtml + modernGalleryHtml;
@@ -1555,13 +1834,12 @@ async function generateHtmlPdfWithDescriptions(req, res) {
     
     console.log('[PDF] Setting page content...');
     
-    // ✅ Use a simpler approach to set content
     await page.setContent(finalHtml, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
     
-    // ✅ Wait for images with a more efficient approach
+    // Wait for images to load
     console.log('[PDF] Waiting for images to load...');
     await page.evaluate(() => {
       const images = Array.from(document.querySelectorAll('img'));
@@ -1576,22 +1854,20 @@ async function generateHtmlPdfWithDescriptions(req, res) {
       return Promise.all(promises);
     });
     
-    // ✅ Additional small delay for layout
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 500)));
     
     console.log('[PDF] Generating PDF buffer...');
     
-    // ✅ FIXED: Removed header/footer, consistent margins all around
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: {
-        top: '15mm',
-        bottom: '15mm',
+        top: '12mm',
+        bottom: '12mm',
         left: '15mm',
         right: '15mm'
       },
-      displayHeaderFooter: false,   // ✅ REMOVED - No header/footer
+      displayHeaderFooter: false,
       preferCSSPageSize: true,
       timeout: 90000
     });
@@ -1611,7 +1887,7 @@ async function generateHtmlPdfWithDescriptions(req, res) {
       await browser.close();
     }
     
-    if (error.message.includes('timeout')) {
+    if (error.message && error.message.includes('timeout')) {
       return res.status(504).json({
         success: false,
         message: 'PDF generation timed out. The content may be too large. Please try again with fewer images or smaller HTML content.',
